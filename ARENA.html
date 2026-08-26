@@ -2733,6 +2733,13 @@ const PERM = {
 const ADMIN_KEY = 'FRICOLOG';
 const ADMIN_NAME = 'FricoLog';
 const ADMIN_SEED_PASS = 'FricoLog@2026';
+/* AUDITORIA: usuário semeado (mesmo padrão do admin) — garante que exista em
+   QUALQUER navegador/dispositivo, já que não há backend compartilhado; o
+   armazenamento local (Stor) é isolado por navegador/origem. */
+const SEED_KEY_2 = 'RODRIGOF';
+const SEED_NAME_2 = 'RodrigoF';
+const SEED_PASS_2 = '123Mudar';
+const SEED_LEVEL_2 = 3; // 3 = visualização completa
 const LOGIN_MAX_FAILS = 5;      // falhas antes do bloqueio temporário
 const LOGIN_LOCK_MS = 60000;    // 60s de bloqueio
 let USERS = {};                 // chave (nome em maiúsculas) -> {name, salt, hash, level, createdAt}
@@ -2857,6 +2864,12 @@ async function loadUsers(){
     USERS[ADMIN_KEY] = {name: ADMIN_NAME, salt, hash: hashPass(ADMIN_KEY, ADMIN_SEED_PASS, salt), level: 4, ver: 2, createdAt: Date.now()};
     await saveUsers();
     audit('admin-semeado', 'administrador padrão criado');
+  }
+  if(!USERS[SEED_KEY_2]){
+    const salt2 = genSalt();
+    USERS[SEED_KEY_2] = {name: SEED_NAME_2, salt: salt2, hash: hashPass(SEED_KEY_2, SEED_PASS_2, salt2), level: SEED_LEVEL_2, ver: 2, createdAt: Date.now()};
+    await saveUsers();
+    audit('user-semeado', SEED_NAME_2 + ' (nível ' + SEED_LEVEL_2 + ') criado automaticamente');
   }
 }
 async function loadAudit(){
