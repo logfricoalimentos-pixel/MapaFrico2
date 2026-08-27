@@ -238,6 +238,7 @@ tr.row-unavailable .td-placa input{background:#fee2e2;color:#b91c1c;font-weight:
 .plan-table td.plan-lbl{background:#3a3838;color:#fff;font-weight:800;text-align:left;border-right:1.5px dotted #f5b800}
 .plan-table tr.plan-total td{background:#ffc000;color:#111;font-weight:800;border-top:1.5px solid #161616;border-bottom:none}
 .plan-table tr.plan-total td.plan-lbl{background:#ffc000;color:#111;text-align:center;border-right:1.5px dotted #f5b800}
+.plan-foot{font-size:11px;color:#64748b;margin-top:8px;text-align:center;font-style:italic}
 
 /* ===== Etiquetas A4 (8×5cm · 10 por página: 2 colunas × 5 linhas) — alto contraste P&B ===== */
 #etiq-print{display:none}
@@ -2034,7 +2035,6 @@ function dataUrlToBlob(dataUrl){
 /* ===== Relatório Planejamento de Transporte (Capital × Interior × Total) ===== */
 function planTon(v){ return v > 0 ? (v/1000).toLocaleString('pt-BR',{maximumFractionDigits:2}) : '0,00'; }
 function buildPlanPrint(){
-  let totV = 0, totE = 0, totP = 0;
   const metaDate = 'Faturamento: <b>' + esc(fmtBR(currentMapDate)) + '</b>' +
     (dtEntrega ? ' &nbsp;·&nbsp; Entrega: <b>' + esc(fmtBR(dtEntrega)) + '</b>' : '');
   let html = '<div class="plan-head"><h1>Planejamento de Transporte</h1><div class="plan-date">' + metaDate + '</div></div>' +
@@ -2046,10 +2046,15 @@ function buildPlanPrint(){
     const v = rows.length;
     const e = rows.reduce((a,r)=> a + numVal(r.entregas), 0);
     const p = rows.reduce((a,r)=> a + numVal(r.peso), 0);
-    totV += v; totE += e; totP += p;
     html += '<tr><td class="plan-lbl">' + (sec==='capital' ? 'Capital' : 'Interior') + '</td><td>' + v + '</td><td>' + fmtInt(e) + '</td><td>' + planTon(p) + '</td></tr>';
   }
-  html += '<tr class="plan-total"><td class="plan-lbl">Total</td><td>' + totV + '</td><td>' + fmtInt(totE) + '</td><td>' + planTon(totP) + '</td></tr></tbody></table></div>';
+  // AUDITORIA: Total = mesma fonte de verdade do "Acompanhamento dia a dia" (metricsFromData),
+  // que inclui Frotas no total de cargas/peso/entregas (Frotas não tem custo, mas conta no total).
+  const m = metricsFromData(DATA);
+  html += '<tr class="plan-total"><td class="plan-lbl">Total</td><td>' + m.cargas + '</td><td>' + fmtInt(m.ent) + '</td><td>' + planTon(m.peso) + '</td></tr></tbody></table></div>';
+  if(DATA.frotas.length){
+    html += '<div class="plan-foot">* Total inclui Frotas (' + DATA.frotas.length + ' veículo(s), sem custo) — não aparece como linha própria.</div>';
+  }
   return html;
 }
 async function genPlanPng(){
