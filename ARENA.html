@@ -227,7 +227,7 @@ tr.row-unavailable .td-placa input{background:#fee2e2;color:#b91c1c;font-weight:
 #plan-print{position:fixed;left:-10000px;top:0;width:560px;background:#fff;padding:22px 26px;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:#111}
 .plan-head{text-align:center;margin-bottom:14px}
 .plan-head h1{font-size:22px;font-weight:800;font-style:italic;color:#111;margin:0}
-.plan-date{font-size:15px;font-weight:700;color:#1d4ed8;margin-top:4px}
+.plan-date{font-size:13.5px;font-weight:700;color:#1d4ed8;margin-top:4px}
 .plan-wrap{position:relative}
 /* "selo" decorativo: triângulo preto acima do canto superior esquerdo da tabela */
 .plan-flag{position:absolute;top:-13px;left:0;width:0;height:0;border-left:118px solid #161616;border-bottom:13px solid transparent}
@@ -2035,7 +2035,9 @@ function dataUrlToBlob(dataUrl){
 function planTon(v){ return v > 0 ? (v/1000).toLocaleString('pt-BR',{maximumFractionDigits:2}) : '0,00'; }
 function buildPlanPrint(){
   let totV = 0, totE = 0, totP = 0;
-  let html = '<div class="plan-head"><h1>Planejamento de Transporte</h1><div class="plan-date">' + esc(fmtBR(currentMapDate)) + '</div></div>' +
+  const metaDate = 'Faturamento: <b>' + esc(fmtBR(currentMapDate)) + '</b>' +
+    (dtEntrega ? ' &nbsp;·&nbsp; Entrega: <b>' + esc(fmtBR(dtEntrega)) + '</b>' : '');
+  let html = '<div class="plan-head"><h1>Planejamento de Transporte</h1><div class="plan-date">' + metaDate + '</div></div>' +
     '<div class="plan-wrap"><div class="plan-flag"></div>' +
     '<table class="plan-table"><colgroup><col style="width:26%"><col style="width:24%"><col style="width:24%"><col style="width:26%"></colgroup>' +
     '<thead><tr><th>&nbsp;</th><th>Veículos</th><th>Entregas</th><th>Peso (TON)</th></tr></thead><tbody>';
