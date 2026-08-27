@@ -25,22 +25,32 @@ h1,h2,h3{margin:0}
 .topbar{position:sticky;top:0;z-index:50;background:#0f172a;color:#e2e8f0;padding:10px 16px;display:flex;flex-direction:column;gap:8px}
 .topbar .row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .topbar .row.grow{flex:1}
-.topbar h1{font-size:16px;color:#fff;letter-spacing:.4px;margin-right:10px;white-space:nowrap}
-.topbar label{font-size:10.5px;color:#94a3b8;display:flex;flex-direction:column;gap:2px;letter-spacing:.3px;text-transform:uppercase}
-.topbar input[type=date],.topbar select{background:#1e293b;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:5px 8px;font:inherit;font-size:13px}
-.save-state{font-size:12px;padding:4px 12px;border-radius:999px;background:#1e293b;color:#94a3b8;margin-left:auto;white-space:nowrap}
+.topbar h1{font-size:18px;color:#fff;letter-spacing:.4px;margin-right:10px;white-space:nowrap}
+.topbar label{font-size:12.5px;color:#94a3b8;display:flex;flex-direction:column;gap:2px;letter-spacing:.3px;text-transform:uppercase}
+.topbar input[type=date],.topbar select{background:#1e293b;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:5px 8px;font:inherit;font-size:15px}
+.save-state{font-size:14px;padding:4px 12px;border-radius:999px;background:#1e293b;color:#94a3b8;margin-left:auto;white-space:nowrap}
 .save-state.saving{color:#fbbf24}
 .save-state.ok{color:#4ade80}
 .save-state.err{color:#f87171}
 .btn{border:1px solid var(--line);background:#fff;border-radius:8px;padding:6px 10px;font:inherit;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;box-shadow:0 1px 2px rgba(15,23,42,.05);white-space:nowrap}
 .btn:hover{background:#f8fafc;border-color:#cbd5e1}
 .btn.mini{padding:2px 6px;font-size:12px;border-radius:6px}
-.topbar .btn{background:#1e293b;border-color:#334155;color:#e2e8f0}
+/* AUDITORIA: fonte do topo +2px (só aqui — não mexe nos botões do resto do app) */
+.topbar .btn{background:#1e293b;border-color:#334155;color:#e2e8f0;font-size:15px}
 .topbar .btn:hover{background:#334155}
 .topbar .btn.primary{background:var(--blue);border-color:var(--blue);color:#fff}
 .topbar .btn.primary:hover{background:var(--blue-d)}
 .topbar .btn.danger{color:#fca5a5;border-color:#7f1d1d}
 .sep{width:1px;height:24px;background:#334155;margin:0 4px}
+/* AUDITORIA: cabeçalho recolhível no celular — some com o menu por padrão, com botão ☰ p/ abrir */
+.topbar-toggle{display:none}
+#topbar-collapsible{display:flex;flex-direction:column;gap:8px}
+@media (max-width:760px){
+  .topbar .row-head{justify-content:space-between}
+  .topbar-toggle{display:inline-flex}
+  #topbar-collapsible{display:none}
+  #topbar.expanded #topbar-collapsible{display:flex}
+}
 
 /* ===== Documento (área capturada) ===== */
 #capture-root{max-width:1500px;margin:16px auto;background:var(--card);border-radius:12px;box-shadow:0 1px 3px rgba(15,23,42,.1);padding:18px 18px 14px;min-height:300px}
@@ -396,8 +406,8 @@ body.logged-in #login-screen{display:none}
 .login-err{font-size:12px;color:var(--err);min-height:15px}
 .login-btn{width:100%;justify-content:center;padding:9px}
 .login-note{font-size:10.5px;color:#94a3b8;text-align:center;margin:0;line-height:1.5}
-.user-chip{display:inline-flex;align-items:center;gap:6px;background:#1e293b;border:1px solid #334155;color:#e2e8f0;border-radius:999px;padding:4px 10px;font-size:12px;white-space:nowrap}
-.user-chip .user-lvl{color:#94a3b8;font-size:11px}
+.user-chip{display:inline-flex;align-items:center;gap:6px;background:#1e293b;border:1px solid #334155;color:#e2e8f0;border-radius:999px;padding:4px 10px;font-size:14px;white-space:nowrap}
+.user-chip .user-lvl{color:#94a3b8;font-size:13px}
 /* ===== Controle de nível de acesso ===== */
 body:not(.logged-in) #topbar, body:not(.logged-in) #capture-root, body:not(.logged-in) #painel, body:not(.logged-in) #settings{display:none !important}
 body.lvl-1 #capture-root{display:none !important}
@@ -458,8 +468,12 @@ body.readonly .sec-actions{display:none}
 
 <!-- ============ BARRA SUPERIOR (não vai para a imagem) ============ -->
 <header class="topbar no-print" id="topbar">
-  <div class="row">
+  <div class="row row-head">
     <h1>🚛 Mapa de Carregamento</h1>
+    <button class="btn topbar-toggle" id="btn-topbar-toggle" type="button" aria-expanded="false" aria-controls="topbar-collapsible">☰ Menu</button>
+  </div>
+  <div id="topbar-collapsible" class="topbar-collapsible">
+  <div class="row">
     <label>Faturamento<input type="date" id="faturamento"></label>
     <label>Entrega<input type="date" id="dtEntrega"></label>
     <label>Histórico salvo<select id="hist"><option value="">—</option></select></label>
@@ -486,6 +500,7 @@ body.readonly .sec-actions{display:none}
     <button class="btn" id="btn-reclass" title="Refaz a classificação de todas as linhas com as regras atuais">🔄 Reclassificar</button>
     <button class="btn danger" id="btn-clear">🧹 Limpar</button>
     <button class="btn primary" id="btn-dash">📊 Indicadores</button>
+  </div>
   </div>
 </header>
 
@@ -3307,6 +3322,17 @@ function renderRegistry(){
 /* ================= Eventos ================= */
 function bindStatic(){
   const captureRoot = $('#capture-root');
+
+  /* AUDITORIA: cabeçalho recolhível no celular — abre/fecha o menu de ações */
+  const topbarToggle = $('#btn-topbar-toggle');
+  if(topbarToggle){
+    topbarToggle.addEventListener('click', ()=>{
+      const t = $('#topbar');
+      const expanded = t.classList.toggle('expanded');
+      topbarToggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+      topbarToggle.textContent = expanded ? '✕ Fechar' : '☰ Menu';
+    });
+  }
 
   /* edição de campos (inputs) — somente admin (inputs de outros níveis ficam disabled) */
   captureRoot.addEventListener('input', e=>{
