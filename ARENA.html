@@ -1017,32 +1017,65 @@ function toast(msg, type){
 function setBusy(b){ const el=$('#busy'); if(el) el.style.display = b? 'flex':'none'; }
 
 /* ================= Storage (nuvem do artifact + fallback localStorage) ================= */
+/* AUDITORIA: banco de dados real (Supabase/Postgres) — substitui o localStorage
+   como fonte central de verdade, para que login e dados sejam iguais em
+   QUALQUER navegador/dispositivo. localStorage continua como cache local
+   (leitura instantânea + fallback caso a rede esteja indisponível). */
+const SUPABASE_URL = 'https://vvnpkraipzytrshaaruo.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_KxWUmmb4l2ahicW5n78tvg_23cd9CDY';
+const SUPA_REST = SUPABASE_URL + '/rest/v1/app_kv';
+function supaHeaders(extra){
+  return Object.assign({
+    'apikey': SUPABASE_ANON_KEY,
+    'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+    'Content-Type': 'application/json'
+  }, extra || {});
+}
 const Stor = {
   async get(k){
+    // 1) tenta o banco (fonte da verdade)
     try{
-      if(window.storage && typeof window.storage.get === 'function'){
-        let r = window.storage.get(k);
-        if(r && typeof r.then === 'function') r = await r;
-        if(r != null){ try{ return typeof r === 'string' ? JSON.parse(r) : r; }catch(e){ return r; } }
+      const res = await fetch(SUPA_REST + '?key=eq.' + encodeURIComponent(k) + '&select=value', {
+        headers: supaHeaders()
+      });
+      if(res.ok){
+        const rows = await res.json();
+        if(Array.isArray(rows) && rows.length){
+          try{ localStorage.setItem('mapa:'+k, JSON.stringify(rows[0].value)); }catch(e){}
+          return rows[0].value;
+        }
+        if(Array.isArray(rows) && rows.length === 0){
+          // chave não existe no banco — não força erro, cai no cache local abaixo
+        }
       }
-    }catch(e){}
+    }catch(e){ /* rede indisponível — cai no cache local */ }
     try{ const v = localStorage.getItem('mapa:'+k); return v==null? null : JSON.parse(v); }catch(e){ return null; }
   },
   async set(k, v){
-    const s = JSON.stringify(v);
-    try{ if(window.storage && typeof window.storage.set === 'function'){ let r = window.storage.set(k, s); if(r && typeof r.then === 'function') await r; } }catch(e){}
-    try{ localStorage.setItem('mapa:'+k, s); }catch(e){}
+    try{ localStorage.setItem('mapa:'+k, JSON.stringify(v)); }catch(e){}
+    try{
+      await fetch(SUPA_REST + '?on_conflict=key', {
+        method: 'POST',
+        headers: supaHeaders({'Prefer': 'resolution=merge-duplicates,return=minimal'}),
+        body: JSON.stringify({key: k, value: v})
+      });
+    }catch(e){ /* falha de rede: fica salvo no cache local; tenta de novo no próximo save */ }
   },
   async del(k){
-    try{ if(window.storage && typeof window.storage.delete === 'function'){ let r = window.storage.delete(k); if(r && typeof r.then === 'function') await r; } }catch(e){}
     try{ localStorage.removeItem('mapa:'+k); }catch(e){}
+    try{
+      await fetch(SUPA_REST + '?key=eq.' + encodeURIComponent(k), {
+        method: 'DELETE',
+        headers: supaHeaders()
+      });
+    }catch(e){}
   },
   async list(){
     try{
-      if(window.storage && typeof window.storage.list === 'function'){
-        let r = window.storage.list();
-        if(r && typeof r.then === 'function') r = await r;
-        if(Array.isArray(r)) return r;
+      const res = await fetch(SUPA_REST + '?select=key', { headers: supaHeaders() });
+      if(res.ok){
+        const rows = await res.json();
+        if(Array.isArray(rows)) return rows.map(r=>r.key);
       }
     }catch(e){}
     try{ return Object.keys(localStorage).filter(k=>k.startsWith('mapa:')).map(k=>k.slice(5)); }catch(e){ return []; }
