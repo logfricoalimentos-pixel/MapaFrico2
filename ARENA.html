@@ -163,31 +163,34 @@ tr.row-unavailable .td-placa input{background:#fee2e2;color:#b91c1c;font-weight:
 #capture-root.capturing .map-table th{padding:4px 6px}
 #capture-root.capturing .doc-head{margin-bottom:8px;padding-bottom:6px}
 
-/* ===== Captura A4 — layout dedicado (estático, sem inputs; colunas medidas pelo conteúdo) ===== */
-#cap-print{position:fixed;left:-10000px;top:0;width:1080px;background:#fff;padding:18px 20px;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:#0f172a}
+/* ===== Captura A4 — layout dedicado (estático, sem inputs; colunas medidas pelo conteúdo) =====
+   AUDITORIA (ajuste visual): fonte maior, linhas de tabela mais escuras (melhor leitura/impressão),
+   cor de fundo dos títulos de seção mais escura (melhor contraste) e margem de 1cm em todos os
+   lados no A4 (CAP_MARGIN_PX = 37.8px ≈ 1cm @96dpi — ver também genCapPng no <script>). */
+#cap-print{position:fixed;left:-10000px;top:0;width:1080px;background:#fff;padding:37.8px;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:#0f172a}
 .cap-doc-head{display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid #0f172a;padding-bottom:8px;margin-bottom:12px}
-.cap-doc-head h1{font-size:20px;letter-spacing:1.5px;margin:0}
-.cap-doc-meta{color:#64748b;font-size:13px}
-.cap-pool{background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:8px 10px;font-size:12.5px;color:#92400e;margin-bottom:12px}
+.cap-doc-head h1{font-size:23px;letter-spacing:1.5px;margin:0}
+.cap-doc-meta{color:#475569;font-size:15px}
+.cap-pool{background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:8px 10px;font-size:14px;color:#92400e;margin-bottom:12px}
 .cap-sec{margin:14px 0}
 .cap-sec-head{display:flex;align-items:center;gap:8px;margin-bottom:6px}
-.cap-badge{font-size:13px;font-weight:700;color:#fff;padding:4px 12px;border-radius:7px;letter-spacing:.5px}
-.cap-sec-frotas .cap-badge{background:#0ea5e9}
-.cap-sec-capital .cap-badge{background:#8b5cf6}
-.cap-sec-interior .cap-badge{background:#f59e0b}
-.cap-count{font-size:12px;color:#64748b}
+.cap-badge{font-size:15px;font-weight:700;color:#fff;padding:5px 14px;border-radius:7px;letter-spacing:.5px}
+.cap-sec-frotas .cap-badge{background:#0369a1}
+.cap-sec-capital .cap-badge{background:#6d28d9}
+.cap-sec-interior .cap-badge{background:#b45309}
+.cap-count{font-size:13.5px;color:#475569}
 .cap-table{border-collapse:collapse}
-.cap-table th{background:#f8fafc;border:1px solid #e2e8f0;padding:5px 8px;font-size:11.5px;text-align:left;color:#334155;white-space:nowrap;letter-spacing:.2px}
+.cap-table th{background:#f1f5f9;border:1.5px solid #94a3b8;padding:6px 9px;font-size:13.5px;text-align:left;color:#1e293b;white-space:nowrap;letter-spacing:.2px}
 .cap-table th.cap-num{ text-align:right}
-.cap-table td{border:1px solid #e2e8f0;padding:4px 8px;font-size:13px;white-space:nowrap}
+.cap-table td{border:1.5px solid #94a3b8;padding:5px 9px;font-size:15px;white-space:nowrap}
 .cap-table td.cap-mono{font-family:var(--mono);font-weight:600}
 .cap-table td.cap-num{text-align:right;font-family:var(--mono);font-weight:600}
-.cap-tot td{background:#f1f5f9;font-weight:700;font-size:12.5px}
-.cap-empty{color:#64748b;text-align:center;font-size:12.5px;padding:12px}
+.cap-tot td{background:#e2e8f0;font-weight:700;font-size:14.5px;border:1.5px solid #94a3b8}
+.cap-empty{color:#475569;text-align:center;font-size:14.5px;padding:12px}
 .cap-summary{display:flex;gap:10px;margin-top:14px;border-top:2px solid #0f172a;padding-top:12px;flex-wrap:wrap}
 .cap-card{background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:8px 14px}
-.cap-k{display:block;font-size:10.5px;color:#64748b;text-transform:uppercase;letter-spacing:.4px}
-.cap-v{font-size:16px;font-weight:700;font-family:var(--mono)}
+.cap-k{display:block;font-size:12px;color:#475569;text-transform:uppercase;letter-spacing:.4px}
+.cap-v{font-size:18px;font-weight:700;font-family:var(--mono)}
 
 /* ===== Painel de envio WhatsApp ===== */
 #wa-panel{max-width:1500px;margin:0 auto 16px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px;box-shadow:0 1px 3px rgba(15,23,42,.08)}
@@ -727,6 +730,20 @@ body.readonly .sec-actions{display:none}
     <div class="modal-actions">
       <button class="btn" id="modal-cancel" type="button">Cancelar</button>
       <button class="btn primary" id="modal-ok" type="button">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODAL: COPIAR OU BAIXAR IMAGEM DO MAPA ============ -->
+<div id="choice-mask" hidden>
+  <div class="modal" role="dialog" aria-modal="true">
+    <h3 id="choice-title"></h3>
+    <p id="choice-text" class="modal-text"></p>
+    <div class="modal-err" id="choice-err"></div>
+    <div class="modal-actions">
+      <button class="btn" id="choice-cancel" type="button">Cancelar</button>
+      <button class="btn" id="choice-copy" type="button">📋 Copiar</button>
+      <button class="btn primary" id="choice-download" type="button">⬇ Baixar</button>
     </div>
   </div>
 </div>
@@ -1932,7 +1949,7 @@ function capCellText(sec, r, c){
   }
   return '';
 }
-function capFontFor(c){ return '600 13px ' + (c.mono ? ETQ_MONO : ETQ_SANS); }
+function capFontFor(c){ return '600 15px ' + (c.mono ? ETQ_MONO : ETQ_SANS); }
 function buildCapPrint(hidePV){
   const cols = hidePV ? CAP_COLS_SEM : CAP_COLS_FULL;
   const now = new Date();
@@ -1947,12 +1964,12 @@ function buildCapPrint(hidePV){
     const title = sec==='frotas' ? '🚛 FROTAS' : sec==='capital' ? '🏙 CAPITAL' : '🛣 INTERIOR';
     // largura por coluna = maior conteúdo real + respiro (nada de texto cortado)
     const widths = cols.map(c=>{
-      let w = measureText(c.label, '700 11.5px ' + ETQ_SANS);
+      let w = measureText(c.label, '700 13.5px ' + ETQ_SANS);
       for(const r of rows){
         const t = capCellText(sec, r, c);
         if(t && t !== '—') w = Math.max(w, measureText(t, capFontFor(c)));
       }
-      return Math.max(56, Math.ceil(w) + 24);
+      return Math.max(60, Math.ceil(w) + 28);
     });
     const ths = cols.map((c,i)=> '<th class="'+(c.num?'cap-num':'')+'" style="width:'+widths[i]+'px">' + (c.key==='transp' && sec==='frotas' ? 'Ajud.' : c.label) + '</th>').join('');
     const trs = rows.length ? rows.map(r=> '<tr>' + cols.map(c=> '<td class="'+((c.mono?'cap-mono':'')+(c.num?' cap-num':''))+'">'+esc(capCellText(sec,r,c))+'</td>').join('') + '</tr>').join('')
@@ -1986,7 +2003,7 @@ async function genCapPng(hidePV){
   let maxW = 0;
   const tables = el.querySelectorAll('.cap-table');
   for(let i=0;i<tables.length;i++){ const w = tables[i].scrollWidth || 0; if(w>maxW) maxW = w; }
-  if(maxW > 0) el.style.width = (maxW + 40) + 'px'; // = padding 20px×2 — alvo A4 paisagem
+  if(maxW > 0) el.style.width = (maxW + 75.6) + 'px'; // 75.6 = 2× 37.8px (margem de 1cm em cada lado) — alvo A4 paisagem
   try{
     const canvas = await html2canvas(el, {scale:2, backgroundColor:'#ffffff', useCORS:true, logging:false});
     return {blob: dataUrlToBlob(canvas.toDataURL('image/png')), dataUrl: canvas.toDataURL('image/png'),
@@ -2367,14 +2384,29 @@ async function captureMap(hidePV){
   if(!(SESSION && perm().map)){ toast('🔒 Seu nível de acesso não permite o mapa', 'err'); return; }
   if(typeof html2canvas === 'undefined'){ toast('❌ html2canvas não carregada (sem internet para o CDN?)', 'err'); return; }
   if(!DATA.frotas.length && !DATA.capital.length && !DATA.interior.length){ toast('Nenhuma carga para gerar o mapa', 'err'); return; }
+  const label = hidePV ? 'Mapa Carregamento' : 'Mapa Completo';
+  const choice = await choiceModal({
+    title: '📷 ' + label,
+    text: 'O que deseja fazer com a imagem do <b>' + esc(label) + '</b>?<br><span style="color:#64748b;font-size:12px">Copiar coloca a imagem na área de transferência (Ctrl+V para colar direto no WhatsApp/e-mail). Baixar salva o arquivo .png no dispositivo.</span>'
+  });
+  if(!choice) return; // cancelado
   setBusy(true);
   try{
     const r = await genCapPng(hidePV);
-    const a = document.createElement('a');
-    a.download = r.name;
-    a.href = r.dataUrl;
-    a.click();
-    toast('📷 Imagem gerada (' + r.name + ')', 'ok');
+    if(choice === 'copy'){
+      const ok = await copyPngToClipboard(r.blob);
+      if(ok){
+        toast('📋 Imagem copiada (' + r.name + ') — use Ctrl+V para colar', 'ok');
+      }else{
+        // sem suporte a clipboard (ex.: alguns navegadores mobile) -> baixa como alternativa
+        downloadPng(r.dataUrl, r.name);
+        toast('⚠️ Este navegador não permite copiar imagem — baixei o arquivo (' + r.name + ')', 'warn');
+      }
+    }else{
+      downloadPng(r.dataUrl, r.name);
+      toast('📷 Imagem baixada (' + r.name + ')', 'ok');
+    }
+    audit('mapa-exportado', label + ' · ' + (choice === 'copy' ? 'copiado' : 'baixado'));
   }catch(err){
     console.error(err);
     toast('Erro ao gerar imagem', 'err');
@@ -3158,6 +3190,31 @@ function confirmModal(opts){
     if(cancelBtn) cancelBtn.onclick = ()=> finish(false, '');
     mask.hidden = false;
     if(needPass && passInp && typeof passInp.focus === 'function') passInp.focus();
+  });
+}
+
+/* --- Modal: "Copiar ou Baixar" (usado pelas capturas 📷 Mapa completo / Mapa Carregamento) --- */
+function choiceModal(opts){
+  return new Promise(resolve=>{
+    const mask = $('#choice-mask');
+    if(!mask){ resolve(null); return; }
+    $('#choice-title').textContent = opts.title || 'Escolha uma opção';
+    $('#choice-text').innerHTML = opts.text || '';
+    const errEl = $('#choice-err'); if(errEl) errEl.textContent = '';
+    const copyBtn = $('#choice-copy'), dlBtn = $('#choice-download'), cancelBtn = $('#choice-cancel');
+    let settled = false;
+    const finish = (choice)=>{
+      if(settled) return; settled = true;
+      mask.hidden = true;
+      if(copyBtn) copyBtn.onclick = null;
+      if(dlBtn) dlBtn.onclick = null;
+      if(cancelBtn) cancelBtn.onclick = null;
+      resolve(choice);
+    };
+    if(copyBtn) copyBtn.onclick = ()=> finish('copy');
+    if(dlBtn) dlBtn.onclick = ()=> finish('download');
+    if(cancelBtn) cancelBtn.onclick = ()=> finish(null);
+    mask.hidden = false;
   });
 }
 
