@@ -220,16 +220,24 @@ tr.row-unavailable .td-placa input{background:#fee2e2;color:#b91c1c;font-weight:
 .wa-seq-status .btn{margin-left:6px}
 
 /* ===== Relatório Planejamento de Transporte ===== */
-#plan-print{position:fixed;left:-10000px;top:0;width:640px;background:#fff;padding:26px 30px;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:#111}
-.plan-head{text-align:center;margin-bottom:16px}
-.plan-head h1{font-size:26px;font-weight:700;color:#111;margin:0}
-.plan-date{font-size:18px;font-weight:700;color:#1d4ed8;margin-top:6px}
-.plan-table{width:100%;border-collapse:collapse;table-layout:fixed}
-.plan-table th{background:#111;color:#fff;font-size:16px;font-weight:700;padding:11px 12px;text-align:center;border:1px solid #111}
-.plan-table td{font-size:16px;font-weight:600;padding:11px 12px;text-align:center;border:1px dotted #8a8a8a;background:#fff}
-.plan-table td.plan-lbl{background:#1f2937;color:#fff;font-weight:700;text-align:left;border:1px solid #111}
-.plan-table tr.plan-total td{background:#f5b800;color:#111;font-weight:800;border:1px solid #111}
-.plan-table tr.plan-total td.plan-lbl{background:#f5b800;color:#111}
+/* ===== Relatório "Planejamento de Transporte" — layout compacto (estilo referência) =====
+   AUDITORIA (ajuste visual): título itálico, data menor, tabela mais compacta, coluna de
+   rótulo (Capital/Interior/Total) em fundo branco (sem mais faixa escura), separadores
+   internos tracejados em laranja, e um "selo" (ribbon) preto no canto superior esquerdo. */
+#plan-print{position:fixed;left:-10000px;top:0;width:560px;background:#fff;padding:22px 26px;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:#111}
+.plan-head{text-align:center;margin-bottom:14px}
+.plan-head h1{font-size:22px;font-weight:800;font-style:italic;color:#111;margin:0}
+.plan-date{font-size:15px;font-weight:700;color:#1d4ed8;margin-top:4px}
+.plan-wrap{position:relative}
+/* "selo" decorativo: triângulo preto acima do canto superior esquerdo da tabela */
+.plan-flag{position:absolute;top:-13px;left:0;width:0;height:0;border-left:118px solid #161616;border-bottom:13px solid transparent}
+.plan-table{width:100%;border-collapse:collapse;table-layout:fixed;border:1.5px solid #161616}
+.plan-table th{background:#161616;color:#fff;font-size:14px;font-weight:700;padding:8px 10px;text-align:center;border:1px solid #161616}
+.plan-table td{font-size:14.5px;font-weight:600;padding:7px 10px;text-align:center;background:#fff;color:#111;border-bottom:1.5px dotted #f5b800}
+.plan-table tbody tr:last-child td{border-bottom:none}
+.plan-table td.plan-lbl{background:#3a3838;color:#fff;font-weight:800;text-align:left;border-right:1.5px dotted #f5b800}
+.plan-table tr.plan-total td{background:#ffc000;color:#111;font-weight:800;border-top:1.5px solid #161616;border-bottom:none}
+.plan-table tr.plan-total td.plan-lbl{background:#ffc000;color:#111;text-align:center;border-right:1.5px dotted #f5b800}
 
 /* ===== Etiquetas A4 (8×5cm · 10 por página: 2 colunas × 5 linhas) — alto contraste P&B ===== */
 #etiq-print{display:none}
@@ -2028,6 +2036,7 @@ function planTon(v){ return v > 0 ? (v/1000).toLocaleString('pt-BR',{maximumFrac
 function buildPlanPrint(){
   let totV = 0, totE = 0, totP = 0;
   let html = '<div class="plan-head"><h1>Planejamento de Transporte</h1><div class="plan-date">' + esc(fmtBR(currentMapDate)) + '</div></div>' +
+    '<div class="plan-wrap"><div class="plan-flag"></div>' +
     '<table class="plan-table"><colgroup><col style="width:26%"><col style="width:24%"><col style="width:24%"><col style="width:26%"></colgroup>' +
     '<thead><tr><th>&nbsp;</th><th>Veículos</th><th>Entregas</th><th>Peso (TON)</th></tr></thead><tbody>';
   for(const sec of ['capital','interior']){
@@ -2038,7 +2047,7 @@ function buildPlanPrint(){
     totV += v; totE += e; totP += p;
     html += '<tr><td class="plan-lbl">' + (sec==='capital' ? 'Capital' : 'Interior') + '</td><td>' + v + '</td><td>' + fmtInt(e) + '</td><td>' + planTon(p) + '</td></tr>';
   }
-  html += '<tr class="plan-total"><td class="plan-lbl">Total</td><td>' + totV + '</td><td>' + fmtInt(totE) + '</td><td>' + planTon(totP) + '</td></tr></tbody></table>';
+  html += '<tr class="plan-total"><td class="plan-lbl">Total</td><td>' + totV + '</td><td>' + fmtInt(totE) + '</td><td>' + planTon(totP) + '</td></tr></tbody></table></div>';
   return html;
 }
 async function genPlanPng(){
