@@ -130,6 +130,24 @@ tr.row-unavailable .td-placa input{background:#fee2e2;color:#b91c1c;font-weight:
 .custo-cell{white-space:nowrap;font-family:var(--mono);font-size:12.5px;color:#0f766e;font-weight:600}
 .map-table tfoot td{background:#f1f5f9;font-weight:700;font-size:12.5px;border:1px solid var(--line);padding:5px 8px}
 .total-label{font-weight:700;font-size:12px;color:#334155}
+/* AUDITORIA (acessibilidade): fonte ampliada para impressão/PDF (pessoas com baixa visão).
+   Aplicada via JS como classe comum (não @media print) para que autosizeAllTables() recalcule
+   a largura das colunas com o tamanho de fonte correto ANTES de abrir a caixa de impressão —
+   senão o texto maior ficaria cortado dentro das colunas (largura fixada p/ a fonte da tela). */
+body.print-big-font .doc-head h1{font-size:26px}
+body.print-big-font .doc-meta{font-size:16px}
+body.print-big-font .sec-head h2{font-size:18px}
+body.print-big-font .sec-count{font-size:15px}
+body.print-big-font .map-table th{font-size:15px;padding:7px 9px}
+body.print-big-font .map-table td{padding:4px 5px}
+body.print-big-font .map-table input,body.print-big-font .map-table select{font-size:16px;padding:5px 7px}
+body.print-big-font .map-table tfoot td{font-size:16px;padding:7px 9px}
+body.print-big-font .total-label{font-size:15px}
+body.print-big-font .transp-stack input{font-size:14px}
+body.print-big-font .sum-k{font-size:13px}
+body.print-big-font .sum-v{font-size:20px}
+body.print-big-font .badge{font-size:13px}
+body.print-big-font .custo-cell{font-size:15px}
 
 /* ===== Resumo ===== */
 #summary{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;border-top:2px solid var(--ink);padding-top:12px}
@@ -2528,6 +2546,23 @@ function etqHtml(r){
     '<div class="etq-bar">MOTORISTA</div><div class="etq-val etq-mot" style="font-size:'+motPx+'px">' + esc(dash(tMot)) + '</div>' +
     '</div>';
 }
+/* AUDITORIA (acessibilidade): imprime o mapa com fonte ampliada (pessoas com baixa visão).
+   Recalcula a largura das colunas ANTES de abrir a impressão para o texto maior não cortar. */
+function printMap(){
+  if(!(SESSION && perm().map)){ toast('🔒 Seu nível de acesso não permite o mapa', 'err'); return; }
+  document.body.classList.add('print-big-font');
+  autosizeAllTables(); // recalcula larguras já considerando a fonte maior
+  const cleanup = ()=>{
+    document.body.classList.remove('print-big-font');
+    autosizeAllTables(); // devolve as larguras normais da tela
+    try{ window.removeEventListener('afterprint', cleanup); }catch(e){}
+  };
+  try{ window.addEventListener('afterprint', cleanup); }catch(e){}
+  setTimeout(cleanup, 4000); // fallback p/ navegadores sem afterprint
+  requestAnimationFrame(()=> requestAnimationFrame(()=>{
+    try{ window.print(); }catch(e){ cleanup(); }
+  }));
+}
 function printEtiquetas(){
   if(!(SESSION && SESSION.level >= 2)){ toast('🔒 Seu nível de acesso não permite o mapa', 'err'); return; }
   const rows = [...DATA.frotas, ...DATA.capital, ...DATA.interior];
@@ -3594,7 +3629,7 @@ function bindStatic(){
   });
   $('#btn-shot-full').addEventListener('click', ()=> captureMap(false));
   $('#btn-shot-nopv').addEventListener('click', ()=> captureMap(true));
-  $('#btn-pdf').addEventListener('click', ()=> window.print());
+  $('#btn-pdf').addEventListener('click', printMap);
   $('#btn-etiq').addEventListener('click', printEtiquetas);
   $('#btn-plan').addEventListener('click', capturePlan);
   $('#btn-xls-map').addEventListener('click', xlsMapCompleto);
