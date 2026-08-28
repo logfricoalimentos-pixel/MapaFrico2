@@ -4,9 +4,16 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="referrer" content="no-referrer">
-<!-- AUDITORIA: CSP — apenas o script inline do app + cdnjs (SRI); bloqueia eval, scripts remotos e objects -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'unsafe-inline'; img-src data: blob:; font-src 'self'; connect-src 'self' https:; object-src 'none'; base-uri 'none'; form-action 'none'">
+<!-- AUDITORIA: CSP — apenas o script inline do app + cdnjs (SRI); bloqueia eval, scripts remotos e objects.
+     img-src inclui 'self' para permitir os arquivos de ícone/logo hospedados no próprio repositório
+     (assets/*), mantendo o bloqueio a imagens de domínios externos/terceiros. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'unsafe-inline'; img-src data: blob: 'self'; font-src 'self'; connect-src 'self' https:; object-src 'none'; base-uri 'none'; form-action 'none'">
 <title>Mapa de Carregamento</title>
+<link rel="icon" type="image/x-icon" href="assets/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="48x48" href="assets/favicon-48x48.png">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png">
 <style>
 :root{
   --bg:#f1f5f9; --card:#ffffff; --line:#e2e8f0; --ink:#0f172a; --muted:#64748b;
@@ -25,7 +32,8 @@ h1,h2,h3{margin:0}
 .topbar{position:sticky;top:0;z-index:50;background:#0f172a;color:#e2e8f0;padding:10px 16px;display:flex;flex-direction:column;gap:8px}
 .topbar .row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .topbar .row.grow{flex:1}
-.topbar h1{font-size:18px;color:#fff;letter-spacing:.4px;margin-right:10px;white-space:nowrap}
+.topbar h1{font-size:18px;color:#fff;letter-spacing:.4px;margin-right:10px;white-space:nowrap;display:flex;align-items:center;gap:8px}
+.topbar-logo{height:28px;width:auto;display:block;border-radius:4px}
 .topbar label{font-size:12.5px;color:#94a3b8;display:flex;flex-direction:column;gap:2px;letter-spacing:.3px;text-transform:uppercase}
 .topbar input[type=date],.topbar select{background:#1e293b;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:5px 8px;font:inherit;font-size:15px}
 .save-state{font-size:14px;padding:4px 12px;border-radius:999px;background:#1e293b;color:#94a3b8;margin-left:auto;white-space:nowrap}
@@ -474,7 +482,7 @@ body.readonly .sec-actions{display:none}
 <!-- ============ BARRA SUPERIOR (não vai para a imagem) ============ -->
 <header class="topbar no-print" id="topbar">
   <div class="row row-head">
-    <h1>🚛 Mapa de Carregamento</h1>
+    <h1><img src="assets/logo-header.png" srcset="assets/logo-header.png 1x, assets/logo-header@2x.png 2x" alt="Fricó Alimentos" class="topbar-logo">Mapa de Carregamento</h1>
     <button class="btn topbar-toggle" id="btn-topbar-toggle" type="button" aria-expanded="false" aria-controls="topbar-collapsible">☰ Menu</button>
   </div>
   <div id="topbar-collapsible" class="topbar-collapsible">
