@@ -418,6 +418,11 @@ body.readonly .sec-actions{display:none}
 /* ===== Modal de confirmação ===== */
 #modal-mask{position:fixed;inset:0;z-index:400;background:rgba(15,23,42,.55);display:flex;align-items:center;justify-content:center;padding:16px}
 #modal-mask[hidden]{display:none}
+/* AUDITORIA (bug): #choice-mask não tinha NENHUM CSS próprio — sem position:fixed/display:flex
+   ele renderia como <div> comum no fluxo normal da página (invisível/fora de lugar), por isso
+   os botões "Mapa completo"/"Mapa Carregamento" pareciam não fazer nada ao clicar. */
+#choice-mask{position:fixed;inset:0;z-index:400;background:rgba(15,23,42,.55);display:flex;align-items:center;justify-content:center;padding:16px}
+#choice-mask[hidden]{display:none}
 .modal{background:#fff;border-radius:14px;padding:20px;width:440px;max-width:100%;box-shadow:0 24px 80px rgba(0,0,0,.4)}
 .modal h3{font-size:15px;margin-bottom:8px}
 .modal-text{font-size:13px;color:#334155;margin:0 0 10px;line-height:1.5}
@@ -425,7 +430,7 @@ body.readonly .sec-actions{display:none}
 .modal-pass input{border:1px solid var(--line);border-radius:8px;padding:8px 10px;font:inherit;font-size:13px}
 .modal-pass input:focus{border-color:var(--blue);outline:none}
 .modal-err{font-size:12px;color:var(--err);min-height:15px;margin-top:4px}
-.modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:10px}
+.modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:10px;flex-wrap:wrap}
 /* ===== Usuários & auditoria (configurações) ===== */
 .users-row{grid-template-columns:1fr 1.3fr 34px 34px;align-items:center}
 .users-row .user-name{font-size:12px;padding:5px 2px;display:flex;align-items:center;gap:5px;overflow:hidden;white-space:nowrap}
@@ -758,7 +763,7 @@ body.readonly .sec-actions{display:none}
   </div>
 </div>
 
-<!-- ============ MODAL: COPIAR OU BAIXAR IMAGEM DO MAPA ============ -->
+<!-- ============ MODAL: ABRIR / COPIAR / BAIXAR IMAGEM DO MAPA ============ -->
 <div id="choice-mask" hidden>
   <div class="modal" role="dialog" aria-modal="true">
     <h3 id="choice-title"></h3>
@@ -766,6 +771,7 @@ body.readonly .sec-actions{display:none}
     <div class="modal-err" id="choice-err"></div>
     <div class="modal-actions">
       <button class="btn" id="choice-cancel" type="button">Cancelar</button>
+      <button class="btn" id="choice-open" type="button">🔗 Abrir em nova guia</button>
       <button class="btn" id="choice-copy" type="button">📋 Copiar</button>
       <button class="btn primary" id="choice-download" type="button">⬇ Baixar</button>
     </div>
@@ -2418,13 +2424,25 @@ async function captureMap(hidePV){
   const label = hidePV ? 'Mapa Carregamento' : 'Mapa Completo';
   const choice = await choiceModal({
     title: '📷 ' + label,
-    text: 'O que deseja fazer com a imagem do <b>' + esc(label) + '</b>?<br><span style="color:#64748b;font-size:12px">Copiar coloca a imagem na área de transferência (Ctrl+V para colar direto no WhatsApp/e-mail). Baixar salva o arquivo .png no dispositivo.</span>'
+    text: 'O que deseja fazer com a imagem do <b>' + esc(label) + '</b>?<br><span style="color:#64748b;font-size:12px">Abrir mostra a imagem numa nova guia (dá para ampliar/salvar pelo próprio navegador). Copiar coloca na área de transferência (Ctrl+V para colar direto no WhatsApp/e-mail). Baixar salva o arquivo .png no dispositivo.</span>'
   });
   if(!choice) return; // cancelado
   setBusy(true);
   try{
     const r = await genCapPng(hidePV);
-    if(choice === 'copy'){
+    if(choice === 'open'){
+      // AUDITORIA: navegadores modernos bloqueiam window.open com data: URL direta;
+      // um blob URL (via URL.createObjectURL) é o jeito confiável de abrir em nova guia.
+      const blobUrl = URL.createObjectURL(r.blob);
+      const w = window.open(blobUrl, '_blank');
+      if(!w){
+        // pop-up bloqueado pelo navegador -> baixa como alternativa
+        downloadPng(r.dataUrl, r.name);
+        toast('⚠️ O navegador bloqueou a nova guia — baixei o arquivo (' + r.name + ')', 'warn');
+      }else{
+        toast('🔗 Imagem aberta em nova guia (' + r.name + ')', 'ok');
+      }
+    }else if(choice === 'copy'){
       const ok = await copyPngToClipboard(r.blob);
       if(ok){
         toast('📋 Imagem copiada (' + r.name + ') — use Ctrl+V para colar', 'ok');
@@ -2437,7 +2455,7 @@ async function captureMap(hidePV){
       downloadPng(r.dataUrl, r.name);
       toast('📷 Imagem baixada (' + r.name + ')', 'ok');
     }
-    audit('mapa-exportado', label + ' · ' + (choice === 'copy' ? 'copiado' : 'baixado'));
+    audit('mapa-exportado', label + ' · ' + (choice === 'open' ? 'aberto' : choice === 'copy' ? 'copiado' : 'baixado'));
   }catch(err){
     console.error(err);
     toast('Erro ao gerar imagem', 'err');
@@ -3224,7 +3242,7 @@ function confirmModal(opts){
   });
 }
 
-/* --- Modal: "Copiar ou Baixar" (usado pelas capturas 📷 Mapa completo / Mapa Carregamento) --- */
+/* --- Modal: "Abrir/Copiar/Baixar" (usado pelas capturas 📷 Mapa completo / Mapa Carregamento) --- */
 function choiceModal(opts){
   return new Promise(resolve=>{
     const mask = $('#choice-mask');
@@ -3232,16 +3250,18 @@ function choiceModal(opts){
     $('#choice-title').textContent = opts.title || 'Escolha uma opção';
     $('#choice-text').innerHTML = opts.text || '';
     const errEl = $('#choice-err'); if(errEl) errEl.textContent = '';
-    const copyBtn = $('#choice-copy'), dlBtn = $('#choice-download'), cancelBtn = $('#choice-cancel');
+    const openBtn = $('#choice-open'), copyBtn = $('#choice-copy'), dlBtn = $('#choice-download'), cancelBtn = $('#choice-cancel');
     let settled = false;
     const finish = (choice)=>{
       if(settled) return; settled = true;
       mask.hidden = true;
+      if(openBtn) openBtn.onclick = null;
       if(copyBtn) copyBtn.onclick = null;
       if(dlBtn) dlBtn.onclick = null;
       if(cancelBtn) cancelBtn.onclick = null;
       resolve(choice);
     };
+    if(openBtn) openBtn.onclick = ()=> finish('open');
     if(copyBtn) copyBtn.onclick = ()=> finish('copy');
     if(dlBtn) dlBtn.onclick = ()=> finish('download');
     if(cancelBtn) cancelBtn.onclick = ()=> finish(null);
