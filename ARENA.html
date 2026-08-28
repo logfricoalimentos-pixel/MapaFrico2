@@ -470,6 +470,9 @@ body.readonly .sec-actions{display:none}
 .dash-table .del-day{padding:1px 8px;font-size:12px}
 
 /* ===== Print ===== */
+/* AUDITORIA: margem de página reduzida (0,5cm em todos os lados) — aproveita melhor o
+   espaço no A4 com a fonte ampliada; vale tanto para o mapa quanto para as etiquetas. */
+@page{margin:0.5cm}
 @media print{
   .no-print,#toast-wrap,#busy,.money-arrows{display:none !important}
   body{background:#fff}
