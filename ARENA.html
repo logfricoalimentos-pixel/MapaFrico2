@@ -278,14 +278,14 @@ body.print-big-font .custo-cell{font-size:15px}
 
 /* ===== Etiquetas A4 (8×5cm · 10 por página: 2 colunas × 5 linhas) — alto contraste P&B ===== */
 #etiq-print{display:none}
-.etiq-page{display:grid;grid-template-columns:repeat(2,80mm);grid-auto-rows:50mm;column-gap:10mm;row-gap:2mm;justify-content:center;page-break-after:always;break-after:page}
+.etiq-page{display:grid;grid-template-columns:repeat(2,90mm);grid-auto-rows:55mm;column-gap:10mm;row-gap:2mm;justify-content:center;page-break-after:always;break-after:page}
 .etiq-page:last-child{page-break-after:auto;break-after:auto}
-.etq{width:80mm;height:50mm;box-sizing:border-box;border:1.2px solid #111;border-radius:2mm;background:#fff;padding:2mm 3mm;display:flex;flex-direction:column;justify-content:center;gap:0.8mm;overflow:hidden}
-.etq-bar{background:#111;color:#fff;font-size:11px;font-weight:800;letter-spacing:0.16em;text-transform:uppercase;text-align:center;padding:1mm 1.5mm;border-radius:0.8mm}
+.etq{width:90mm;height:55mm;box-sizing:border-box;border:1.2px solid #111;border-radius:2mm;background:#fff;padding:2.2mm 3.4mm;display:flex;flex-direction:column;justify-content:center;gap:0.8mm;overflow:hidden}
+.etq-bar{background:#111;color:#fff;font-size:12px;font-weight:800;letter-spacing:0.16em;text-transform:uppercase;text-align:center;padding:1mm 1.5mm;border-radius:0.8mm}
 .etq-val{text-align:center;font-weight:800;color:#000;line-height:1.12;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
-.etq-rota{font-size:18px}
-.etq-carga{font-family:var(--mono);font-size:35px;white-space:normal} /* Nº Carga pode quebrar em 2 linhas (nunca corta) */
-.etq-mot{font-size:18px}
+.etq-rota{font-size:20px}
+.etq-carga{font-family:var(--mono);font-size:39px;white-space:normal} /* Nº Carga pode quebrar em 2 linhas (nunca corta) */
+.etq-mot{font-size:20px}
 @media print{
   body.print-etiquetas #capture-root{display:none !important}
   body.print-etiquetas #etiq-print{display:block !important}
@@ -2499,8 +2499,8 @@ async function captureMap(hidePV){
    Nº CARGA -> reduz a fonte (mín. 13px); se preciso, QUEBRA EM 2 LINHAS (no "/" mais próximo
    do meio) — o número NUNCA é cortado. */
 const ETQ_MM2PX = 96/25.4;
-const ETQ_CONTENT_W = Math.floor(74 * ETQ_MM2PX); // 80mm de etiqueta − 6mm de padding
-const ETQ_CARGA_MAX_H = 54;                       // altura (px) disponível p/ a carga em 2 linhas — etiqueta física NÃO mudou de tamanho (só a fonte, +40%), então o espaço para "carga" ficou mais apertado (bars/rota/motorista agora ocupam mais altura)
+const ETQ_CONTENT_W = Math.floor((90 - 2*3.4) * ETQ_MM2PX); // etiqueta 90mm de largura − padding (3.4mm cada lado)
+const ETQ_CARGA_MAX_H = 62;                       // altura (px) disponível p/ a carga em 2 linhas — etiqueta 55mm de altura
 const ETQ_MONO = 'ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace';
 const ETQ_SANS = 'system-ui,-apple-system,"Segoe UI",Roboto,sans-serif';
 function etqMeasure(text, px, family){ return measureText(text, '800 ' + px + 'px ' + family); }
@@ -2511,12 +2511,12 @@ function etqFit1(text, basePx, minPx, family){
   return minPx; // último recurso: fonte mínima (a ROTA corta via ellipsis no CSS)
 }
 function etqFitCarga(text){
-  // 1º: maior fonte que cabe em 1 linha (35 → 18px) — base +40% (acessibilidade)
+  // 1º: maior fonte que cabe em 1 linha (39 → 20px)
   let px1 = 0;
-  for(let px = 35; px >= 18; px--){
+  for(let px = 39; px >= 20; px--){
     if(etqMeasure(text, px, ETQ_MONO) <= ETQ_CONTENT_W){ px1 = px; break; }
   }
-  if(px1 === 35) return {px:35, l1:text, l2:''}; // cabe na base: 1 linha
+  if(px1 === 39) return {px:39, l1:text, l2:''}; // cabe na base: 1 linha
   // 2º: maior fonte que cabe em 2 linhas (quebra no "/" mais próximo do meio; senão, no meio)
   const n = text.length, mid = Math.ceil(n/2);
   let cut = -1, best = Infinity;
@@ -2526,22 +2526,22 @@ function etqFitCarga(text){
   if(cut <= 0 || cut >= n) cut = mid;
   const l1 = text.slice(0, cut), l2 = text.slice(cut);
   let px2 = 0;
-  for(let px = 35; px >= 18; px--){
+  for(let px = 39; px >= 20; px--){
     const hOk = px * 1.12 * 2 <= ETQ_CARGA_MAX_H;
     if(hOk && etqMeasure(l1, px, ETQ_MONO) <= ETQ_CONTENT_W && etqMeasure(l2, px, ETQ_MONO) <= ETQ_CONTENT_W){ px2 = px; break; }
   }
-  // maior fonte vence: 2 linhas em 35px > 1 linha em 18px
+  // maior fonte vence: 2 linhas em 39px > 1 linha em 20px
   if(px2 > px1) return {px:px2, l1, l2};
-  return {px: px1 > 0 ? px1 : 18, l1:text, l2:''};
+  return {px: px1 > 0 ? px1 : 20, l1:text, l2:''};
 }
 function etqHtml(r){
   const tDest = String(r.destino==null?'':r.destino), tCarga = String(r.carga==null?'':r.carga), tMot = String(r.motorista==null?'':r.motorista);
-  // AUDITORIA: base +40% (acessibilidade) — 13→18 (rota/motorista) e 25→35 (nº carga); mínimos 9→13 e 13→18
-  let rotaPx = 18, carga = {px:35, l1:tCarga, l2:''}, motPx = 18;
+  // Etiqueta 9×5,5cm — base 20px (rota/motorista) e 39px (nº carga); mínimos 15px e 20px
+  let rotaPx = 20, carga = {px:39, l1:tCarga, l2:''}, motPx = 20;
   try{
-    rotaPx = tDest ? etqFit1(tDest, 18, 13, ETQ_SANS) : 18;
-    motPx  = tMot  ? etqFit1(tMot, 18, 13, ETQ_SANS) : 18;
-    carga  = tCarga ? etqFitCarga(tCarga) : {px:35, l1:'', l2:''};
+    rotaPx = tDest ? etqFit1(tDest, 20, 15, ETQ_SANS) : 20;
+    motPx  = tMot  ? etqFit1(tMot, 20, 15, ETQ_SANS) : 20;
+    carga  = tCarga ? etqFitCarga(tCarga) : {px:39, l1:'', l2:''};
   }catch(e){ /* sem canvas disponível: tamanhos padrão */ }
   const dash = s => (s || '—');
   return '<div class="etq">' +
