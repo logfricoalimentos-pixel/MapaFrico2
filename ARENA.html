@@ -2783,23 +2783,23 @@ function renderKpis(m, deltas){
   const hero =
     '<div class="kpis hero-row">' +
       heroCard('Custo Geral', fmtMoney(m.comNeg),
-        [{k:'Custo/kg', v: m.custoKg!=null? fmtMoney(m.custoKg)+'/kg':'—'},
-         {k:'Capital', v:fmtMoney(m.capCom)}, {k:'Interior', v:fmtMoney(m.intCom)}],
+        [{k:'Capital', v:fmtMoney(m.capCom)}, {k:'Interior', v:fmtMoney(m.intCom)},
+         {k:'Custo/kg', v: m.custoKg!=null? fmtMoney(m.custoKg)+'/kg':'—'}],
         'Custo total Capital + Interior (com negociação) e custo médio por kg (Frotas não entra nesse total)', 'hero-total', deltas.totalPct) +
       heroCard('Capital', null,
         [{k:'Peso', v: m.capPeso>0? fmtNum2(m.capPeso)+' kg':'—', big:true},
-         {k:'Custo/kg', v: m.capCustoKg!=null? fmtMoney(m.capCustoKg)+'/kg':'—', big:true},
-         {k:'Custo (com neg.)', v: fmtMoney(m.capCom)}],
-        'Capital (com negociação): peso · custo por kg · custo total', 'hero-cap', deltas.capPct) +
+         {k:'Custo (com neg.)', v: fmtMoney(m.capCom)},
+         {k:'Custo/kg', v: m.capCustoKg!=null? fmtMoney(m.capCustoKg)+'/kg':'—', big:true}],
+        'Capital (com negociação): peso · custo total · custo por kg', 'hero-cap', deltas.capPct) +
       heroCard('Interior', null,
         [{k:'Peso', v: m.intPeso>0? fmtNum2(m.intPeso)+' kg':'—', big:true},
-         {k:'Custo/kg', v: m.intCustoKg!=null? fmtMoney(m.intCustoKg)+'/kg':'—', big:true},
-         {k:'Custo (com neg.)', v: fmtMoney(m.intCom)}],
-        'Interior (com negociação): peso · custo por kg · custo total', 'hero-int', deltas.intPct) +
+         {k:'Custo (com neg.)', v: fmtMoney(m.intCom)},
+         {k:'Custo/kg', v: m.intCustoKg!=null? fmtMoney(m.intCustoKg)+'/kg':'—', big:true}],
+        'Interior (com negociação): peso · custo total · custo por kg', 'hero-int', deltas.intPct) +
       ((DASH.showFrotas !== false) ? heroCard('Custo Frotas (estimado)', null,
         [{k:'Peso', v: m.frotasPeso>0? fmtNum2(m.frotasPeso)+' kg':'—', big:true},
-         {k:'Custo/kg', v: m.frotasCustoKg!=null? fmtMoney(m.frotasCustoKg)+'/kg':'—', big:true},
-         {k:'Custo estimado', v: fmtMoney(m.frotasCusto)}],
+         {k:'Custo estimado', v: fmtMoney(m.frotasCusto)},
+         {k:'Custo/kg', v: m.frotasCustoKg!=null? fmtMoney(m.frotasCustoKg)+'/kg':'—', big:true}],
         'Frota própria: custo ESTIMADO pela tabela Interior (não há negociação/pagamento real) — indicador informativo, à parte do Custo Geral', 'hero-frotas', deltas.frotasPct) : '') +
     '</div>';
   const detail =
