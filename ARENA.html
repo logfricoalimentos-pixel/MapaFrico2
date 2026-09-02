@@ -335,6 +335,8 @@ body.print-big-font .custo-cell{font-size:15px}
 /* ===== Painel de Indicadores ===== */
 #painel{max-width:1500px;margin:0 auto 16px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px;box-shadow:0 1px 3px rgba(15,23,42,.08)}
 .painel-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.frotas-cost-toggle{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted);margin-left:auto;cursor:pointer;user-select:none}
+.frotas-cost-toggle input{cursor:pointer}
 .painel-head h2{font-size:15px}
 .painel-tabs{display:flex;gap:6px;margin-left:auto}
 .tab{border:1px solid var(--line);background:#fff;border-radius:8px;padding:6px 12px;font:inherit;font-size:13px;cursor:pointer;color:#334155}
@@ -356,7 +358,7 @@ body.print-big-font .custo-cell{font-size:15px}
 .kpi-delta.bad{color:var(--err)}
 .kpi-delta.muted{color:var(--muted);font-weight:400}
 /* KPIs hero (em evidência: Custo Geral, Peso e Custo/kg) */
-.kpis.hero-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:10px 0 14px}
+.kpis.hero-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;margin:10px 0 14px}
 .kpi.hero{display:flex;flex-direction:column;justify-content:center;gap:6px;padding:14px 16px}
 .kpi.hero .kpi-label{font-size:12.5px;font-weight:700;text-transform:uppercase;letter-spacing:.7px}
 .kpi.hero.hero-total{background:linear-gradient(135deg,#1d4ed8,#7c3aed);border-color:#7c3aed;color:#fff}
@@ -365,9 +367,10 @@ body.print-big-font .custo-cell{font-size:15px}
 .kpi.hero.hero-total .hero-v{color:#fff}
 .kpi.hero.hero-cap{background:linear-gradient(135deg,#eef2ff,#e0e7ff);border-color:#c7d2fe}
 .kpi.hero.hero-int{background:linear-gradient(135deg,#fff7ed,#ffedd5);border-color:#fed7aa}
+.kpi.hero.hero-frotas{background:linear-gradient(135deg,#ecfeff,#cffafe);border-color:#a5f3fc}
 .hero-line{display:flex;justify-content:space-between;align-items:baseline;gap:8px;min-width:0}
 .hero-k{font-size:12px;color:var(--muted);flex-shrink:0}
-.kpi.hero.hero-cap .hero-k,.kpi.hero.hero-int .hero-k{color:#64748b}
+.kpi.hero.hero-cap .hero-k,.kpi.hero.hero-int .hero-k,.kpi.hero.hero-frotas .hero-k{color:#64748b}
 /* sem quebra de linha: o valor sempre fica em 1 linha (fonte menor + ellipsize de segurança) */
 .hero-v{font-family:var(--mono);font-weight:700;font-size:15px;text-align:right;white-space:nowrap;min-width:0;overflow:hidden;text-overflow:ellipsis}
 .hero-line.big .hero-v{font-size:20px}
@@ -546,6 +549,9 @@ body.readonly .sec-actions{display:none}
       <button class="tab active" data-tab="diaria">Acompanhamento dia a dia</button>
       <button class="tab" data-tab="periodo">Fechamento por período</button>
     </div>
+    <label class="frotas-cost-toggle" title="Custo estimado da Frota própria pela tabela Interior — informativo, não soma no Custo Geral (Capital+Interior)">
+      <input type="checkbox" id="chk-frotas-cost" checked> Mostrar custo de Frotas (estimado)
+    </label>
     <button class="btn mini" id="btn-dash-refresh" title="Recalcular o painel com os dados atuais">🔄 Atualizar</button>
   </div>
   <div id="tab-diaria" class="tab-panel">
@@ -588,7 +594,7 @@ body.readonly .sec-actions{display:none}
       <h4>Verificações de auditoria aplicadas</h4>
       <ul>
         <li>Divisão por zero bloqueada (custo/kg e % economia só com denominador &gt; 0).</li>
-        <li>Frotas sem custo (peso conta no peso total, mas não gera custo — não entra em Capital/Interior).</li>
+        <li>Frotas: sem negociação (veículo próprio). O sistema calcula um <b>custo estimado da rota</b> (mesma tabela do Interior) só para referência — não entra no Custo Geral (Capital+Interior). Peso/cargas sempre contam no total geral. Pode ocultar esse indicador em "Mostrar custo de Frotas" no painel.</li>
         <li>Negociação contada apenas quando há valor efetivo (Valor Frete &gt; 0 ou Neg? = Sim).</li>
         <li>Delta "vs período anterior" só exibido quando o período anterior tem dados (senão, aviso "sem base").</li>
         <li>Períodos comparados por datas ISO (YYYY-MM-DD) — sem problemas de fuso horário.</li>
@@ -1370,7 +1376,10 @@ function sectionCols(sec){
     {key:'transp',   label:(sec==='frotas'?'Ajud.':'Transportador'), full:true}
   ];
   if(sec === 'frotas'){
-    // FROTAS: sem Vlr Kg / Neg? / Custo/kg / %Frete
+    // FROTAS: sem Vlr Kg / Neg? / Valor Frete manual (não há negociação — veículo próprio).
+    // Ainda assim mostra o custo ESTIMADO da rota (mesma tabela do Interior), para referência.
+    cols.push({key:'frete', label:'Custo estimado da rota', dataCol:'frete', flex:true});
+    cols.push({key:'custoMedio', label:'Custo Médio', dataCol:'custoMedio', num:true});
   } else {
     cols.push({key:'valorkg', label:'Vlr Kg', dataCol:'valorkg', num:true});
     cols.push({key:'neg',     label:'Neg?', dataCol:'neg', center:true});
@@ -1457,7 +1466,7 @@ function cellHtml(sec, r, c, x){
       }
       const tipoSel = normalizarTipo(r.tabela);
       const selTabela = '<select data-field="tabela" title="tipo de tabela"><option value="agregado"'+(tipoSel==='agregado'?' selected':'')+'>Agregado</option><option value="freelancer"'+(tipoSel==='freelancer'?' selected':'')+'>Freelancer</option></select>';
-      const diasKm = (sec === 'interior')
+      const diasKm = (sec === 'interior' || sec === 'frotas')
         ? '<input type="text" inputmode="numeric" class="numin" data-field="dias" title="dias" value="'+esc(r.dias===''?1:r.dias)+'">' +
           '<input type="text" inputmode="decimal" class="numin" data-field="km" title="km da rota (Km Rota já vem +12%)" value="'+esc(r.km)+'" placeholder="km">'
         : '';
@@ -1480,7 +1489,7 @@ function cellHtml(sec, r, c, x){
 }
 
 function rowHtml(sec, r, cols){
-  const frete = (sec==='capital' || sec==='interior') ? calcularFrete(sec, r) : null;
+  const frete = calcularFrete(sec, r); // AUDITORIA: agora calculado p/ todas as seções (Frotas = estimado, sem negociação)
   // custo médio só quando há frete calculável (> 0) e peso > 0; senão "—"
   const custo = (frete && frete.total > 0 && numVal(r.peso) > 0) ? frete.total / numVal(r.peso) : null;
   const unav = plateSegs(r.placa).some(p => AVAILABILITY[p] === false);
@@ -1494,9 +1503,7 @@ function tfootHtml(sec, cols){
   const peso = rows.reduce((a,r)=> a + numVal(r.peso), 0);
   const ent  = rows.reduce((a,r)=> a + numVal(r.entregas), 0);
   let freteTotal = 0, hasFrete = false;
-  if(sec==='capital' || sec==='interior'){
-    for(const r of rows){ const f = calcularFrete(sec, r); if(f && f.total > 0){ freteTotal += f.total; hasFrete = true; } }
-  }
+  for(const r of rows){ const f = calcularFrete(sec, r); if(f && f.total > 0){ freteTotal += f.total; hasFrete = true; } }
   const cells = cols.map(c=>{
     if(c.key==='sel' || c.key==='move' || c.key==='destino' || c.key==='carga' || c.key==='motorista' ||
        c.key==='transp' || c.key==='valorkg' || c.key==='neg' || c.key==='custoKg' || c.key==='pctFrete' || c.key==='valorFrete')
@@ -2623,7 +2630,7 @@ function reclassifyAll(){
 }
 
 /* ================= Painel de Indicadores & Fechamento ================= */
-let DASH = {days: [], period: null, preset: '7d', granularity: 'daily'};
+let DASH = {days: [], period: null, preset: '7d', granularity: 'daily', showFrotas: true};
 let dashVisible = false;
 
 function isoToDate(iso){ const p = String(iso).split('-'); return new Date(+p[0], (+p[1]||1)-1, +p[2]||1); }
@@ -2643,18 +2650,22 @@ function fmtNum2(v){ return numVal(v).toLocaleString('pt-BR',{maximumFractionDig
 function fmtInt(v){ return Math.round(numVal(v)).toLocaleString('pt-BR'); }
 
 /* Métricas de um dia (data completa): sem negociação (tabela) vs com negociação (calcularFrete).
-   Frotas = custo hipotético pela tabela Interior (indicador separado — não soma no total). */
+   Frotas = custo ESTIMADO pela tabela Interior (indicador separado — não soma no Custo Geral). */
 function metricsFromData(data){
   const frotas = (data && data.frotas) || [];
   const capital = (data && data.capital) || [];
   const interior = (data && data.interior) || [];
   const m = {cargas:0, peso:0, ent:0,
-    capSem:0, intSem:0, capCom:0, intCom:0, capPeso:0, intPeso:0, frotasPeso:0, neg:0};
+    capSem:0, intSem:0, capCom:0, intCom:0, capPeso:0, intPeso:0, frotasPeso:0, frotasCusto:0, neg:0};
   const acc = (sec, r) => {
     m.cargas++;
     m.peso += numVal(r.peso);
     m.ent += numVal(r.entregas);
-    if(sec === 'frotas'){ m.frotasPeso += numVal(r.peso); return; } // Frotas: sem custo (peso só conta no total)
+    if(sec === 'frotas'){
+      m.frotasPeso += numVal(r.peso);
+      m.frotasCusto += calcularFrete('frotas', r).total; // estimado (tabela Interior) — indicador separado
+      return;
+    }
     const sem = tableForecast(sec, r).total * FRETE_MARGIN_NONNEG; // sem negociação = tabela +10% (mesma regra do valor previsto)
     const com = calcularFrete(sec, r).total;
     if(sec === 'capital'){ m.capSem += sem; m.capCom += com; m.capPeso += numVal(r.peso); }
@@ -2668,9 +2679,11 @@ function metricsFromData(data){
   m.comNeg = m.capCom + m.intCom;
   m.economia = m.semNeg - m.comNeg;
   m.pctEcon = m.semNeg > 0 ? m.economia / m.semNeg * 100 : null;
-  m.custoKg = (m.comNeg > 0 && m.peso > 0) ? m.comNeg / m.peso : null;
+  m.capIntPeso = m.capPeso + m.intPeso; // AUDITORIA: Custo Geral = Capital+Interior; peso deve excluir Frotas (senão dilui o R$/kg)
+  m.custoKg = (m.comNeg > 0 && m.capIntPeso > 0) ? m.comNeg / m.capIntPeso : null;
   m.capCustoKg = (m.capCom > 0 && m.capPeso > 0) ? m.capCom / m.capPeso : null;
   m.intCustoKg = (m.intCom > 0 && m.intPeso > 0) ? m.intCom / m.intPeso : null;
+  m.frotasCustoKg = (m.frotasCusto > 0 && m.frotasPeso > 0) ? m.frotasCusto / m.frotasPeso : null;
   return m;
 }
 
@@ -2692,7 +2705,7 @@ async function loadDashboard(){
   renderDash();
 }
 function aggregateRange(start, end){
-  const a = {cargas:0, peso:0, ent:0, capSem:0, intSem:0, capCom:0, intCom:0, capPeso:0, intPeso:0, diasAtivos:0};
+  const a = {cargas:0, peso:0, ent:0, capSem:0, intSem:0, capCom:0, intCom:0, capPeso:0, intPeso:0, frotasPeso:0, frotasCusto:0, diasAtivos:0};
   for(const d of DASH.days){
     if(d.date < start || d.date > end) continue;
     const m = d.m;
@@ -2700,15 +2713,18 @@ function aggregateRange(start, end){
     a.capSem += m.capSem; a.intSem += m.intSem;
     a.capCom += m.capCom; a.intCom += m.intCom;
     a.capPeso += m.capPeso; a.intPeso += m.intPeso;
+    a.frotasPeso += m.frotasPeso; a.frotasCusto += m.frotasCusto;
     if(m.cargas > 0) a.diasAtivos++;
   }
   a.semNeg = a.capSem + a.intSem;
   a.comNeg = a.capCom + a.intCom;
   a.economia = a.semNeg - a.comNeg;
   a.pctEcon = a.semNeg > 0 ? a.economia / a.semNeg * 100 : null;
-  a.custoKg = (a.comNeg > 0 && a.peso > 0) ? a.comNeg / a.peso : null;
+  a.capIntPeso = a.capPeso + a.intPeso;
+  a.custoKg = (a.comNeg > 0 && a.capIntPeso > 0) ? a.comNeg / a.capIntPeso : null;
   a.capCustoKg = (a.capCom > 0 && a.capPeso > 0) ? a.capCom / a.capPeso : null;
   a.intCustoKg = (a.intCom > 0 && a.intPeso > 0) ? a.intCom / a.intPeso : null;
+  a.frotasCustoKg = (a.frotasCusto > 0 && a.frotasPeso > 0) ? a.frotasCusto / a.frotasPeso : null;
   a.cargasDia = a.diasAtivos > 0 ? a.cargas / a.diasAtivos : null;
   return a;
 }
@@ -2767,8 +2783,9 @@ function renderKpis(m, deltas){
   const hero =
     '<div class="kpis hero-row">' +
       heroCard('Custo Geral', fmtMoney(m.comNeg),
-        [{k:'Capital', v:fmtMoney(m.capCom)}, {k:'Interior', v:fmtMoney(m.intCom)}],
-        'Custo total Capital + Interior (com negociação)', 'hero-total', deltas.totalPct) +
+        [{k:'Custo/kg', v: m.custoKg!=null? fmtMoney(m.custoKg)+'/kg':'—'},
+         {k:'Capital', v:fmtMoney(m.capCom)}, {k:'Interior', v:fmtMoney(m.intCom)}],
+        'Custo total Capital + Interior (com negociação) e custo médio por kg (Frotas não entra nesse total)', 'hero-total', deltas.totalPct) +
       heroCard('Capital', null,
         [{k:'Peso', v: m.capPeso>0? fmtNum2(m.capPeso)+' kg':'—', big:true},
          {k:'Custo/kg', v: m.capCustoKg!=null? fmtMoney(m.capCustoKg)+'/kg':'—', big:true},
@@ -2779,12 +2796,17 @@ function renderKpis(m, deltas){
          {k:'Custo/kg', v: m.intCustoKg!=null? fmtMoney(m.intCustoKg)+'/kg':'—', big:true},
          {k:'Custo (com neg.)', v: fmtMoney(m.intCom)}],
         'Interior (com negociação): peso · custo por kg · custo total', 'hero-int', deltas.intPct) +
+      ((DASH.showFrotas !== false) ? heroCard('Custo Frotas (estimado)', null,
+        [{k:'Peso', v: m.frotasPeso>0? fmtNum2(m.frotasPeso)+' kg':'—', big:true},
+         {k:'Custo/kg', v: m.frotasCustoKg!=null? fmtMoney(m.frotasCustoKg)+'/kg':'—', big:true},
+         {k:'Custo estimado', v: fmtMoney(m.frotasCusto)}],
+        'Frota própria: custo ESTIMADO pela tabela Interior (não há negociação/pagamento real) — indicador informativo, à parte do Custo Geral', 'hero-frotas', deltas.frotasPct) : '') +
     '</div>';
   const detail =
     kpiCard('Previsão sem negociação', fmtMoney(m.semNeg), 'tabela de preços', 'Soma da previsão 100% pela tabela: Capital (valor fixo) + Interior (diárias + km + pernoite) × 1,1') +
     kpiCard(econPos?'Economia da negociação':'Acréscimo da negociação', fmtMoney(Math.abs(m.economia)), m.pctEcon!=null? (econPos?'− ':'+ ')+Math.abs(m.pctEcon).toLocaleString('pt-BR',{maximumFractionDigits:1})+'% vs sem negociação' : '', 'Sem negociação − com negociação. Vermelho = a negociação encareceu', econPos?'pos':'neg') +
-    kpiCard('Cargas', fmtInt(m.cargas), m.neg>0? m.neg+' negociada(s)' : 'nenhuma negociação', 'Total de cargas e cargas negociadas (Frotas sem custo)') +
-    kpiCard('Peso total', m.peso>0? fmtNum2(m.peso)+' kg':'—', 'todas as cargas (Frotas incluso)', 'Peso total (Frotas sem custo)');
+    kpiCard('Cargas', fmtInt(m.cargas), m.neg>0? m.neg+' negociada(s)' : 'nenhuma negociação', 'Total de cargas e cargas negociadas (Frotas sem negociação)') +
+    kpiCard('Peso total', m.peso>0? fmtNum2(m.peso)+' kg':'—', 'todas as cargas (Frotas incluso)', 'Peso total (Frotas incluso)');
   return hero + '<div class="kpis">' + detail + '</div>';
 }
 function renderDashDaily(){
@@ -2827,7 +2849,7 @@ function renderDashDaily(){
         delCell +
         '</tr>';
     }).join('') + '</tbody></table>' +
-    '<p class="dash-note">Frotas sem custo (peso conta no total). Clique em um dia para abrir o mapa daquele dia.</p>'
+    '<p class="dash-note">Frotas: custo estimado à parte (não soma no Custo Geral). Clique em um dia para abrir o mapa daquele dia.</p>'
     : '<p class="dash-note">Nenhum dia salvo ainda. Edite/importe o mapa (autosave) para começar o acompanhamento dia a dia.</p>';
 }
 function renderDashPeriodo(){
@@ -2840,7 +2862,8 @@ function renderDashPeriodo(){
   const deltas = {
     totalPct: pctDelta(agg.comNeg, prev.comNeg),
     capPct: pctDelta(agg.capCom, prev.capCom),
-    intPct: pctDelta(agg.intCom, prev.intCom)
+    intPct: pctDelta(agg.intCom, prev.intCom),
+    frotasPct: pctDelta(agg.frotasCusto, prev.frotasCusto)
   };
   const el = $('#dash-period-kpis');
   if(el) el.innerHTML = renderKpis(agg, deltas);
@@ -3821,6 +3844,16 @@ function bindStatic(){
     $('#tab-diaria').hidden = b.dataset.tab !== 'diaria';
     $('#tab-periodo').hidden = b.dataset.tab !== 'periodo';
   }));
+  const chkFrotasCost = $('#chk-frotas-cost');
+  if(chkFrotasCost){
+    try{ const saved = localStorage.getItem('mapa:showFrotasCost'); if(saved !== null) DASH.showFrotas = saved === '1'; }catch(e){}
+    chkFrotasCost.checked = DASH.showFrotas !== false;
+    chkFrotasCost.addEventListener('change', ()=>{
+      DASH.showFrotas = chkFrotasCost.checked;
+      try{ localStorage.setItem('mapa:showFrotasCost', DASH.showFrotas ? '1' : '0'); }catch(e){}
+      renderDash();
+    });
+  }
   $$('.chip-preset').forEach(c=> c.addEventListener('click', ()=>{
     DASH.preset = c.dataset.preset;
     const p = periodFromPreset(DASH.preset, currentMapDate);
