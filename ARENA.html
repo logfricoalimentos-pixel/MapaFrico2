@@ -50,14 +50,20 @@ h1,h2,h3{margin:0}
 .topbar .btn.primary:hover{background:var(--blue-d)}
 .topbar .btn.danger{color:#fca5a5;border-color:#7f1d1d}
 .sep{width:1px;height:24px;background:#334155;margin:0 4px}
-/* AUDITORIA: cabeçalho recolhível no celular — some com o menu por padrão, com botão ☰ p/ abrir */
-.topbar-toggle{display:none}
+/* AUDITORIA: botão com lista suspensa (ex.: Excel Mapa / Excel Período agrupados) */
+.btn-dd{position:relative;display:inline-flex}
+.btn-dd-menu{position:absolute;top:calc(100% + 4px);left:0;z-index:60;background:#1e293b;border:1px solid #334155;border-radius:8px;padding:4px;display:flex;flex-direction:column;gap:2px;min-width:200px;box-shadow:0 12px 32px rgba(0,0,0,.35)}
+.btn-dd-menu[hidden]{display:none}
+.btn-dd-item{border:none;background:transparent;color:#e2e8f0;font:inherit;font-size:15px;text-align:left;padding:7px 10px;border-radius:6px;cursor:pointer;white-space:nowrap;display:block;width:100%}
+.btn-dd-item:hover{background:#334155}
+/* AUDITORIA: cabeçalho recolhível — botão ☰ sempre visível (desktop e celular) para
+   esconder/mostrar a lista de ações. Por padrão inicia expandido no desktop e recolhido
+   no celular (ver bindStatic/DOMContentLoaded), mas pode ser alternado nos dois. */
+.topbar-toggle{display:inline-flex}
 #topbar-collapsible{display:flex;flex-direction:column;gap:8px}
+#topbar.collapsed #topbar-collapsible{display:none}
 @media (max-width:760px){
   .topbar .row-head{justify-content:space-between}
-  .topbar-toggle{display:inline-flex}
-  #topbar-collapsible{display:none}
-  #topbar.expanded #topbar-collapsible{display:flex}
 }
 
 /* ===== Documento (área capturada) ===== */
@@ -228,32 +234,9 @@ body.print-big-font .custo-cell{font-size:15px}
 .cap-k{display:block;font-size:12px;color:#475569;text-transform:uppercase;letter-spacing:.4px}
 .cap-v{font-size:18px;font-weight:700;font-family:var(--mono)}
 
-/* ===== Painel de envio WhatsApp ===== */
-#wa-panel{max-width:1500px;margin:0 auto 16px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px;box-shadow:0 1px 3px rgba(15,23,42,.08)}
-.wa-head h2{font-size:15px;margin-bottom:4px}
-.wa-how{font-size:12.5px;color:var(--muted);margin:0 0 12px;line-height:1.5}
-.wa-auto-banner{display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:10px 12px;margin-bottom:12px}
-.wa-auto-hint{font-size:12.5px;color:#1e40af;line-height:1.5}
-.wa-auto-body{min-height:130px;margin:8px 0 4px}
-.wa-auto-step{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
-.wa-auto-group{font-size:14.5px;margin-top:8px}
-.wa-auto-shot{font-size:13px;color:#334155;margin-top:2px}
-.wa-auto-ok{font-size:14px;color:var(--ok);font-weight:600;margin-top:10px}
-.wa-auto-steps{margin:10px 0 0;padding-left:20px;font-size:13.5px;line-height:1.7;color:#334155}
-.wa-auto-tip{font-size:12px;color:var(--muted);margin-top:10px;background:#f8fafc;border:1px solid var(--line);border-radius:8px;padding:6px 8px;line-height:1.5}
 .period-xls-dates{display:flex;gap:12px;margin:8px 0 4px}
 .period-xls-dates label{font-size:12.5px;color:var(--muted);display:flex;flex-direction:column;gap:4px}
 .period-xls-dates input[type=date]{border:1px solid var(--line);border-radius:8px;padding:6px 8px;font:inherit;font-size:13px}
-.wa-card{border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:12px;background:#fafafa}
-.wa-card:last-child{margin-bottom:0}
-.wa-card-head{display:flex;align-items:center;gap:8px;margin-bottom:8px}
-.wa-card-head b{font-size:13.5px}
-.wa-card-count{font-size:12px;color:var(--muted)}
-.wa-items{display:flex;flex-direction:column;gap:6px;margin-bottom:10px}
-.wa-item{display:flex;align-items:center;gap:8px;font-size:13px;background:#fff;border:1px solid var(--line);border-radius:8px;padding:6px 10px}
-.wa-item .wa-item-name{font-weight:600}
-.wa-seq-status{margin-top:8px;font-size:12.5px;color:#334155;min-height:18px;line-height:1.6}
-.wa-seq-status .btn{margin-left:6px}
 
 /* ===== Relatório Planejamento de Transporte ===== */
 /* ===== Relatório "Planejamento de Transporte" — layout compacto (estilo referência) =====
@@ -530,9 +513,13 @@ body.readonly .sec-actions{display:none}
     <button class="btn" id="btn-pdf">🖨 PDF</button>
     <button class="btn" id="btn-etiq" title="Imprimir etiquetas A4 (8×5cm, 10 por página) — uma por carga">🏷 Etiquetas</button>
     <button class="btn" id="btn-plan" title="Gerar relatório Planejamento de Transporte (Capital × Interior × Total)">📊 Planejamento</button>
-    <button class="btn" id="btn-xls-map" title="Baixar o mapa do dia em Excel (mesmo formato do print — sem valores)">📥 Excel Mapa</button>
-    <button class="btn" id="btn-xls-per" title="Baixar em Excel TODAS as cargas de Capital e Interior de um período (com valores/negociação)">📥 Excel Período</button>
-    <button class="btn" id="btn-wa" title="Painel de envio por WhatsApp Desktop (copiar imagens p/ os grupos)">📤 WhatsApp</button>
+    <div class="btn-dd" id="dd-excel">
+      <button class="btn" id="btn-xls-toggle" type="button" aria-haspopup="true" aria-expanded="false" title="Exportar em Excel">📥 Excel ▾</button>
+      <div class="btn-dd-menu" id="dd-excel-menu" hidden>
+        <button class="btn-dd-item" id="btn-xls-map" type="button" title="Baixar o mapa do dia em Excel (mesmo formato do print — sem valores)">📥 Excel Mapa</button>
+        <button class="btn-dd-item" id="btn-xls-per" type="button" title="Baixar em Excel TODAS as cargas de Capital e Interior de um período (com valores/negociação)">📥 Excel Período</button>
+      </div>
+    </div>
     <span class="sep"></span>
     <button class="btn" id="btn-reclass" title="Refaz a classificação de todas as linhas com as regras atuais">🔄 Reclassificar</button>
     <button class="btn danger" id="btn-clear">🧹 Limpar</button>
@@ -604,7 +591,7 @@ body.readonly .sec-actions{display:none}
       <ul>
         <li><b>Capturas 📷 em layout dedicado A4 paisagem</b> (colunas medidas pelo conteúdo — <b>nada de texto cortado</b>) e <b>sem nenhuma informação de valor/negociação</b>: "Mapa Completo" inclui Peso e Entregas; "Mapa Carregamento" remove Peso e Entregas. As colunas Vlr Kg, Neg?, Previsão, Custo Médio e Valor Frete nunca aparecem nas imagens, nem os cards de Previsão/Custo médio do resumo.</li>
         <li><b>📊 Planejamento de Transporte</b>: relatório Capital × Interior × Total com Veículos (cargas), Entregas e Peso em TON (kg ÷ 1000, 2 casas, sem zeros finais) — Frotas não entra.</li>
-        <li><b>📤 WhatsApp Desktop</b>: gera as imagens e copia para a área de transferência (Ctrl+V no grupo) com sequência guiada; se o navegador não permitir cópia, baixa os .png para arrastar na conversa. Grupos: FATURAMENTO/LOGISTICA (3 imagens) · FRETEIROS FRICO SUPORTE e Motoristas frico interno (Mapa Carregamento).</li>
+        <li><b>📷 Mapa completo / Mapa Carregamento / 📊 Planejamento</b>: geram a imagem e perguntam se você quer abrir em nova guia, copiar (Ctrl+V no WhatsApp/e-mail) ou baixar o .png.</li>
         <li><b>🚀 Envio automático</b>: guia passo a passo que encadeia os 5 envios (todos os grupos) — o app copia cada imagem e avança (botão ou Enter), você só cola (Ctrl+V) e envia (Enter) na conversa indicada.</li>
         <li><b>Motorista limitado a 20 caracteres</b> em Frotas, Capital e Interior (campo, digitação, importação e dados já salvos).</li>
         <li><b>📥 Excel Mapa</b>: exporta o mapa do dia em .xlsx no MESMO formato do print (seções FROTAS/CAPITAL/INTERIOR, colunas, totais e resumo — sem valores).</li>
@@ -621,19 +608,6 @@ body.readonly .sec-actions{display:none}
       </ul>
     </details>
   </div>
-</section>
-
-<!-- ============ PAINEL DE ENVIO WHATSAPP (não vai para imagem/impressão) ============ -->
-<section id="wa-panel" class="no-print" hidden>
-  <div class="wa-head">
-    <h2>📤 Enviar por WhatsApp Desktop</h2>
-    <p class="wa-how">O app gera a imagem e copia para a <b>área de transferência</b> — abra o grupo no <b>WhatsApp Desktop</b> e <b>cole (Ctrl+V)</b>. Se a cópia não estiver disponível no navegador, ele baixa os arquivos: <b>arraste</b> os .png para a conversa do grupo.</p>
-  </div>
-  <div class="wa-auto-banner">
-    <button class="btn primary" type="button" id="btn-wa-auto">🚀 ENVIAR AUTOMÁTICO — todos os grupos (guia passo a passo)</button>
-    <span class="wa-auto-hint">Copia cada imagem e mostra o grupo de destino — você só <b>cola (Ctrl+V)</b> e <b>envia (Enter)</b> na conversa. Com a janela do guia em foco, <b>Enter</b> avança para a próxima imagem. Encadeia os 3 grupos em sequência.</span>
-  </div>
-  <div id="wa-groups"></div>
 </section>
 
 <!-- ============ ÁREA CAPTURADA ============ -->
@@ -809,19 +783,6 @@ body.readonly .sec-actions{display:none}
       <button class="btn" id="choice-open" type="button">🔗 Abrir em nova guia</button>
       <button class="btn" id="choice-copy" type="button">📋 Copiar</button>
       <button class="btn primary" id="choice-download" type="button">⬇ Baixar</button>
-    </div>
-  </div>
-</div>
-
-<!-- ============ GUIA DE ENVIO AUTOMÁTICO WHATSAPP ============ -->
-<div id="wa-auto-mask" hidden>
-  <div class="modal" role="dialog" aria-modal="true">
-    <h3>🚀 Envio automático — WhatsApp Desktop</h3>
-    <div id="wa-auto-body" class="wa-auto-body"></div>
-    <div class="modal-actions">
-      <button class="btn" type="button" id="wa-auto-web" title="Abre o WhatsApp Web em nova aba">🌐 WhatsApp Web</button>
-      <button class="btn" type="button" id="wa-auto-cancel">✕ Parar</button>
-      <button class="btn primary" type="button" id="wa-auto-next">▶ Próxima (Enter)</button>
     </div>
   </div>
 </div>
@@ -2129,14 +2090,36 @@ async function genPlanPng(){
 async function capturePlan(){
   if(!(SESSION && SESSION.level >= 2)){ toast('🔒 Seu nível de acesso não permite o mapa', 'err'); return; }
   if(typeof html2canvas === 'undefined'){ toast('❌ html2canvas não carregada (sem internet para o CDN?)', 'err'); return; }
+  const choice = await choiceModal({
+    title: '📊 Planejamento de Transporte',
+    text: 'O que deseja fazer com a imagem do <b>relatório</b>?<br><span style="color:#64748b;font-size:12px">Abrir mostra a imagem numa nova guia (dá para ampliar/salvar pelo próprio navegador). Copiar coloca na área de transferência (Ctrl+V para colar direto no WhatsApp/e-mail). Baixar salva o arquivo .png no dispositivo.</span>'
+  });
+  if(!choice) return; // cancelado
   setBusy(true);
   try{
     const r = await genPlanPng();
-    const a = document.createElement('a');
-    a.download = r.name;
-    a.href = r.dataUrl;
-    a.click();
-    toast('📊 Relatório gerado (' + r.name + ')', 'ok');
+    if(choice === 'open'){
+      const blobUrl = URL.createObjectURL(r.blob);
+      const w = window.open(blobUrl, '_blank');
+      if(!w){
+        downloadPng(r.dataUrl, r.name);
+        toast('⚠️ O navegador bloqueou a nova guia — baixei o arquivo (' + r.name + ')', 'warn');
+      }else{
+        toast('🔗 Imagem aberta em nova guia (' + r.name + ')', 'ok');
+      }
+    }else if(choice === 'copy'){
+      const ok = await copyPngToClipboard(r.blob);
+      if(ok){
+        toast('📋 Imagem copiada (' + r.name + ') — use Ctrl+V para colar', 'ok');
+      }else{
+        downloadPng(r.dataUrl, r.name);
+        toast('⚠️ Este navegador não permite copiar imagem — baixei o arquivo (' + r.name + ')', 'warn');
+      }
+    }else{
+      downloadPng(r.dataUrl, r.name);
+      toast('📊 Relatório baixado (' + r.name + ')', 'ok');
+    }
+    audit('planejamento-exportado', choice === 'open' ? 'aberto' : choice === 'copy' ? 'copiado' : 'baixado');
   }catch(err){
     console.error(err);
     toast('Erro ao gerar relatório', 'err');
@@ -2252,15 +2235,7 @@ async function xlsPeriodo(start, end){
   toast('📥 Excel gerado: ' + name + ' — ' + cargas.length + ' carga(s) em ' + dates.length + ' dia(s)', 'ok');
 }
 
-/* ================= Envio por WhatsApp Desktop ================= */
-/* Grupos de destino fixos (edite aqui se mudar o nome/imagens):
-   full = Mapa Completo · nopv = Mapa Carregamento · plan = Planejamento de Transporte */
-const WA_GROUPS = [
-  {name:'FATURAMENTO/LOGISTICA',  shots:['full','nopv','plan']},
-  {name:'FRETEIROS FRICO SUPORTE',shots:['nopv']},
-  {name:'Motoristas frico interno',shots:['nopv']}
-];
-function genWaShot(key){ return key === 'plan' ? genPlanPng() : genCapPng(key === 'nopv'); }
+/* ================= Captura/exportação de imagens (mapas e relatório) ================= */
 function downloadPng(dataUrl, name){
   const a = document.createElement('a');
   a.download = name;
@@ -2273,185 +2248,6 @@ async function copyPngToClipboard(blob){
     await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
     return true;
   }catch(e){ return false; }
-}
-function renderWaPanel(){
-  const wrap = $('#wa-groups');
-  if(!wrap) return;
-  wrap.innerHTML = WA_GROUPS.map((g, gi)=>{
-    const items = g.shots.map(s=>
-      '<div class="wa-item"><span class="wa-item-name">' + (s==='full'?'Mapa Completo':s==='nopv'?'Mapa Carregamento':'Planejamento de Transporte') + '</span>' +
-      '<span style="margin-left:auto"></span>' +
-      '<button class="btn mini" type="button" data-wa="copy" data-g="'+gi+'" data-s="'+s+'" title="Copiar p/ área de transferência">📋 Copiar</button>' +
-      '<button class="btn mini" type="button" data-wa="dl" data-g="'+gi+'" data-s="'+s+'" title="Baixar .png">⬇ Baixar</button></div>'
-    ).join('');
-    return '<div class="wa-card">' +
-      '<div class="wa-card-head"><b>👥 ' + esc(g.name) + '</b><span class="wa-card-count">' + g.shots.length + ' imagem(ns) para este grupo</span></div>' +
-      '<div class="wa-items">' + items + '</div>' +
-      '<button class="btn primary" type="button" data-wa="seq" data-g="'+gi+'">📋 Copiar tudo em sequência p/ o grupo</button>' +
-      '<div class="wa-seq-status" id="wa-seq-'+gi+'"></div>' +
-    '</div>';
-  }).join('');
-}
-const waSeqState = {};
-async function waSeq(gi){
-  const g = WA_GROUPS[gi];
-  const status = document.getElementById('wa-seq-' + gi);
-  if(!status) return;
-  const items = [];
-  for(const s of g.shots){
-    status.textContent = '📸 Gerando ' + (s==='full'?'Mapa Completo':s==='nopv'?'Mapa Carregamento':'Planejamento de Transporte') + '…';
-    items.push(await genWaShot(s));
-  }
-  waSeqState[gi] = {items, idx:0};
-  await waSeqNext(gi);
-}
-async function waSeqNext(gi){
-  const st = waSeqState[gi];
-  if(!st) return;
-  const status = document.getElementById('wa-seq-' + gi);
-  if(!status) return;
-  const gName = esc(WA_GROUPS[gi].name);
-  if(st.idx >= st.items.length) return;
-  const it = st.items[st.idx];
-  const ok = await copyPngToClipboard(it.blob);
-  if(!ok){
-    // fallback sem clipboard: baixa tudo e o usuário arrasta para a conversa
-    for(const x of st.items) downloadPng(x.dataUrl, x.name);
-    st.idx = st.items.length;
-    status.innerHTML = '⚠️ Área de transferência indisponível neste navegador — <b>arquivos baixados</b>. Abra o grupo <b>' + gName + '</b> no WhatsApp Desktop e <b>arraste os arquivos</b> para a conversa.';
-    return;
-  }
-  st.idx++;
-  const step = '<b>' + esc(it.label) + '</b> copiada (' + st.idx + '/' + st.items.length + ')';
-  if(st.idx < st.items.length){
-    status.innerHTML = '✅ ' + step + ' — abra o grupo <b>' + gName + '</b> no WhatsApp Desktop, <b>cole (Ctrl+V)</b> e envie. Depois clique em: <button class="btn mini" type="button" data-wa="next" data-g="'+gi+'">▶ Próxima imagem</button>';
-  } else {
-    status.innerHTML = '✅ ' + step + ' — abra o grupo <b>' + gName + '</b>, <b>cole (Ctrl+V)</b> e <b>envie</b>. 🎉';
-  }
-}
-/* ===== Envio AUTOMÁTICO (guia passo a passo, encadeia todos os grupos) ===== */
-let waAutoState = null; // {idx, busy}
-function waAutoFlow(){ return WA_GROUPS.flatMap(g=> g.shots.map(s=> ({gname: g.name, s}))); }
-function waShotName(s){ return s==='full' ? 'Mapa Completo' : s==='nopv' ? 'Mapa Carregamento' : 'Planejamento de Transporte'; }
-const waAutoKeyHandler = e => { if(e.key === 'Enter' && waAutoState && !waAutoState.busy){ e.preventDefault(); waAutoNext(); } };
-async function waAutoStart(){
-  if(!(SESSION && SESSION.level >= 2)){ toast('🔒 Seu nível de acesso não permite o mapa', 'err'); return; }
-  if(typeof html2canvas === 'undefined'){ toast('❌ html2canvas não carregada (sem internet para o CDN?)', 'err'); return; }
-  if(!DATA.frotas.length && !DATA.capital.length && !DATA.interior.length){ toast('Nenhuma carga para gerar as imagens', 'err'); return; }
-  if(!waAutoFlow().length) return;
-  waAutoState = {idx:0, busy:false};
-  const mask = $('#wa-auto-mask');
-  if(mask) mask.hidden = false;
-  try{ window.addEventListener('keydown', waAutoKeyHandler); }catch(e){}
-  await waAutoRenderStep();
-}
-async function waAutoRenderStep(){
-  const st = waAutoState; if(!st) return;
-  const bodyEl = $('#wa-auto-body');
-  const btnNext = $('#wa-auto-next');
-  if(btnNext) btnNext.disabled = true;
-  st.busy = true;
-  const flow = waAutoFlow();
-  const step = flow[st.idx];
-  if(bodyEl) bodyEl.innerHTML = '<div class="wa-auto-step">Passo <b>' + (st.idx+1) + '</b> de ' + flow.length + '</div><div style="font-size:13px;color:var(--muted);margin-top:8px">📸 Gerando ' + esc(waShotName(step.s)) + '…</div>';
-  let r;
-  try{
-    r = await genWaShot(step.s);
-  }catch(e){
-    console.error(e);
-    if(bodyEl) bodyEl.innerHTML = '<div class="wa-auto-step">Passo <b>' + (st.idx+1) + '</b> de ' + flow.length + '</div><div style="color:var(--err);font-size:13px;margin-top:8px">Erro ao gerar a imagem. Clique em ▶ para tentar de novo ou ✕ Parar.</div>';
-    if(btnNext) btnNext.disabled = false;
-    st.busy = false;
-    return;
-  }
-  const ok = await copyPngToClipboard(r.blob);
-  st.last = r;
-  if(bodyEl){
-    if(ok){
-      bodyEl.innerHTML =
-        '<div class="wa-auto-step">Passo <b>' + (st.idx+1) + '</b> de ' + flow.length + '</div>' +
-        '<div class="wa-auto-group">👥 Grupo: <b>' + esc(step.gname) + '</b></div>' +
-        '<div class="wa-auto-shot">🖼 ' + esc(waShotName(step.s)) + '</div>' +
-        '<div class="wa-auto-ok">✅ ' + esc(r.label) + ' copiado para a área de transferência!</div>' +
-        '<ol class="wa-auto-steps">' +
-          '<li>No WhatsApp Desktop, abra o grupo <b>' + esc(step.gname) + '</b></li>' +
-          '<li>Cole a imagem: <b>Ctrl+V</b></li>' +
-          '<li>Envie: <b>Enter</b></li>' +
-        '</ol>' +
-        (st.idx === 0 ? '<div class="wa-auto-tip">💡 Dica: clique na janela do WhatsApp após colar. Quando terminar, clique em <b>▶ Próxima</b> (ou Enter, com este guia em foco).</div>' : '');
-    } else {
-      downloadPng(r.dataUrl, r.name);
-      bodyEl.innerHTML =
-        '<div class="wa-auto-step">Passo <b>' + (st.idx+1) + '</b> de ' + flow.length + '</div>' +
-        '<div class="wa-auto-group">👥 Grupo: <b>' + esc(step.gname) + '</b></div>' +
-        '<div class="wa-auto-shot">🖼 ' + esc(waShotName(step.s)) + '</div>' +
-        '<div class="wa-auto-ok" style="color:var(--warn)">⚠️ Cópia indisponível — arquivo <b>baixado</b> (' + esc(r.name) + '). Arraste-o para a conversa do grupo no WhatsApp Desktop.</div>';
-    }
-  }
-  if(btnNext){ btnNext.disabled = false; btnNext.textContent = st.idx + 1 >= flow.length ? '🎉 Concluir' : '▶ Próxima (Enter)'; }
-  st.busy = false;
-}
-async function waAutoNext(){
-  const st = waAutoState;
-  if(!st || st.busy) return;
-  const flow = waAutoFlow();
-  if(st.idx + 1 >= flow.length){ waAutoFinish(); return; }
-  st.idx++;
-  await waAutoRenderStep();
-}
-function waAutoFinish(){
-  waAutoState = null;
-  const mask = $('#wa-auto-mask');
-  if(mask) mask.hidden = true;
-  try{ if(typeof window.removeEventListener === 'function') window.removeEventListener('keydown', waAutoKeyHandler); }catch(e){}
-  toast('🎉 Sequência automática concluída', 'ok');
-}
-function bindWaPanel(){
-  const wrap = $('#wa-groups');
-  if(!wrap) return;
-  // botão de envio automático (texto dinâmico com a contagem real)
-  const ba = $('#btn-wa-auto');
-  if(ba){
-    const total = WA_GROUPS.reduce((a,g)=> a+g.shots.length, 0);
-    ba.textContent = '🚀 ENVIAR AUTOMÁTICO — ' + total + ' imagens · ' + WA_GROUPS.length + ' grupos (guia passo a passo)';
-    ba.addEventListener('click', waAutoStart);
-  }
-  const nx = $('#wa-auto-next'); if(nx) nx.addEventListener('click', waAutoNext);
-  const cx = $('#wa-auto-cancel'); if(cx) cx.addEventListener('click', waAutoFinish);
-  const wb = $('#wa-auto-web');
-  if(wb) wb.addEventListener('click', ()=>{ try{ window.open('https://web.whatsapp.com', '_blank'); }catch(e){} });
-  wrap.addEventListener('click', async e=>{
-    const b = e.target.closest('[data-wa]');
-    if(!b) return;
-    if(!(SESSION && SESSION.level >= 2)){ toast('🔒 Seu nível de acesso não permite o mapa', 'err'); return; }
-    const gi = +b.dataset.g;
-    const wa = b.dataset.wa;
-    if(wa === 'seq'){
-      setBusy(true);
-      try{ await waSeq(gi); }catch(err){ console.error(err); toast('Erro ao gerar imagens', 'err'); }finally{ setBusy(false); }
-      return;
-    }
-    if(wa === 'next'){ waSeqNext(gi); return; }
-    const s = b.dataset.s;
-    if(wa !== 'copy' && wa !== 'dl') return;
-    setBusy(true);
-    try{
-      const r = await genWaShot(s);
-      if(wa === 'dl'){
-        downloadPng(r.dataUrl, r.name);
-        toast('⬇ ' + r.name + ' baixado', 'ok');
-      } else {
-        const ok = await copyPngToClipboard(r.blob);
-        if(ok) toast('📋 ' + r.label + ' copiado — abra o grupo no WhatsApp Desktop e cole (Ctrl+V)', 'ok');
-        else { downloadPng(r.dataUrl, r.name); toast('⚠️ Cópia indisponível — arquivo baixado: arraste para o grupo', 'warn'); }
-      }
-    }catch(err){
-      console.error(err);
-      toast('Erro ao gerar a imagem', 'err');
-    }finally{
-      setBusy(false);
-    }
-  });
 }
 async function captureMap(hidePV){
   if(!(SESSION && perm().map)){ toast('🔒 Seu nível de acesso não permite o mapa', 'err'); return; }
@@ -2946,7 +2742,7 @@ let SESSION = null;             // {id, key, name, level, at, access_token, refr
 let AUDIT = [];                 // [{ts, user, action, detail, ok}] — máx. 200
 const loginFails = {};          // usuário (maiúsculo) -> {n, until} — throttle local nesta aba
 /* Botões da topbar -> nível mínimo para exibir (botões de edição = só admin) */
-const TOPBAR_BTN_MIN = {'btn-import':4,'btn-backup':4,'btn-restore':4,'btn-shot-full':2,'btn-shot-nopv':2,'btn-pdf':2,'btn-etiq':2,'btn-plan':2,'btn-xls-map':2,'btn-xls-per':4,'btn-wa':2,'btn-reclass':4,'btn-clear':4,'btn-settings':4,'btn-dash':3};
+const TOPBAR_BTN_MIN = {'btn-import':4,'btn-backup':4,'btn-restore':4,'btn-shot-full':2,'btn-shot-nopv':2,'btn-pdf':2,'btn-etiq':2,'btn-plan':2,'btn-xls-toggle':2,'btn-xls-map':2,'btn-xls-per':4,'btn-reclass':4,'btn-clear':4,'btn-settings':4,'btn-dash':3};
 
 function normUser(s){ return String(s==null?'':s).trim().toUpperCase(); }
 function validUsername(s){
@@ -3422,14 +3218,21 @@ function renderRegistry(){
 function bindStatic(){
   const captureRoot = $('#capture-root');
 
-  /* AUDITORIA: cabeçalho recolhível no celular — abre/fecha o menu de ações */
+  /* AUDITORIA: cabeçalho recolhível (desktop e celular) — abre/fecha o menu de ações.
+     Estado inicial: recolhido em telas pequenas (celular), expandido no desktop. */
   const topbarToggle = $('#btn-topbar-toggle');
-  if(topbarToggle){
+  const topbarEl = $('#topbar');
+  if(topbarToggle && topbarEl){
+    const applyToggleLabel = ()=>{
+      const collapsed = topbarEl.classList.contains('collapsed');
+      topbarToggle.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+      topbarToggle.textContent = collapsed ? '☰ Menu' : '✕ Fechar';
+    };
+    if(typeof window !== 'undefined' && window.innerWidth <= 760) topbarEl.classList.add('collapsed');
+    applyToggleLabel();
     topbarToggle.addEventListener('click', ()=>{
-      const t = $('#topbar');
-      const expanded = t.classList.toggle('expanded');
-      topbarToggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
-      topbarToggle.textContent = expanded ? '✕ Fechar' : '☰ Menu';
+      topbarEl.classList.toggle('collapsed');
+      applyToggleLabel();
     });
   }
 
@@ -3668,6 +3471,19 @@ function bindStatic(){
   $('#btn-pdf').addEventListener('click', printMap);
   $('#btn-etiq').addEventListener('click', printEtiquetas);
   $('#btn-plan').addEventListener('click', capturePlan);
+  const ddExcel = $('#dd-excel'), ddExcelToggle = $('#btn-xls-toggle'), ddExcelMenu = $('#dd-excel-menu');
+  if(ddExcelToggle && ddExcelMenu){
+    const closeDdExcel = ()=>{ ddExcelMenu.hidden = true; ddExcelToggle.setAttribute('aria-expanded','false'); };
+    ddExcelToggle.addEventListener('click', e=>{
+      e.stopPropagation();
+      const willOpen = ddExcelMenu.hidden;
+      ddExcelMenu.hidden = !willOpen;
+      ddExcelToggle.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+    });
+    ddExcelMenu.addEventListener('click', e=>{ if(e.target.closest('.btn-dd-item')) closeDdExcel(); });
+    document.addEventListener('click', e=>{ if(ddExcel && !ddExcel.contains(e.target)) closeDdExcel(); });
+    document.addEventListener('keydown', e=>{ if(e.key === 'Escape') closeDdExcel(); });
+  }
   $('#btn-xls-map').addEventListener('click', xlsMapCompleto);
   $('#btn-xls-per').addEventListener('click', openPeriodXls);
   $('#px-cancel').addEventListener('click', ()=>{ const m = $('#period-xls-mask'); if(m) m.hidden = true; });
@@ -3675,11 +3491,6 @@ function bindStatic(){
     const s = $('#px-start').value, e = $('#px-end').value;
     const m = $('#period-xls-mask'); if(m) m.hidden = true;
     await xlsPeriodo(s, e);
-  });
-  $('#btn-wa').addEventListener('click', ()=>{
-    if(!(SESSION && SESSION.level >= 2)){ toast('🔒 Seu nível de acesso não permite o mapa', 'err'); return; }
-    const p = $('#wa-panel');
-    if(p){ p.hidden = !p.hidden; if(!p.hidden) renderWaPanel(); }
   });
   $('#btn-reclass').addEventListener('click', reclassifyAll);
   $('#btn-clear').addEventListener('click', ()=>{
@@ -3927,7 +3738,6 @@ async function init(){
       }
     }
     bindStatic();           // eventos (login, logout, usuários, painel…)
-    bindWaPanel();          // eventos do painel de envio WhatsApp
     applySession();         // aplica o nível de acesso ao layout
     // AUDITORIA: verificação periódica de expiração/renovação de sessão
     if(typeof setInterval === 'function') setInterval(checkSessionExpiry, 60000);
