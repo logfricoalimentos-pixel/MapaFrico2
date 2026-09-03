@@ -2656,13 +2656,14 @@ function metricsFromData(data){
   const capital = (data && data.capital) || [];
   const interior = (data && data.interior) || [];
   const m = {cargas:0, peso:0, ent:0,
-    capSem:0, intSem:0, capCom:0, intCom:0, capPeso:0, intPeso:0, frotasPeso:0, frotasCusto:0, neg:0};
+    capSem:0, intSem:0, capCom:0, intCom:0, capPeso:0, intPeso:0, frotasPeso:0, frotasCusto:0, frotasCargas:0, neg:0};
   const acc = (sec, r) => {
     m.cargas++;
     m.peso += numVal(r.peso);
     m.ent += numVal(r.entregas);
     if(sec === 'frotas'){
       m.frotasPeso += numVal(r.peso);
+      m.frotasCargas++;
       m.frotasCusto += calcularFrete('frotas', r).total; // estimado (tabela Interior) — indicador separado
       return;
     }
@@ -2705,7 +2706,7 @@ async function loadDashboard(){
   renderDash();
 }
 function aggregateRange(start, end){
-  const a = {cargas:0, peso:0, ent:0, capSem:0, intSem:0, capCom:0, intCom:0, capPeso:0, intPeso:0, frotasPeso:0, frotasCusto:0, diasAtivos:0};
+  const a = {cargas:0, peso:0, ent:0, capSem:0, intSem:0, capCom:0, intCom:0, capPeso:0, intPeso:0, frotasPeso:0, frotasCusto:0, frotasCargas:0, diasAtivos:0};
   for(const d of DASH.days){
     if(d.date < start || d.date > end) continue;
     const m = d.m;
@@ -2713,7 +2714,7 @@ function aggregateRange(start, end){
     a.capSem += m.capSem; a.intSem += m.intSem;
     a.capCom += m.capCom; a.intCom += m.intCom;
     a.capPeso += m.capPeso; a.intPeso += m.intPeso;
-    a.frotasPeso += m.frotasPeso; a.frotasCusto += m.frotasCusto;
+    a.frotasPeso += m.frotasPeso; a.frotasCusto += m.frotasCusto; a.frotasCargas += (m.frotasCargas||0);
     if(m.cargas > 0) a.diasAtivos++;
   }
   a.semNeg = a.capSem + a.intSem;
@@ -2780,6 +2781,11 @@ function heroCard(label, bigValue, lines, tip, tone, deltaPct){
 function renderKpis(m, deltas){
   deltas = deltas || {};
   const econPos = m.economia >= 0;
+  const showFrotas = DASH.showFrotas !== false;
+  // AUDITORIA: com o filtro desmarcado, os indicadores passam a considerar só Capital+Interior
+  // (custo e peso) — Frotas sai inteiramente da leitura, não só do card dedicado.
+  const dispPeso = showFrotas ? m.peso : m.capIntPeso;
+  const dispCargas = showFrotas ? m.cargas : (m.cargas - (m.frotasCargas||0));
   const hero =
     '<div class="kpis hero-row">' +
       heroCard('Custo Geral', fmtMoney(m.comNeg),
@@ -2796,7 +2802,7 @@ function renderKpis(m, deltas){
          {k:'Custo (com neg.)', v: fmtMoney(m.intCom)},
          {k:'Custo/kg', v: m.intCustoKg!=null? fmtMoney(m.intCustoKg)+'/kg':'—', big:true}],
         'Interior (com negociação): peso · custo total · custo por kg', 'hero-int', deltas.intPct) +
-      ((DASH.showFrotas !== false) ? heroCard('Custo Frotas (estimado)', null,
+      (showFrotas ? heroCard('Custo Frotas (estimado)', null,
         [{k:'Peso', v: m.frotasPeso>0? fmtNum2(m.frotasPeso)+' kg':'—', big:true},
          {k:'Custo estimado', v: fmtMoney(m.frotasCusto)},
          {k:'Custo/kg', v: m.frotasCustoKg!=null? fmtMoney(m.frotasCustoKg)+'/kg':'—', big:true}],
@@ -2805,13 +2811,14 @@ function renderKpis(m, deltas){
   const detail =
     kpiCard('Previsão sem negociação', fmtMoney(m.semNeg), 'tabela de preços', 'Soma da previsão 100% pela tabela: Capital (valor fixo) + Interior (diárias + km + pernoite) × 1,1') +
     kpiCard(econPos?'Economia da negociação':'Acréscimo da negociação', fmtMoney(Math.abs(m.economia)), m.pctEcon!=null? (econPos?'− ':'+ ')+Math.abs(m.pctEcon).toLocaleString('pt-BR',{maximumFractionDigits:1})+'% vs sem negociação' : '', 'Sem negociação − com negociação. Vermelho = a negociação encareceu', econPos?'pos':'neg') +
-    kpiCard('Cargas', fmtInt(m.cargas), m.neg>0? m.neg+' negociada(s)' : 'nenhuma negociação', 'Total de cargas e cargas negociadas (Frotas sem negociação)') +
-    kpiCard('Peso total', m.peso>0? fmtNum2(m.peso)+' kg':'—', 'todas as cargas (Frotas incluso)', 'Peso total (Frotas incluso)');
+    kpiCard('Cargas', fmtInt(dispCargas), showFrotas ? (m.neg>0? m.neg+' negociada(s)' : 'nenhuma negociação') : 'Capital + Interior', showFrotas ? 'Total de cargas e cargas negociadas (Frotas incluso)' : 'Total de cargas — Capital + Interior (Frotas oculta pelo filtro)') +
+    kpiCard('Peso total', dispPeso>0? fmtNum2(dispPeso)+' kg':'—', showFrotas ? 'todas as cargas (Frotas incluso)' : 'Capital + Interior', showFrotas ? 'Peso total (Frotas incluso)' : 'Peso total — Capital + Interior (Frotas oculta pelo filtro)');
   return hero + '<div class="kpis">' + detail + '</div>';
 }
 function renderDashDaily(){
   const today = DASH.days.find(d=>d.date===currentMapDate) || {date:currentMapDate, m: metricsFromData(DATA)};
   const m = today.m;
+  const showFrotas = DASH.showFrotas !== false;
   const el = $('#dash-today-date'); if(el) el.textContent = fmtBR(currentMapDate);
   const kpisEl = $('#dash-today-kpis');
   if(kpisEl) kpisEl.innerHTML = renderKpis(m, {});
@@ -2826,17 +2833,19 @@ function renderDashDaily(){
   const admCol = isAdmin();
   if(dailyEl) dailyEl.innerHTML = rowsDesc.length ?
     '<table class="dash-table"><thead><tr>' +
-    '<th>Data</th><th>Cargas</th><th>Peso (kg)</th><th>Capital (R$)</th><th>Peso Cap. (kg)</th><th>Custo/kg Cap.</th><th>Interior (R$)</th><th>Peso Int. (kg)</th><th>Custo/kg Int.</th><th>Sem neg. (R$)</th><th>Economia (R$)</th><th>Econ. %</th>' +
+    '<th>Data</th><th>Cargas'+(showFrotas?'':' (Cap.+Int.)')+'</th><th>Peso (kg)'+(showFrotas?'':' (Cap.+Int.)')+'</th><th>Capital (R$)</th><th>Peso Cap. (kg)</th><th>Custo/kg Cap.</th><th>Interior (R$)</th><th>Peso Int. (kg)</th><th>Custo/kg Int.</th><th>Sem neg. (R$)</th><th>Economia (R$)</th><th>Econ. %</th>' +
     (admCol? '<th>🗑</th>' : '') +
     '</tr></thead><tbody>' +
     rowsDesc.map(d=>{
       const m2 = d.m;
       const isToday = d.date === currentMapDate;
+      const dCargas = showFrotas ? m2.cargas : (m2.cargas - (m2.frotasCargas||0));
+      const dPeso = showFrotas ? m2.peso : (m2.capPeso + m2.intPeso);
       const delCell = admCol ? '<td>' + (isToday? '' : '<button class="btn mini del-day" type="button" data-del-date="'+d.date+'" title="Excluir o histórico de '+fmtBR(d.date)+' (admin + senha)">🗑</button>') + '</td>' : '';
       return '<tr class="'+(isToday?'today':'')+'" data-date="'+d.date+'" title="Clique para abrir o mapa de '+fmtBR(d.date)+'">' +
         '<td>'+fmtBR(d.date)+(isToday?' <b>(hoje)</b>':'')+'</td>' +
-        '<td>'+fmtInt(m2.cargas)+'</td>' +
-        '<td>'+fmtNum2(m2.peso)+'</td>' +
+        '<td>'+fmtInt(dCargas)+'</td>' +
+        '<td>'+fmtNum2(dPeso)+'</td>' +
         '<td>'+fmtMoney(m2.capCom)+'</td>' +
         '<td>'+fmtNum2(m2.capPeso)+'</td>' +
         '<td>'+(m2.capCustoKg!=null? fmtMoney(m2.capCustoKg)+'/kg':'—')+'</td>' +
@@ -2849,7 +2858,7 @@ function renderDashDaily(){
         delCell +
         '</tr>';
     }).join('') + '</tbody></table>' +
-    '<p class="dash-note">Frotas: custo estimado à parte (não soma no Custo Geral). Clique em um dia para abrir o mapa daquele dia.</p>'
+    '<p class="dash-note">'+(showFrotas ? 'Frotas: custo estimado à parte (não soma no Custo Geral).' : 'Filtro "Mostrar custo de Frotas" desmarcado — Cargas e Peso mostram só Capital + Interior.')+' Clique em um dia para abrir o mapa daquele dia.</p>'
     : '<p class="dash-note">Nenhum dia salvo ainda. Edite/importe o mapa (autosave) para começar o acompanhamento dia a dia.</p>';
 }
 function renderDashPeriodo(){
@@ -2887,7 +2896,7 @@ function aggregateCostByGranularity(p, gran){
     else { key = d.date; label = fmtBR(d.date).slice(0,5); }
     if(!buckets.has(key)) buckets.set(key, {key, label, cap:0, int:0, peso:0});
     const b = buckets.get(key);
-    b.cap += m.capCom; b.int += m.intCom; b.peso += m.peso;
+    b.cap += m.capCom; b.int += m.intCom; b.peso += (m.capPeso + m.intPeso); // AUDITORIA: peso do Custo/kg deve bater com cap+int (o gráfico só mostra Capital/Interior, nunca Frotas)
   }
   return Array.from(buckets.values()).sort((a,b)=> a.key.localeCompare(b.key));
 }
