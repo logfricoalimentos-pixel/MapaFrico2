@@ -41,6 +41,7 @@ h1,h2,h3{margin:0}
 .save-state.ok{color:#4ade80}
 .save-state.err{color:#f87171}
 .btn{border:1px solid var(--line);background:#fff;border-radius:8px;padding:6px 10px;font:inherit;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;box-shadow:0 1px 2px rgba(15,23,42,.05);white-space:nowrap}
+.btn[hidden]{display:none} /* AUDITORIA (bug): sem isso, .btn{display:inline-flex} vencia o [hidden] do navegador */
 .btn:hover{background:#f8fafc;border-color:#cbd5e1}
 .btn.mini{padding:2px 6px;font-size:12px;border-radius:6px}
 /* AUDITORIA: fonte do topo +2px (só aqui — não mexe nos botões do resto do app) */
@@ -351,6 +352,7 @@ body.print-big-font .custo-cell{font-size:15px}
 .kpi.hero.hero-cap{background:linear-gradient(135deg,#eef2ff,#e0e7ff);border-color:#c7d2fe}
 .kpi.hero.hero-int{background:linear-gradient(135deg,#fff7ed,#ffedd5);border-color:#fed7aa}
 .kpi.hero.hero-frotas{background:linear-gradient(135deg,#ecfeff,#cffafe);border-color:#a5f3fc}
+.kpi.hero.hero-peso{background:linear-gradient(135deg,#f8fafc,#f1f5f9);border-color:#e2e8f0}
 .hero-line{display:flex;justify-content:space-between;align-items:baseline;gap:8px;min-width:0}
 .hero-k{font-size:12px;color:var(--muted);flex-shrink:0}
 .kpi.hero.hero-cap .hero-k,.kpi.hero.hero-int .hero-k,.kpi.hero.hero-frotas .hero-k{color:#64748b}
@@ -375,6 +377,16 @@ body.print-big-font .custo-cell{font-size:15px}
 .compare-fill.sem{background:var(--cap)}
 .compare-fill.com{background:var(--ok)}
 .compare-val{width:120px;text-align:right;font-family:var(--mono);font-size:13px;font-weight:700;flex-shrink:0}
+/* AUDITORIA: gráfico "Custo vs Meta" (linha 3 do painel de indicadores) */
+.meta-chart{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;margin:8px 0 14px}
+.meta-group{border:1px solid var(--line);border-radius:10px;padding:12px;background:#fafafa}
+.meta-group-label{font-size:13.5px;font-weight:700;margin-bottom:6px;display:flex;align-items:baseline;gap:8px}
+.meta-diff{font-size:12px;font-weight:600}
+.meta-diff.good{color:var(--ok)}
+.meta-diff.bad{color:var(--err)}
+.compare-fill.meta{background:#94a3b8}
+.compare-fill.atual-good{background:var(--ok)}
+.compare-fill.atual-bad{background:var(--err)}
 .dash-table{width:100%;border-collapse:collapse;font-size:12.5px}
 .dash-table th{background:#f8fafc;border:1px solid var(--line);padding:6px 8px;text-align:right;white-space:nowrap}
 .dash-table th:first-child{text-align:left}
@@ -2252,7 +2264,16 @@ async function copyPngToClipboard(blob){
 async function captureMap(hidePV){
   if(!(SESSION && perm().map)){ toast('🔒 Seu nível de acesso não permite o mapa', 'err'); return; }
   if(typeof html2canvas === 'undefined'){ toast('❌ html2canvas não carregada (sem internet para o CDN?)', 'err'); return; }
-  if(!DATA.frotas.length && !DATA.capital.length && !DATA.interior.length){ toast('Nenhuma carga para gerar o mapa', 'err'); return; }
+  if(!DATA.frotas.length && !DATA.capital.length && !DATA.interior.length){
+    // AUDITORIA: antes era só um toast (passava despercebido) — agora é um alerta bem visível,
+    // já que essa era a causa mais provável de "clico e não acontece nada".
+    await choiceModal({
+      title: '⚠️ Nenhuma carga neste dia',
+      text: 'O mapa de <b>' + esc(fmtBR(currentMapDate)) + '</b> está vazio — não há nada para gerar a imagem.<br><span style="color:#64748b;font-size:12px">Adicione ao menos uma carga (Frotas, Capital ou Interior) ou troque a data em "Faturamento" no topo da página.</span>',
+      onlyOk: true
+    });
+    return;
+  }
   const label = hidePV ? 'Mapa Carregamento' : 'Mapa Completo';
   const choice = await choiceModal({
     title: '📷 ' + label,
@@ -2574,6 +2595,7 @@ function heroCard(label, bigValue, lines, tip, tone, deltaPct){
   return '<div class="kpi hero '+(tone||'')+'" title="'+esc(tip||'')+'">' +
     '<div class="kpi-label">'+label+'</div>' + body + deltaHtml + '</div>';
 }
+const META_CUSTO_KG = {capital: 0.45, interior: 0.99}; // metas de custo/kg (R$) — ajuste aqui se as metas mudarem
 function renderKpis(m, deltas){
   deltas = deltas || {};
   const econPos = m.economia >= 0;
@@ -2582,6 +2604,7 @@ function renderKpis(m, deltas){
   // (custo e peso) — Frotas sai inteiramente da leitura, não só do card dedicado.
   const dispPeso = showFrotas ? m.peso : m.capIntPeso;
   const dispCargas = showFrotas ? m.cargas : (m.cargas - (m.frotasCargas||0));
+  // ---- Linha 1: Custo Geral, Capital, Interior, Custo Frotas, Peso total ----
   const hero =
     '<div class="kpis hero-row">' +
       heroCard('Custo Geral', fmtMoney(m.comNeg),
@@ -2603,13 +2626,38 @@ function renderKpis(m, deltas){
          {k:'Custo estimado', v: fmtMoney(m.frotasCusto)},
          {k:'Custo/kg', v: m.frotasCustoKg!=null? fmtMoney(m.frotasCustoKg)+'/kg':'—', big:true}],
         'Frota própria: custo ESTIMADO pela tabela Interior (não há negociação/pagamento real) — indicador informativo, à parte do Custo Geral', 'hero-frotas', deltas.frotasPct) : '') +
+      heroCard('Peso Total', dispPeso>0? fmtNum2(dispPeso)+' kg':'—',
+        showFrotas ? 'Frotas + Capital + Interior' : 'Capital + Interior',
+        showFrotas ? 'Peso total (Frotas incluso)' : 'Peso total — Capital + Interior (Frotas oculta pelo filtro)', 'hero-peso') +
     '</div>';
+  // ---- Linha 2: Previsão sem negociação, Economia da negociação, Cargas ----
   const detail =
+    '<div class="kpis">' +
     kpiCard('Previsão sem negociação', fmtMoney(m.semNeg), 'tabela de preços', 'Soma da previsão 100% pela tabela: Capital (valor fixo) + Interior (diárias + km + pernoite) × 1,1') +
     kpiCard(econPos?'Economia da negociação':'Acréscimo da negociação', fmtMoney(Math.abs(m.economia)), m.pctEcon!=null? (econPos?'− ':'+ ')+Math.abs(m.pctEcon).toLocaleString('pt-BR',{maximumFractionDigits:1})+'% vs sem negociação' : '', 'Sem negociação − com negociação. Vermelho = a negociação encareceu', econPos?'pos':'neg') +
     kpiCard('Cargas', fmtInt(dispCargas), showFrotas ? (m.neg>0? m.neg+' negociada(s)' : 'nenhuma negociação') : 'Capital + Interior', showFrotas ? 'Total de cargas e cargas negociadas (Frotas incluso)' : 'Total de cargas — Capital + Interior (Frotas oculta pelo filtro)') +
-    kpiCard('Peso total', dispPeso>0? fmtNum2(dispPeso)+' kg':'—', showFrotas ? 'todas as cargas (Frotas incluso)' : 'Capital + Interior', showFrotas ? 'Peso total (Frotas incluso)' : 'Peso total — Capital + Interior (Frotas oculta pelo filtro)');
-  return hero + '<div class="kpis">' + detail + '</div>';
+    '</div>';
+  // ---- Linha 3: Custo vs Meta (R$/kg) ----
+  const metaRows = [
+    {label:'Capital', atual: m.capCustoKg, meta: META_CUSTO_KG.capital},
+    {label:'Interior', atual: m.intCustoKg, meta: META_CUSTO_KG.interior}
+  ];
+  const meta = '<h3>Custo vs Meta (R$/kg)</h3><div class="meta-chart">' + metaRows.map(r=>{
+    const atual = r.atual != null ? r.atual : 0;
+    const scale = Math.max(atual, r.meta) * 1.15 || r.meta || 1;
+    const metaPct = Math.min(100, (r.meta / scale) * 100);
+    const atualPct = Math.min(100, (atual / scale) * 100);
+    const bad = r.atual != null && r.atual > r.meta;
+    const atualLabel = r.atual != null ? fmtMoney(r.atual) + '/kg' : '—';
+    const diffPct = r.atual != null ? ((r.atual - r.meta) / r.meta * 100) : null;
+    const diffLabel = diffPct != null ? (diffPct <= 0 ? ' (− ' + Math.abs(diffPct).toLocaleString('pt-BR',{maximumFractionDigits:1}) + '% da meta)' : ' (+ ' + diffPct.toLocaleString('pt-BR',{maximumFractionDigits:1}) + '% acima da meta)') : '';
+    return '<div class="meta-group">' +
+      '<div class="meta-group-label">' + r.label + '<span class="meta-diff ' + (r.atual==null?'':(bad?'bad':'good')) + '">' + (r.atual!=null? diffLabel : '') + '</span></div>' +
+      '<div class="compare-row"><span class="compare-label">Meta</span><div class="compare-track"><div class="compare-fill meta" style="width:'+metaPct+'%"></div></div><span class="compare-val">' + fmtMoney(r.meta) + '/kg</span></div>' +
+      '<div class="compare-row"><span class="compare-label">Atual</span><div class="compare-track"><div class="compare-fill ' + (r.atual==null?'':(bad?'atual-bad':'atual-good')) + '" style="width:'+atualPct+'%"></div></div><span class="compare-val">' + atualLabel + '</span></div>' +
+    '</div>';
+  }).join('') + '</div>';
+  return hero + detail + meta;
 }
 function renderDashDaily(){
   const today = DASH.days.find(d=>d.date===currentMapDate) || {date:currentMapDate, m: metricsFromData(DATA)};
@@ -3117,7 +3165,8 @@ function confirmModal(opts){
   });
 }
 
-/* --- Modal: "Abrir/Copiar/Baixar" (usado pelas capturas 📷 Mapa completo / Mapa Carregamento) --- */
+/* --- Modal: "Abrir/Copiar/Baixar" (usado pelas capturas 📷 Mapa completo / Mapa Carregamento)
+   opts.onlyOk: modo aviso simples (esconde Abrir/Copiar/Baixar, mostra só um botão "Entendi") --- */
 function choiceModal(opts){
   return new Promise(resolve=>{
     const mask = $('#choice-mask');
@@ -3126,14 +3175,18 @@ function choiceModal(opts){
     $('#choice-text').innerHTML = opts.text || '';
     const errEl = $('#choice-err'); if(errEl) errEl.textContent = '';
     const openBtn = $('#choice-open'), copyBtn = $('#choice-copy'), dlBtn = $('#choice-download'), cancelBtn = $('#choice-cancel');
+    if(openBtn) openBtn.hidden = !!opts.onlyOk;
+    if(copyBtn) copyBtn.hidden = !!opts.onlyOk;
+    if(dlBtn) dlBtn.hidden = !!opts.onlyOk;
+    if(cancelBtn) cancelBtn.textContent = opts.onlyOk ? 'Entendi' : 'Cancelar';
     let settled = false;
     const finish = (choice)=>{
       if(settled) return; settled = true;
       mask.hidden = true;
-      if(openBtn) openBtn.onclick = null;
-      if(copyBtn) copyBtn.onclick = null;
-      if(dlBtn) dlBtn.onclick = null;
-      if(cancelBtn) cancelBtn.onclick = null;
+      if(openBtn){ openBtn.onclick = null; openBtn.hidden = false; }
+      if(copyBtn){ copyBtn.onclick = null; copyBtn.hidden = false; }
+      if(dlBtn){ dlBtn.onclick = null; dlBtn.hidden = false; }
+      if(cancelBtn){ cancelBtn.onclick = null; cancelBtn.textContent = 'Cancelar'; }
       resolve(choice);
     };
     if(openBtn) openBtn.onclick = ()=> finish('open');
