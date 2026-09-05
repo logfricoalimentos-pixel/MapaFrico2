@@ -327,6 +327,11 @@ body.print-big-font .custo-cell{font-size:15px}
 .tab.active{background:var(--ink);color:#fff;border-color:var(--ink)}
 .tab-panel h3{font-size:13.5px;margin:14px 0 8px}
 .tab-panel h3 small{font-weight:400;color:var(--muted)}
+/* AUDITORIA (bug corrigido): o contêiner externo do painel (#dash-today-kpis/#dash-period-kpis)
+   NÃO pode usar a classe .kpis (grade) — senão os blocos inteiros (linha 1/2/3, cada um já
+   sendo sua própria grade) viram células individuais dessa grade externa, ficando em COLUNAS
+   lado a lado em vez de empilhados em LINHAS. .kpis-wrap é só um bloco normal (sem grid).*/
+.kpis-wrap{display:block}
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(185px,1fr));gap:10px;margin:10px 0 14px}
 .kpi{border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:#fafafa;cursor:help}
 .kpi.pos{background:#f0fdf4;border-color:#bbf7d0}
@@ -555,7 +560,7 @@ body.readonly .sec-actions{display:none}
   </div>
   <div id="tab-diaria" class="tab-panel">
     <h3>Hoje — <span id="dash-today-date"></span></h3>
-    <div id="dash-today-kpis" class="kpis"></div>
+    <div id="dash-today-kpis" class="kpis-wrap"></div>
     <h3>Comparativo de previsão de frete</h3>
     <div id="dash-comparativo"></div>
     <h3>Acompanhamento dia a dia <small>(clique em um dia para abrir o mapa)</small></h3>
@@ -570,7 +575,7 @@ body.readonly .sec-actions{display:none}
       <label>De <input type="date" id="period-start"></label>
       <label>Até <input type="date" id="period-end"></label>
     </div>
-    <div id="dash-period-kpis" class="kpis"></div>
+    <div id="dash-period-kpis" class="kpis-wrap"></div>
     <h3>Evolução do custo no período <small>(com negociação · Capital × Interior)</small></h3>
     <div class="gran-toggle">
       <button class="gran-btn active" data-gran="daily">Diário</button>
