@@ -452,6 +452,11 @@ body.readonly .sec-actions{display:none}
    os botões "Mapa completo"/"Mapa Carregamento" pareciam não fazer nada ao clicar. */
 #choice-mask{position:fixed;inset:0;z-index:400;background:rgba(15,23,42,.55);display:flex;align-items:center;justify-content:center;padding:16px}
 #choice-mask[hidden]{display:none}
+/* AUDITORIA (bug corrigido): #period-xls-mask nunca teve esse CSS — ficava sem centralizar/sem
+   fundo escurecido ao abrir (mesmo problema que o #choice-mask já teve). #report-xls-mask usa
+   o mesmo padrão desde já. */
+#period-xls-mask,#report-xls-mask{position:fixed;inset:0;z-index:400;background:rgba(15,23,42,.55);display:flex;align-items:center;justify-content:center;padding:16px}
+#period-xls-mask[hidden],#report-xls-mask[hidden]{display:none}
 .modal{background:#fff;border-radius:14px;padding:20px;width:440px;max-width:100%;box-shadow:0 24px 80px rgba(0,0,0,.4)}
 .modal h3{font-size:15px;margin-bottom:8px}
 .modal-text{font-size:13px;color:#334155;margin:0 0 10px;line-height:1.5}
@@ -540,6 +545,7 @@ body.readonly .sec-actions{display:none}
       <div class="btn-dd-menu" id="dd-excel-menu" hidden>
         <button class="btn-dd-item" id="btn-xls-map" type="button" title="Baixar o mapa do dia em Excel (mesmo formato do print — sem valores)">📥 Excel Mapa</button>
         <button class="btn-dd-item" id="btn-xls-per" type="button" title="Baixar em Excel TODAS as cargas de Capital e Interior de um período (com valores/negociação)">📥 Excel Período</button>
+        <button class="btn-dd-item" id="btn-xls-rel" type="button" title="Relatório por dia OU por período: Placa, Rota, Ordem, Peso, Total, Média, Motorista, Transportadora">📥 Relatório de Cargas</button>
       </div>
     </div>
     <span class="sep"></span>
@@ -821,6 +827,21 @@ body.readonly .sec-actions{display:none}
     <div class="modal-actions">
       <button class="btn" type="button" id="px-cancel">Cancelar</button>
       <button class="btn primary" type="button" id="px-ok">📥 Gerar Excel</button>
+    </div>
+  </div>
+</div>
+
+<div id="report-xls-mask" hidden>
+  <div class="modal" role="dialog" aria-modal="true">
+    <h3>📥 Relatório de Cargas (Placa/Rota/Peso/Total/Média)</h3>
+    <p class="modal-text">Exporta uma linha por carga (Capital + Interior) com <b>Data Inicial</b> (Faturamento), <b>Data Final</b> (Entrega), Placa, Rota, Ordem, Peso, Total (R$), Média (R$/kg), Motorista e Transportadora. Escolha o mesmo dia em "De" e "Até" para um relatório de um único dia.</p>
+    <div class="period-xls-dates">
+      <label>De<input type="date" id="rx-start"></label>
+      <label>Até<input type="date" id="rx-end"></label>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" type="button" id="rx-cancel">Cancelar</button>
+      <button class="btn primary" type="button" id="rx-ok">📥 Gerar Excel</button>
     </div>
   </div>
 </div>
@@ -2186,6 +2207,59 @@ function xlsMapCompleto(){
   XLSX.writeFile(wb, name);
   toast('📥 Excel gerado: ' + name, 'ok');
 }
+/* Relatório de Cargas: Data Inicial (Faturamento) / Data Final (Entrega) / Placa / Rota / Ordem /
+   Peso / Total / Média / Motorista / Transportadora — Capital + Interior, por dia ou por período. */
+function openReportXls(){
+  if(!requireAdmin()) return;
+  const s = $('#rx-start'), e = $('#rx-end');
+  if(s && currentMapDate) s.value = currentMapDate;
+  if(e && currentMapDate) e.value = currentMapDate;
+  const mask = $('#report-xls-mask');
+  if(mask) mask.hidden = false;
+}
+async function xlsRelatorio(start, end){
+  if(!requireAdmin()) return;
+  if(typeof XLSX === 'undefined'){ toast('❌ Biblioteca XLSX não carregada (sem internet para o CDN?)', 'err'); return; }
+  start = String(start||''); end = String(end||'');
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(start) || !/^\d{4}-\d{2}-\d{2}$/.test(end) || start > end){ toast('Período inválido — verifique as datas', 'err'); return; }
+  const keys = await Stor.list();
+  let dates = keys.filter(k=> k.startsWith('map:')).map(k=> k.slice(4)).filter(d=> /^\d{4}-\d{2}-\d{2}$/.test(d) && d >= start && d <= end).sort();
+  if(currentMapDate >= start && currentMapDate <= end && !dates.includes(currentMapDate)) dates = dates.concat([currentMapDate]).sort();
+  if(!dates.length){ toast('Nenhum dia salvo no período selecionado', 'err'); return; }
+  const now = new Date();
+  const gerado = 'Gerado em ' + now.toLocaleDateString('pt-BR') + ' ' + now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  const rows = [];
+  for(const d of dates){
+    const rec = (d === currentMapDate) ? {data: DATA, dtEntrega} : await Stor.get('map:' + d);
+    const data = (rec && rec.data) ? rec.data : null;
+    const dataFinal = (rec && rec.dtEntrega) ? rec.dtEntrega : '';
+    for(const sec of ['capital','interior']){
+      for(const r of ((data && data[sec]) || [])){
+        const frete = calcularFrete(sec, r).total;
+        const peso = numVal(r.peso);
+        const media = (frete > 0 && peso > 0) ? frete / peso : '';
+        rows.push([fmtBR(d), dataFinal ? fmtBR(dataFinal) : '', r.placa||'', r.destino||'', r.carga||'', peso, frete, media, r.motorista||'', r.transportadora||'']);
+      }
+    }
+  }
+  if(!rows.length){ toast('Nenhuma carga de Capital/Interior no período', 'err'); return; }
+  const single = start === end;
+  const titulo = 'RELATÓRIO DE CARGAS — ' + (single ? fmtBR(start) : fmtBR(start) + ' a ' + fmtBR(end));
+  const aoa = [[titulo], [gerado], [],
+    ['Data Inicial','Data Final','Placa','Rota','Ordem','Peso','Total','Média','Motorista','Transportadora']];
+  for(const r of rows) aoa.push(r);
+  const totPeso = rows.reduce((a,r)=> a + (typeof r[5]==='number'?r[5]:0), 0);
+  const totFrete = rows.reduce((a,r)=> a + (typeof r[6]==='number'?r[6]:0), 0);
+  const mediaGeral = totFrete > 0 && totPeso > 0 ? totFrete / totPeso : '';
+  aoa.push(['TOTAL','','','','', totPeso, totFrete, mediaGeral, '', '']);
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws['!cols'] = [{wch:12},{wch:12},{wch:11},{wch:28},{wch:20},{wch:11},{wch:13},{wch:11},{wch:18},{wch:24}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'RELATÓRIO');
+  const name = 'relatorio-cargas-' + start + (single ? '' : '_a_' + end) + '.xlsx';
+  XLSX.writeFile(wb, name);
+  toast('📥 Excel gerado: ' + name, 'ok');
+}
 /* Todas as cargas de Capital + Interior de um período (com valores) + resumo por dia */
 function openPeriodXls(){
   if(!requireAdmin()) return;
@@ -2800,7 +2874,7 @@ let SESSION = null;             // {id, key, name, level, at, access_token, refr
 let AUDIT = [];                 // [{ts, user, action, detail, ok}] — máx. 200
 const loginFails = {};          // usuário (maiúsculo) -> {n, until} — throttle local nesta aba
 /* Botões da topbar -> nível mínimo para exibir (botões de edição = só admin) */
-const TOPBAR_BTN_MIN = {'btn-import':4,'btn-backup':4,'btn-restore':4,'btn-mapa-toggle':2,'btn-shot-full':2,'btn-shot-nopv':2,'btn-pdf':2,'btn-etiq':2,'btn-plan':2,'btn-xls-toggle':2,'btn-xls-map':2,'btn-xls-per':4,'btn-reclass':4,'btn-clear':4,'btn-settings':4,'btn-dash':3};
+const TOPBAR_BTN_MIN = {'btn-import':4,'btn-backup':4,'btn-restore':4,'btn-mapa-toggle':2,'btn-shot-full':2,'btn-shot-nopv':2,'btn-pdf':2,'btn-etiq':2,'btn-plan':2,'btn-xls-toggle':2,'btn-xls-map':2,'btn-xls-per':4,'btn-xls-rel':4,'btn-reclass':4,'btn-clear':4,'btn-settings':4,'btn-dash':3};
 
 function normUser(s){ return String(s==null?'':s).trim().toUpperCase(); }
 function validUsername(s){
@@ -3558,6 +3632,13 @@ function bindStatic(){
     const s = $('#px-start').value, e = $('#px-end').value;
     const m = $('#period-xls-mask'); if(m) m.hidden = true;
     await xlsPeriodo(s, e);
+  });
+  $('#btn-xls-rel').addEventListener('click', openReportXls);
+  $('#rx-cancel').addEventListener('click', ()=>{ const m = $('#report-xls-mask'); if(m) m.hidden = true; });
+  $('#rx-ok').addEventListener('click', async ()=>{
+    const s = $('#rx-start').value, e = $('#rx-end').value;
+    const m = $('#report-xls-mask'); if(m) m.hidden = true;
+    await xlsRelatorio(s, e);
   });
   $('#btn-reclass').addEventListener('click', reclassifyAll);
   $('#btn-clear').addEventListener('click', ()=>{
