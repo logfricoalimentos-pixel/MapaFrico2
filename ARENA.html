@@ -525,8 +525,13 @@ body.readonly .sec-actions{display:none}
     <button class="btn" id="btn-backup">💾 Backup</button>
     <button class="btn" id="btn-restore">📂 Restaurar</button>
     <span class="sep"></span>
-    <button class="btn" id="btn-shot-full" title="Documento A4 paisagem · inclui Peso e Entregas · sem valores/negociação">📷 Mapa completo</button>
-    <button class="btn" id="btn-shot-nopv" title="Documento A4 paisagem · sem Peso/Entregas · sem valores/negociação">📷 Mapa Carregamento</button>
+    <div class="btn-dd" id="dd-mapa">
+      <button class="btn" id="btn-mapa-toggle" type="button" aria-haspopup="true" aria-expanded="false" title="Gerar imagem do mapa">📷 Mapa ▾</button>
+      <div class="btn-dd-menu" id="dd-mapa-menu" hidden>
+        <button class="btn-dd-item" id="btn-shot-full" type="button" title="Documento A4 paisagem · inclui Peso e Entregas · sem valores/negociação">📷 Mapa completo</button>
+        <button class="btn-dd-item" id="btn-shot-nopv" type="button" title="Documento A4 paisagem · sem Peso/Entregas · sem valores/negociação">📷 Mapa Carregamento</button>
+      </div>
+    </div>
     <button class="btn" id="btn-pdf">🖨 PDF</button>
     <button class="btn" id="btn-etiq" title="Imprimir etiquetas A4 (8×5cm, 10 por página) — uma por carga">🏷 Etiquetas</button>
     <button class="btn" id="btn-plan" title="Gerar relatório Planejamento de Transporte (Capital × Interior × Total)">📊 Planejamento</button>
@@ -2795,7 +2800,7 @@ let SESSION = null;             // {id, key, name, level, at, access_token, refr
 let AUDIT = [];                 // [{ts, user, action, detail, ok}] — máx. 200
 const loginFails = {};          // usuário (maiúsculo) -> {n, until} — throttle local nesta aba
 /* Botões da topbar -> nível mínimo para exibir (botões de edição = só admin) */
-const TOPBAR_BTN_MIN = {'btn-import':4,'btn-backup':4,'btn-restore':4,'btn-shot-full':2,'btn-shot-nopv':2,'btn-pdf':2,'btn-etiq':2,'btn-plan':2,'btn-xls-toggle':2,'btn-xls-map':2,'btn-xls-per':4,'btn-reclass':4,'btn-clear':4,'btn-settings':4,'btn-dash':3};
+const TOPBAR_BTN_MIN = {'btn-import':4,'btn-backup':4,'btn-restore':4,'btn-mapa-toggle':2,'btn-shot-full':2,'btn-shot-nopv':2,'btn-pdf':2,'btn-etiq':2,'btn-plan':2,'btn-xls-toggle':2,'btn-xls-map':2,'btn-xls-per':4,'btn-reclass':4,'btn-clear':4,'btn-settings':4,'btn-dash':3};
 
 function normUser(s){ return String(s==null?'':s).trim().toUpperCase(); }
 function validUsername(s){
@@ -3273,6 +3278,21 @@ function renderRegistry(){
 }
 
 /* ================= Eventos ================= */
+/* AUDITORIA: utilitário genérico p/ botões com lista suspensa (Mapa, Excel, etc.) */
+function bindDropdown(rootId, toggleId, menuId){
+  const root = $('#'+rootId), toggle = $('#'+toggleId), menu = $('#'+menuId);
+  if(!toggle || !menu) return;
+  const close = ()=>{ menu.hidden = true; toggle.setAttribute('aria-expanded','false'); };
+  toggle.addEventListener('click', e=>{
+    e.stopPropagation();
+    const willOpen = menu.hidden;
+    menu.hidden = !willOpen;
+    toggle.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+  });
+  menu.addEventListener('click', e=>{ if(e.target.closest('.btn-dd-item')) close(); });
+  document.addEventListener('click', e=>{ if(root && !root.contains(e.target)) close(); });
+  document.addEventListener('keydown', e=>{ if(e.key === 'Escape') close(); });
+}
 function bindStatic(){
   const captureRoot = $('#capture-root');
 
@@ -3529,19 +3549,8 @@ function bindStatic(){
   $('#btn-pdf').addEventListener('click', printMap);
   $('#btn-etiq').addEventListener('click', printEtiquetas);
   $('#btn-plan').addEventListener('click', capturePlan);
-  const ddExcel = $('#dd-excel'), ddExcelToggle = $('#btn-xls-toggle'), ddExcelMenu = $('#dd-excel-menu');
-  if(ddExcelToggle && ddExcelMenu){
-    const closeDdExcel = ()=>{ ddExcelMenu.hidden = true; ddExcelToggle.setAttribute('aria-expanded','false'); };
-    ddExcelToggle.addEventListener('click', e=>{
-      e.stopPropagation();
-      const willOpen = ddExcelMenu.hidden;
-      ddExcelMenu.hidden = !willOpen;
-      ddExcelToggle.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
-    });
-    ddExcelMenu.addEventListener('click', e=>{ if(e.target.closest('.btn-dd-item')) closeDdExcel(); });
-    document.addEventListener('click', e=>{ if(ddExcel && !ddExcel.contains(e.target)) closeDdExcel(); });
-    document.addEventListener('keydown', e=>{ if(e.key === 'Escape') closeDdExcel(); });
-  }
+  bindDropdown('dd-mapa', 'btn-mapa-toggle', 'dd-mapa-menu');
+  bindDropdown('dd-excel', 'btn-xls-toggle', 'dd-excel-menu');
   $('#btn-xls-map').addEventListener('click', xlsMapCompleto);
   $('#btn-xls-per').addEventListener('click', openPeriodXls);
   $('#px-cancel').addEventListener('click', ()=>{ const m = $('#period-xls-mask'); if(m) m.hidden = true; });
