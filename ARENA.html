@@ -307,6 +307,9 @@ body.print-big-font .custo-cell{font-size:15px}
 .rotas-head{grid-template-columns:1fr 90px 28px}
 .rotas-add{grid-template-columns:1fr 90px 34px}
 .transp-add{grid-template-columns:1fr 72px 96px 34px}
+.wa-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:6px;align-items:end}
+.wa-grid label{display:flex;flex-direction:column;gap:3px;font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.3px}
+.wa-grid input,.wa-grid select{border:1px solid var(--line);border-radius:6px;padding:5px 7px;font-size:12px;background:#fff;width:100%;min-width:0}
 
 /* ===== Toasts / busy ===== */
 /* AUDITORIA (bug): z-index 200 ficava ABAIXO das máscaras de modal (#report-xls-mask e
@@ -832,6 +835,18 @@ body.readonly .sec-actions{display:none}
   </section>
 
   <section>
+    <h3>🤖 Envio automático do resumo (WhatsApp por API)</h3>
+    <p class="hint">O WhatsApp comum (wa.me) só leva <b>texto</b> — o navegador não anexa o print nem aperta "enviar" sozinho. Com uma API externa (<b>Evolution API</b> em servidor próprio, grátis, ou <b>UltraMsg</b>, paga), o botão <b>🤖</b> da tela de fechamento manda o <b>print PNG + resumo</b> para cada transportador marcada, um a um. O servidor da API precisa aceitar chamadas deste site (CORS) e ter HTTPS (o site é https).</p>
+    <div class="wa-grid">
+      <label>Provedor<select id="wa-prov"><option value="evolution">Evolution API (servidor próprio)</option><option value="ultramsg">UltraMsg (serviço pago)</option></select></label>
+      <label>Base URL<input id="wa-base" placeholder="https://…do seu túnel/servidor"></label>
+      <label>API key / token<input id="wa-key" type="password" placeholder="chave da instância"></label>
+      <label>Instância (Evolution)<input id="wa-inst" placeholder="ex.: frico"></label>
+      <label>Nº para teste<input id="wa-test-num" class="mono" placeholder="55629…"></label>
+      <button class="btn mini" id="btn-wa-test" title="Manda um print de teste para o número ao lado">📨 Testar</button>
+    </div>
+  </section>
+  <section>
     <h3>Códigos e WhatsApp das transportadoras (fechamento)</h3>
     <p class="hint">O <b>código</b> vai na coluna CÓDIGO do resumo do financeiro; o <b>WhatsApp</b> virou o botão 💬 da tela de fechamento (abre a conversa com o total daquele transportador). A tabela padrão já vem cadastrada; edite aqui se mudar (seus valores têm prioridade). O código digitado na tela de fechamento é lembrado aqui.</p>
     <div class="reg-head transp-row"><span>Transportadora</span><span>Código</span><span>WhatsApp</span><span></span></div>
@@ -1038,6 +1053,7 @@ body.readonly .sec-actions{display:none}
       <div id="fech-hist-rows"></div>
     </details>
     <div class="modal-actions">
+      <button class="btn" type="button" id="fech-wa-auto" title="Manda o print + resumo por WhatsApp (API configurada) para cada transportador marcada, um a um">🤖 Enviar resumo p/ marcados</button>
       <button class="btn" type="button" id="fech-cancel">Cancelar</button>
       <button class="btn primary" type="button" id="fech-ok" title="Marca as transportadoras marcadas como Fechado e gera os arquivos Excel">🔒 Fechar selecionadas + gerar Excel</button>
     </div>
@@ -2069,10 +2085,10 @@ async function switchToDate(dateStr){
   if(dashVisible) loadDashboard();
 }
 async function loadSettings(){
-  const [reg, ff, ck, ik, hc, av, rd, tc, fc, tz] = await Promise.all([
+  const [reg, ff, ck, ik, hc, av, rd, tc, fc, tz, wa] = await Promise.all([
     Stor.get('fleet-registry'), Stor.get('fixed-frotas'), Stor.get('capital-keywords'),
     Stor.get('interior-keywords'), Stor.get('hidden-cols'), Stor.get('availability'),
-    Stor.get('routes-days'), Stor.get('transp-codes'), Stor.get('fechamentos'), Stor.get('transp-zap')
+    Stor.get('routes-days'), Stor.get('transp-codes'), Stor.get('fechamentos'), Stor.get('transp-zap'), Stor.get('wa-auto')
   ]);
   // pré-cadastro padrão de transportadoras sempre mesclado; o salvo pelo usuário tem prioridade
   REGISTRY = Object.assign({}, DEFAULT_REGISTRY);
@@ -2106,6 +2122,8 @@ async function loadSettings(){
     for(const [name, zap] of Object.entries(saved)) m[normKw(name)] = zap;
     TRANSP_ZAP = m;
   }
+  // envio automático via API WhatsApp (Evolution/UltraMsg)
+  WA_AUTO = Object.assign({prov:'evolution', base:'', key:'', inst:''}, (wa && typeof wa === 'object') ? wa : {});
   // histórico de fechamentos quinzenais
   FECHAMENTOS = Array.isArray(fc) ? fc : [];
 }
@@ -2119,6 +2137,7 @@ function saveSettings(){
   Stor.set('routes-days', ROTAS_DIAS);
   Stor.set('transp-codes', TRANSP_CODES);
   Stor.set('transp-zap', TRANSP_ZAP);
+  Stor.set('wa-auto', WA_AUTO);
 }
 
 /* ================= Importação de planilha ================= */
@@ -2774,9 +2793,11 @@ async function relPersistDate(d){
   clearTimeout(REL.timers[d]); REL.timers[d] = null;
   delete REL.pending[d];
   if(d === currentMapDate){
-    // dia em edição: os objetos de DATA já foram alterados — o mapa é re-renderizado ao fechar
+    // dia em edição: os objetos de DATA já foram alterados — salva NA HORA (sem debounce),
+    // senão um "reabrir fechamento" logo em seguida lê o storage antigo e perde a alteração
     REL.mapDirty = true;
-    scheduleSave();
+    clearTimeout(saveTimer);
+    try{ await saveMapForDate(currentMapDate); }catch(e){ console.error(e); setSaveState('error'); }
     relSavedMsg('💾 Dia ' + fmtBR(d) + ' (aberto no mapa) alterado — salvo automaticamente', 'ok');
     return;
   }
@@ -2988,6 +3009,46 @@ function fechGroups(){
 }
 
 /* ---- painel ---- */
+let WA_AUTO = {prov:'evolution', base:'', key:'', inst:''};   // envio automático de resumo via API WhatsApp
+function waNumOf(zap){ return '55' + String(zap || '').replace(/\D/g, '').replace(/^0+/, ''); }
+/* manda a imagem (dataURL png) + legenda p/ um número, pelo provedor configurado */
+async function waSendImage(pngDataUrl, caption, zap){
+  const num = waNumOf(zap);
+  const b64 = String(pngDataUrl || '').split(',')[1] || '';
+  const base = String(WA_AUTO.base || '').replace(/\/+$/, '');
+  if(!base || !WA_AUTO.key) throw new Error('configure o provedor/base/key nas Configurações');
+  if(WA_AUTO.prov === 'ultramsg'){
+    const r = await fetch(base + '/messages/image', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'},
+      body: new URLSearchParams({token: WA_AUTO.key, chatId: num, file: b64, caption: caption, filename: 'resumo-fechamento.png'})});
+    if(!r.ok) throw new Error('UltraMsg HTTP ' + r.status);
+    return true;
+  }
+  const r = await fetch(base + '/message/sendMedia/' + encodeURIComponent(WA_AUTO.inst || 'frico'), {method:'POST',
+    headers:{'apikey': WA_AUTO.key, 'Content-Type':'application/json'},
+    body: JSON.stringify({number: num, mediatype: 'image', media: b64, caption: caption, fileName: 'resumo-fechamento.png'})});
+  if(!r.ok) throw new Error('Evolution HTTP ' + r.status);
+  return true;
+}
+/* percorre os grupos marcados COM whatsapp e manda o print + resumo de cada um */
+async function waAutoSendAll(){
+  if(!requireAdmin()) return;
+  if(typeof fetch === 'undefined'){ toast('❌ Navegador sem fetch p/ chamar a API', 'err'); return; }
+  const alvos = fechGroups().map(g=> Object.assign({g: g}, fechGroupSel(g))).filter(x=> x.itens.length && (TRANSP_ZAP[x.g.key] || ''));
+  if(!alvos.length){ toast('Nenhuma transportadora MARCADA com WhatsApp cadastrado', 'err'); return; }
+  let okN = 0; const errs = [];
+  for(const x of alvos){
+    const zap = TRANSP_ZAP[x.g.key];
+    try{
+      const url = fechPngDataUrl(x.g, x);
+      await waSendImage(url, fechMsgTexto(x.g, x), zap);
+      okN++; toast('🤖 Resumo enviado p/ ' + x.g.nome + ' (' + zap + ')', 'ok');
+    }catch(e){ errs.push(x.g.nome + ': ' + (e && e.message ? e.message : e)); }
+  }
+  audit('fechamento-wa-envio', okN + ' enviado(s)' + (errs.length ? ' · falhas: ' + errs.join(' | ') : ''));
+  if(errs.length) toast('⚠ ' + errs.length + ' falha(s): ' + errs[0] + (errs.length > 1 ? ' …' : '') + ' — veja se a API tem HTTPS+CORS', 'warn');
+  else toast('🤖 ' + okN + ' resumo(s) enviado(s) pelo WhatsApp', 'ok');
+}
+
 let FECH_SEL = {};   // key do grupo -> {codigo, abat, nf, boleto, exp, cargas:{itemKey:false}}
 function fechSelOf(key){
   return FECH_SEL[key] || (FECH_SEL[key] = {codigo: TRANSP_CODES[key] || '', abat: '', nf: 'Não', boleto: 'Não', exp: false, cargas: {}});
@@ -3035,8 +3096,8 @@ function fechZapUrl(zap, g, gs){
   if(!d) return '';
   return 'https://wa.me/55' + d + '?text=' + encodeURIComponent(fechMsgTexto(g, gs));
 }
-/* "print" do resumo em PNG (tabela como a do painel) p/ arrastar no WhatsApp */
-function fechPrintPng(g, gs){
+/* desenha o print e devolve o dataURL (sem baixar) */
+function fechPngDataUrl(g, gs){
   const W = 1180, RH = 24, PAD = 10;
   const secs = ['interior','capital'].map(sc=> ({sc: sc, cs: gs.itens.filter(it=> it.sec === sc)})).filter(x=> x.cs.length);
   const nRows = secs.reduce((a, x)=> a + x.cs.length + 1, 0);
@@ -3084,19 +3145,18 @@ function fechPrintPng(g, gs){
   cx.fillText(fmtPeso2(gs.peso) + ' kg', 720 - 6, y + RH / 2 + 1);
   cx.fillText(fmtBRL(gs.fat), 930 - 6, y + RH / 2 + 1);
   y += RH;
+  return (cv.toDataURL ? cv.toDataURL('image/png') : '');
+}
+/* "print" do resumo em PNG (tabela como a do painel) p/ arrastar no WhatsApp */
+function fechPrintPng(g, gs){
+  const url = fechPngDataUrl(g, gs);
   const fname = 'resumo-' + slugTransp(g.nome) + '-' + REL.start + '.png';
   if(window.__pngNames) window.__pngNames.push(fname);
-  window.__lastPng = {name: fname, url: ''};
-  const entrega = (url)=> {
-    window.__lastPng.url = url;
-    if(window.__noDownload || !url) return;
-    const a = document.createElement('a');
-    a.href = url; a.download = fname;
-    document.body.appendChild(a); a.click(); a.remove();
-  };
-  // dataURL sincronamente (o CSP da página bloqueia fetch de blob:, e p/ testes/automação)
-  if(cv.toDataURL) entrega(cv.toDataURL('image/png'));
-  else entrega('');
+  window.__lastPng = {name: fname, url: url};
+  if(window.__noDownload || !url) return true;
+  const a = document.createElement('a');
+  a.href = url; a.download = fname;
+  document.body.appendChild(a); a.click(); a.remove();
   return true;
 }
 function openFech(){
@@ -5170,6 +5230,31 @@ function bindStatic(){
       renderRotas();
     }
   });
+
+  /* envio automático do resumo via API WhatsApp (Evolution/UltraMsg) */
+  const TINY_PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
+  const WA_FIELDS = [['wa-prov','prov'],['wa-base','base'],['wa-key','key'],['wa-inst','inst']];
+  const waSync = ()=> { for(const [id, k] of WA_FIELDS){ const el = relEl(id); if(el) el.value = WA_AUTO[k] || ''; } };
+  waSync();
+  for(const [id] of WA_FIELDS){
+    const el = relEl(id);
+    if(el) el.addEventListener('change', ()=>{
+      if(!requireAdmin()) return;
+      for(const [id2, k2] of WA_FIELDS){ const e2 = relEl(id2); if(e2) WA_AUTO[k2] = String(e2.value || '').trim(); }
+      saveSettings();
+      toast('🤖 Configuração de envio automático salva', 'ok');
+    });
+  }
+  $('#btn-wa-test').addEventListener('click', async ()=>{
+    if(!requireAdmin()) return;
+    const num = String((relEl('wa-test-num') || {}).value || '').trim();
+    if(!num){ toast('Informe o número de teste', 'err'); return; }
+    try{
+      await waSendImage(TINY_PNG, '📨 Teste de envio automático do ARENA (fechamento)', num);
+      toast('📨 Teste enviado para ' + num, 'ok');
+    }catch(e){ toast('❌ Falha no teste: ' + (e && e.message ? e.message : e) + ' — a API precisa de HTTPS + CORS', 'err'); }
+  });
+  $('#fech-wa-auto').addEventListener('click', waAutoSendAll);
 
   /* códigos/whatsapp de transportadora p/ fechamento (mesmo padrão do cadastro de rotas) */
   $('#btn-transp-add').addEventListener('click', ()=>{
