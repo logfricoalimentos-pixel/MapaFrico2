@@ -1025,7 +1025,7 @@ body.readonly .sec-actions{display:none}
         <thead>
           <tr>
             <th title="marcar/desmarcar TODAS as cargas de TODAS as transportadoras de uma vez"><input type="checkbox" id="fech-all" title="marcar/desmarcar TUDO de uma só vez"></th><th>Transportadora</th><th class="num">Cargas</th><th class="num">Peso (kg)</th>
-            <th class="num">Valor faturado (R$)</th><th class="num">Custo (R$/kg)</th><th>Código</th><th class="num">Abatimento (R$)</th>
+            <th class="num">Valor faturado (R$)</th><th>Código</th><th class="num">Abatimento (R$)</th>
             <th>Entregou NF</th><th>Boleto</th><th>WhatsApp</th>
           </tr>
         </thead>
@@ -3118,7 +3118,7 @@ function fechSelNF(field, val){
 /* linha-filha: lista as cargas do grupo com checkbox individual */
 function fechDetRow(g){
   const s = fechSelOf(g.key);
-  return '<tr class="fech-det" data-g="' + esc(g.key) + '"><td colspan="11"><table class="fech-det-table"><thead><tr>' +
+  return '<tr class="fech-det" data-g="' + esc(g.key) + '"><td colspan="10"><table class="fech-det-table"><thead><tr>' +
     '<th style="width:26px" title="include esta carga no fechamento">✓</th><th>Data</th><th>Tipo</th><th>Placa</th><th>Rota</th><th>Ordem</th>' +
     '<th class="num">Peso (kg)</th><th class="num">KM</th><th class="num">Total (R$)</th><th class="num">Custo (R$/kg)</th><th>Motorista</th>' +
   '</tr></thead><tbody>' +
@@ -3144,7 +3144,7 @@ function renderFechTable(){
   if(!body) return;
   const groups = fechGroups();
   if(!groups.length){
-    body.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:20px;color:var(--muted)">Nenhuma carga <b>PENDENTE</b> no período ' + esc(fechPeriodoTxt(REL)) + '.</td></tr>';
+    body.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:20px;color:var(--muted)">Nenhuma carga <b>PENDENTE</b> no período ' + esc(fechPeriodoTxt(REL)) + '.</td></tr>';
     if(foot) foot.innerHTML = '';
     const ok = relEl('fech-ok'); if(ok) ok.disabled = true;
     return;
@@ -3163,7 +3163,6 @@ function renderFechTable(){
       '<td class="num">' + gs.itens.length + '</td>' +
       '<td class="num">' + fmtPeso2(gs.peso) + '</td>' +
       '<td class="num">' + fmtBRL(gs.fat) + '</td>' +
-      '<td class="num" title="custo médio = valor faturado ÷ peso (só das cargas marcadas)">' + (gs.peso > 0 ? relFmtMedia(gs.fat / gs.peso) : '—') + '</td>' +
       '<td style="min-width:96px"><input type="text" data-f="codigo" value="' + esc(gs.s.codigo) + '" placeholder="código"></td>' +
       '<td style="min-width:104px"><input type="text" inputmode="decimal" data-f="abat" value="' + esc(gs.s.abat) + '" placeholder="0,00"></td>' +
       '<td>' + fechSelNF('nf', gs.s.nf) + '</td>' +
@@ -3195,12 +3194,11 @@ function renderFechTable(){
 function renderFechFoot(){
   const foot = relEl('fech-foot'); if(!foot) return;
   const sel = fechGroups().map(g=> Object.assign({g: g}, fechGroupSel(g))).filter(x=> x.itens.length);
-  if(!sel.length){ foot.innerHTML = '<tr><td colspan="11">Nenhuma carga marcada para fechar.</td></tr>'; return; }
+  if(!sel.length){ foot.innerHTML = '<tr><td colspan="10">Nenhuma carga marcada para fechar.</td></tr>'; return; }
   let n = 0, peso = 0, fat = 0, ab = 0;
   for(const x of sel){ n += x.itens.length; peso += x.peso; fat += x.fat; ab += numVal(x.s.abat); }
   foot.innerHTML = '<tr><td></td><td>SELECIONADAS: ' + sel.length + ' transportadora(s)</td>' +
     '<td class="num">' + n + '</td><td class="num">' + fmtPeso2(peso) + '</td><td class="num">' + fmtBRL(fat) + '</td>' +
-    '<td class="num">' + (peso > 0 ? relFmtMedia(fat / peso) : '—') + '</td>' +
     '<td></td><td class="num">' + fmtBRL(ab) + '</td><td colspan="3">a pagar: <b>' + fmtBRL(Math.max(0, fat - ab)) + '</b></td></tr>';
 }
 function bindFechPanel(){
