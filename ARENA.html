@@ -307,6 +307,8 @@ body.print-big-font .custo-cell{font-size:15px}
 .rotas-head{grid-template-columns:1fr 90px 28px}
 .rotas-add{grid-template-columns:1fr 90px 34px}
 .transp-add{grid-template-columns:1fr 72px 96px 34px}
+.fech-print-menu{position:fixed;z-index:9990;display:flex;flex-direction:column;gap:4px;background:#fff;border:1px solid var(--line);border-radius:8px;padding:6px;box-shadow:0 6px 18px rgba(0,0,0,.18);min-width:158px}
+.fech-print-menu .btn{justify-content:flex-start;text-align:left;white-space:nowrap}
 .wa-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:6px;align-items:end}
 .wa-grid label{display:flex;flex-direction:column;gap:3px;font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.3px}
 .wa-grid input,.wa-grid select{border:1px solid var(--line);border-radius:6px;padding:5px 7px;font-size:12px;background:#fff;width:100%;min-width:0}
@@ -3058,6 +3060,52 @@ async function waSendImage(pngDataUrl, caption, zap){
   if(!r.ok) throw new Error('Evolution HTTP ' + r.status);
   return true;
 }
+/* menu do 🖼: morar no <body> em posição fixa (a tabela tem scroll horizontal e cortaria o menu) */
+function fecharMenuPrint(){
+  for(const m of Array.from(document.querySelectorAll('.fech-print-menu'))) m.remove();
+}
+function abrirMenuPrint(btn, g){
+  const menu = document.createElement('div');
+  menu.className = 'fech-print-menu'; menu.setAttribute('role', 'menu');
+  menu.innerHTML = '<button class="btn mini" type="button" data-f="print-copy" role="menuitem">📋 Copiar imagem</button>' +
+                   '<button class="btn mini" type="button" data-f="print-save" role="menuitem">⬇ Baixar PNG</button>';
+  menu.dataset.g = g.key;
+  document.body.appendChild(menu);
+  const r = btn.getBoundingClientRect();
+  const mw = menu.offsetWidth, mh = menu.offsetHeight;
+  let lx = r.right - mw; if(lx < 8) lx = 8; if(lx + mw > window.innerWidth - 8) lx = window.innerWidth - mw - 8;
+  let ty = r.bottom + 4; if(ty + mh > window.innerHeight - 8) ty = Math.max(8, r.top - mh - 4);
+  menu.style.left = Math.round(lx) + 'px'; menu.style.top = Math.round(ty) + 'px';
+  menu.addEventListener('click', ev=>{
+    const op = ev.target.closest('[data-f="print-copy"],[data-f="print-save"]'); if(!op) return;
+    fecharMenuPrint();
+    if(op.getAttribute('data-f') === 'print-copy') fechCopyPng(g, fechGroupSel(g));
+    else { fechPrintPng(g, fechGroupSel(g)); toast('🖼 Print (PNG) baixado — arraste o arquivo p/ conversa do WhatsApp', 'ok'); }
+  });
+  setTimeout(()=>{
+    const off = ev=>{ if(!menu.contains(ev.target)){ fecharMenuPrint(); document.removeEventListener('click', off, true); } };
+    document.addEventListener('click', off, true);
+  }, 0);
+}
+/* copia o print p/ área de transferência (ClipboardItem) p/ colar direto na conversa */
+async function fechCopyPng(g, gs){
+  const url = fechPngDataUrl(g, gs);
+  if(!url){ toast('Não foi possível gerar o print', 'err'); return false; }
+  window.__lastPng = {name: 'resumo-' + slugTransp(g.nome) + '-' + REL.start + '.png', url: url};
+  if(!(navigator.clipboard && navigator.clipboard.write && window.ClipboardItem)){
+    toast('⚠ Este navegador não copia imagem — use 🖼 → ⬇ Baixar PNG', 'warn'); return false;
+  }
+  try{
+    const bin = atob(String(url).split(',')[1] || ''); const u8 = new Uint8Array(bin.length);
+    for(let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+    await navigator.clipboard.write([new ClipboardItem({'image/png': new Blob([u8], {type: 'image/png'})})]);
+    toast('📋 Print copiado — na conversa do WhatsApp é só colar (Ctrl+V) e enviar', 'ok');
+    return true;
+  }catch(err){
+    toast('⚠ Não deu p/ copiar (' + (err && err.message ? err.message : err) + ') — use 🖼 →  Baixar PNG', 'warn');
+    return false;
+  }
+}
 /* percorre os grupos marcados COM whatsapp e manda o print + resumo de cada um */
 async function waAutoSendAll(){
   if(!requireAdmin()) return;
@@ -3255,8 +3303,8 @@ function renderFechTable(){
       '<td style="min-width:104px"><input type="text" inputmode="decimal" data-f="abat" value="' + esc(gs.s.abat) + '" placeholder="0,00"></td>' +
       '<td>' + fechSelNF('nf', gs.s.nf) + '</td>' +
       '<td>' + fechSelNF('boleto', gs.s.boleto) + '</td>' +
-      '<td>' + (url ? '<a class="zap-link" href="' + esc(url) + '" target="_blank" rel="noopener" title="Abre o WhatsApp com o resumo COMPLETO já escrito na mensagem">💬 ' + esc(zap) + '</a>' : '<span class="fech-nozap" title="sem WhatsApp cadastrado">—</span>') +
-        ' <button class="btn mini" type="button" data-f="print" title="Gerar o PRINT (PNG) do resumo p/ mandar no WhatsApp">🖼</button></td>' +
+      '<td style="position:relative">' + (url ? '<a class="zap-link" href="' + esc(url) + '" target="_blank" rel="noopener" title="Abre o WhatsApp com o resumo COMPLETO já escrito na mensagem">💬 ' + esc(zap) + '</a>' : '<span class="fech-nozap" title="sem WhatsApp cadastrado">—</span>') +
+        ' <button class="btn mini" type="button" data-f="print" title="Print do resumo: copiar ou baixar" aria-haspopup="menu">🖼</button></td>' +
     '</tr>';
     if(gs.s.exp) html += fechDetRow(g);
   }
@@ -3345,7 +3393,11 @@ function bindFechPanel(){
       if(pb){
         const trP = pb.closest('tr[data-g]');
         const gP = trP ? fechGroups().find(x=> x.key === trP.getAttribute('data-g')) : null;
-        if(gP){ fechPrintPng(gP, fechGroupSel(gP)); toast('🖼 Print (PNG) do resumo gerado — arraste o arquivo p/ conversa do WhatsApp', 'ok'); }
+        const ja = document.querySelector('.fech-print-menu');
+        const mesmo = !!(ja && gP && ja.dataset.g === gP.key);
+        fecharMenuPrint();
+        if(!mesmo && gP) abrirMenuPrint(pb, gP);
+        return;
       }
       const btn = e.target.closest('[data-f="exp"]'); if(!btn) return;
       const tr = btn.closest('tr[data-g]'); if(!tr) return;
