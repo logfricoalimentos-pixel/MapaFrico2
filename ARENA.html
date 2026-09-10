@@ -522,6 +522,38 @@ body.readonly .sec-actions{display:none}
   .rel-filters label{flex:1 1 44%}
   .rel-filters input,.rel-filters select{min-width:0;width:100%}
 }
+/* ===== Status de pagamento (Pendente/Fechado) + painel de Fechamento quinzenal ===== */
+.rel-tools{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:8px 0 0}
+.rel-tools .chk{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:#334155;cursor:pointer;user-select:none}
+.rel-tools .chk input{width:15px;height:15px;accent-color:var(--blue)}
+.rel-tools .rel-tools-hint{font-size:11.5px;color:var(--muted)}
+.st-badge{display:inline-block;padding:1px 7px;border-radius:999px;font-size:10.5px;font-weight:700;letter-spacing:.2px;white-space:nowrap}
+.st-badge.pend{background:#e2e8f0;color:#334155}
+.st-badge.fech{background:#dcfce7;color:#15803d}
+#fech-mask{position:fixed;inset:0;z-index:450;background:rgba(15,23,42,.6);display:flex;align-items:center;justify-content:center;padding:16px}
+#fech-mask[hidden]{display:none}
+.modal-fech{width:min(1080px,96vw);max-height:92vh;display:flex;flex-direction:column;padding:14px 16px 12px}
+.fech-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.fech-head h3{font-size:15px}
+.fech-per{font-size:12px;color:var(--muted);margin:2px 0 8px}
+.fech-scroll{flex:1 1 auto;overflow:auto;border:1px solid var(--line);border-radius:10px;background:#fff;min-height:90px}
+.fech-table{border-collapse:separate;border-spacing:0;width:100%;font-size:12.5px}
+.fech-table th{position:sticky;top:0;z-index:2;background:#f1f5f9;border-bottom:1px solid #cbd5e1;border-right:1px solid var(--line);padding:6px 7px;text-align:left;font-size:10.5px;color:#334155;text-transform:uppercase;letter-spacing:.2px;white-space:nowrap}
+.fech-table th.num{text-align:right}
+.fech-table td{border-bottom:1px solid var(--line);border-right:1px solid var(--line);padding:3px 5px;vertical-align:middle;white-space:nowrap}
+.fech-table td.num{text-align:right;font-family:var(--mono)}
+.fech-table input[type=text],.fech-table input[type=number]{width:100%;box-sizing:border-box;border:1px solid var(--line);border-radius:6px;padding:4px 6px;font:inherit;font-size:12.5px;background:#fff}
+.fech-table input:focus,.fech-table select:focus{border-color:var(--blue);outline:none}
+.fech-table select{border:1px solid var(--line);border-radius:6px;padding:4px 5px;font:inherit;font-size:12.5px;background:#fff}
+.fech-table tr.fech-off td{background:#f8fafc;color:var(--muted)}
+.fech-table tr.fech-on td{background:#f0fdf4}
+.fech-table tfoot td{position:sticky;bottom:0;z-index:2;background:#f1f5f9;font-weight:700;border-top:2px solid #94a3b8;padding:6px 7px}
+.fech-hist{margin-top:10px;border-top:1px dashed #cbd5e1;padding-top:8px}
+.fech-hist summary{cursor:pointer;font-size:12.5px;color:#334155;font-weight:600;user-select:none}
+.fech-hist-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px;color:#334155;padding:5px 2px;border-bottom:1px solid var(--line)}
+.fech-hist-row .grow{flex:1;min-width:160px}
+.fech-hist-row .mono{font-size:11.5px;color:var(--muted)}
+@media (max-width:760px){ .modal-fech{width:100vw;max-height:100vh;height:100vh;border-radius:0} #fech-mask{padding:0} }
 /* ===== Usuários & auditoria (configurações) ===== */
 .users-row{grid-template-columns:1fr 1.3fr 34px 34px;align-items:center}
 .users-row .user-name{font-size:12px;padding:5px 2px;display:flex;align-items:center;gap:5px;overflow:hidden;white-space:nowrap}
@@ -783,6 +815,18 @@ body.readonly .sec-actions{display:none}
   </section>
 
   <section>
+    <h3>Códigos de transportadoras (fechamento)</h3>
+    <p class="hint">Código de cada transportadora no <b>resumo do financeiro</b> (coluna CÓDIGO do fechamento). Preenche sozinho na tela de fechamento; o código que você digitar lá pela primeira vez é lembrado aqui.</p>
+    <div class="reg-head rotas-head"><span>Transportadora</span><span>Código</span><span></span></div>
+    <div id="transp-rows" class="reg-rows"></div>
+    <div class="reg-add rotas-add">
+      <input id="transp-add-nome" placeholder="nome da transportadora">
+      <input id="transp-add-cod" class="mono" placeholder="código">
+      <button class="btn mini" id="btn-transp-add" title="Adicionar">＋</button>
+    </div>
+  </section>
+
+  <section>
     <h3>Colunas ocultas (tela)</h3>
     <p class="hint">Independente da captura "Sem peso/valor".</p>
     <div class="hc-row">
@@ -917,13 +961,19 @@ body.readonly .sec-actions{display:none}
       </div>
     </div>
 
+    <div class="rel-tools">
+      <label class="chk"><input type="checkbox" id="rf-fechadas"> Exibir fechadas</label>
+      <button class="btn" type="button" id="rf-fech-btn" title="Fechamento quinzenal de frete: agrupa por transportadora (Capital + Interior), marca as cargas como Fechado e gera o resumo do financeiro + o relatório de cada transportador">🔒 Fechamento</button>
+      <span class="rel-tools-hint" id="rel-fech-hint"></span>
+    </div>
+
     <div class="rel-scroll" id="rel-scroll">
       <table class="rel-table" id="rel-table">
         <thead>
           <tr>
             <th>Data Inicial</th><th>Data Final</th><th>Tipo</th><th>Placa</th><th>Rota / Destino</th><th>Ordem</th>
             <th class="num">Peso (kg)</th><th class="num">KM</th><th class="num">Diárias</th>
-            <th class="num">Total (R$)</th><th class="num">Média (R$/kg)</th><th>Motorista</th><th>Transportadora</th>
+            <th class="num">Total (R$)</th><th class="num">Média (R$/kg)</th><th>Motorista</th><th>Transportadora</th><th>Status</th>
           </tr>
         </thead>
         <tbody id="rel-body"></tbody>
@@ -940,6 +990,38 @@ body.readonly .sec-actions{display:none}
       <button class="btn" type="button" id="rx-cancel">Fechar</button>
       <button class="btn" type="button" id="rx-dl-all" title="Baixa em Excel TODAS as cargas do período carregado (ignora os filtros)">📥 Baixar (tudo)</button>
       <button class="btn primary" type="button" id="rx-dl-filt" title="Baixa em Excel apenas as linhas que estão na tela, com os filtros aplicados">📥 Baixar (filtrado)</button>
+    </div>
+  </div>
+</div>
+
+<div id="fech-mask" class="no-print" hidden>
+  <div class="modal modal-fech" role="dialog" aria-modal="true" aria-labelledby="fech-title">
+    <div class="fech-head">
+      <h3 id="fech-title">🔒 Fechamento de frete (quinzenal)</h3>
+      <button class="rel-x" type="button" id="fech-x" title="Fechar (Esc)">✕</button>
+    </div>
+    <p class="fech-per" id="fech-per"></p>
+    <p class="modal-text" style="margin:0 0 8px">Marque as transportadoras que serão <b>pagas neste fechamento</b>. Ao confirmar, as cargas delas passam de <b>Pendente</b> para <b>Fechado</b> (somem do relatório, a não ser que você marque "Exibir fechadas") e o app gera: <b>1)</b> o resumo geral para o financeiro (por transportadora, com subtotal, abatimento e preço/kg) e <b>2)</b> um Excel por transportadora com as abas <b>INTERIOR</b> e <b>CAPITAL</b> para enviar ao transportador.</p>
+    <div class="fech-scroll">
+      <table class="fech-table" id="fech-table">
+        <thead>
+          <tr>
+            <th title="marcar para fechar">✓</th><th>Transportadora</th><th class="num">Cargas</th><th class="num">Peso (kg)</th>
+            <th class="num">Valor faturado (R$)</th><th>Código</th><th class="num">Abatimento (R$)</th>
+            <th>Entregou NF</th><th>Boleto</th>
+          </tr>
+        </thead>
+        <tbody id="fech-body"></tbody>
+        <tfoot id="fech-foot"></tfoot>
+      </table>
+    </div>
+    <details class="fech-hist" id="fech-hist">
+      <summary>📚 Fechamentos anteriores (reabrir / baixar de novo)</summary>
+      <div id="fech-hist-rows"></div>
+    </details>
+    <div class="modal-actions">
+      <button class="btn" type="button" id="fech-cancel">Cancelar</button>
+      <button class="btn primary" type="button" id="fech-ok" title="Marca as transportadoras marcadas como Fechado e gera os arquivos Excel">🔒 Fechar selecionadas + gerar Excel</button>
     </div>
   </div>
 </div>
@@ -1090,6 +1172,8 @@ let CAPITAL_KEYWORDS = [...DEFAULT_CAPITAL_KEYWORDS];
 let INTERIOR_KEYWORDS = [...DEFAULT_INTERIOR_KEYWORDS];
 let HIDDEN_COLS = [];     // peso, entregas, neg, valorkg
 let ROTAS_DIAS = {};      // rota (Nº Carga normalizado) -> dias (para automatizar o campo dias)
+let TRANSP_CODES = {};    // transportadora (normKw) -> código p/ coluna CÓDIGO do fechamento
+let FECHAMENTOS = [];     // fechamentos quinzenais já feitos (status Pendente->Fechado das cargas)
 let currentMapDate = '';
 let dtEntrega = '';
 let dirty = false;
@@ -1924,10 +2008,10 @@ async function switchToDate(dateStr){
   if(dashVisible) loadDashboard();
 }
 async function loadSettings(){
-  const [reg, ff, ck, ik, hc, av, rd] = await Promise.all([
+  const [reg, ff, ck, ik, hc, av, rd, tc, fc] = await Promise.all([
     Stor.get('fleet-registry'), Stor.get('fixed-frotas'), Stor.get('capital-keywords'),
     Stor.get('interior-keywords'), Stor.get('hidden-cols'), Stor.get('availability'),
-    Stor.get('routes-days')
+    Stor.get('routes-days'), Stor.get('transp-codes'), Stor.get('fechamentos')
   ]);
   // pré-cadastro padrão de transportadoras sempre mesclado; o salvo pelo usuário tem prioridade
   REGISTRY = Object.assign({}, DEFAULT_REGISTRY);
@@ -1946,6 +2030,10 @@ async function loadSettings(){
     for(const [name, dias] of Object.entries(saved)) m[normKw(name)] = dias;
     ROTAS_DIAS = m;
   }
+  // códigos de transportadora p/ fechamento (sem padrão — só o que o usuário cadastrou)
+  TRANSP_CODES = (tc && typeof tc === 'object') ? Object.assign({}, tc) : {};
+  // histórico de fechamentos quinzenais
+  FECHAMENTOS = Array.isArray(fc) ? fc : [];
 }
 function saveSettings(){
   Stor.set('fleet-registry', REGISTRY);
@@ -1955,6 +2043,7 @@ function saveSettings(){
   Stor.set('hidden-cols', HIDDEN_COLS);
   Stor.set('availability', AVAILABILITY);
   Stor.set('routes-days', ROTAS_DIAS);
+  Stor.set('transp-codes', TRANSP_CODES);
 }
 
 /* ================= Importação de planilha ================= */
@@ -2423,10 +2512,12 @@ const REL_TEXT_FILTER_IDS = ['rf-carga','rf-destino','rf-placa','rf-motorista','
 const REL_NUM_FILTER_IDS = ['rf-total-min','rf-total-max','rf-media-min','rf-media-max'];
 function relFilterState(){
   const v = id => { const el = relEl(id); return el ? String(el.value == null ? '' : el.value).trim() : ''; };
+  const chk = relEl('rf-fechadas');
   return {
     carga: norm(v('rf-carga')), destino: norm(v('rf-destino')), placa: normPlaca(v('rf-placa')),
     motorista: norm(v('rf-motorista')), transp: norm(v('rf-transp')), tipo: v('rf-tipo'),
-    totalMin: v('rf-total-min'), totalMax: v('rf-total-max'), mediaMin: v('rf-media-min'), mediaMax: v('rf-media-max')
+    totalMin: v('rf-total-min'), totalMax: v('rf-total-max'), mediaMin: v('rf-media-min'), mediaMax: v('rf-media-max'),
+    mostrarFechadas: !!(chk && chk.checked)
   };
 }
 function relFiltersActive(f){
@@ -2436,6 +2527,8 @@ function relFiltersActive(f){
 }
 function relMatch(it, f){
   const r = it.row, c = it.calc || relCalc(it.sec, r, it.d);
+  // cargas já fechadas p/ pagamento só aparecem com "Exibir fechadas" marcado
+  if(!f.mostrarFechadas && relIsFech(r)) return false;
   if(f.tipo && it.sec !== f.tipo) return false;
   if(f.carga && !norm(r.carga).includes(f.carga)) return false;
   if(f.destino && !norm(r.destino).includes(f.destino)) return false;
@@ -2450,7 +2543,11 @@ function relMatch(it, f){
 }
 function relApplyFilters(){
   const f = relFilterState();
-  REL.view = relFiltersActive(f) ? REL.items.filter(it=> relMatch(it, f)) : REL.items.slice();
+  // AUDITORIA (bug): sem nenhum filtro ativo o caminho rápido devolvia TODAS as linhas sem
+  // passar por relMatch() — e é relMatch() que esconde as cargas FECHADAS quando
+  // "Exibir fechadas" está desmarcado. Agora o atalho só vale se não houver fechada a esconder.
+  const hideClosed = !f.mostrarFechadas && REL.items.some(it=> relIsFech(it.row));
+  REL.view = (relFiltersActive(f) || hideClosed) ? REL.items.filter(it=> relMatch(it, f)) : REL.items.slice();
   return REL.view;
 }
 
@@ -2476,6 +2573,9 @@ function relRowHtml(it){
     '<td class="num" data-c="media">' + relFmtMedia(c.media) + '</td>' +
     '<td class="w-mot">' + inp('motorista', r.motorista || '', '', ' maxlength="20"') + '</td>' +
     '<td class="w-transp">' + inp('transportadora', r.transportadora || '') + '</td>' +
+    '<td>' + (relIsFech(r)
+        ? '<span class="st-badge fech" title="Fechado para pagamento' + (r.fechId ? ' no fechamento ' + esc(r.fechId) : '') + '">Fechado</span>'
+        : '<span class="st-badge pend" title="Aguardando fechamento de frete">Pendente</span>') + '</td>' +
   '</tr>';
 }
 function renderRelTable(){
@@ -2485,7 +2585,7 @@ function renderRelTable(){
     body.innerHTML = '';
     if(tbl) tbl.hidden = true;
     if(empty){ empty.hidden = false; empty.innerHTML = 'Escolha o período acima e clique em <b>🔎 Carregar</b>.'; }
-    renderRelFoot(); relCountMsg('—'); relSavedMsg(''); return;
+    renderRelFoot(); relCountMsg('—'); relSavedMsg(''); relFechHint(); return;
   }
   if(tbl) tbl.hidden = false;
   if(!REL.view.length){
@@ -2500,14 +2600,27 @@ function renderRelTable(){
   }
   renderRelFoot();
   relCountMsg();
+  relFechHint();
 }
 function relCountMsg(txt){
   const el = relEl('rel-count'); if(!el) return;
   if(txt != null){ el.textContent = txt; return; }
   const f = relFiltersActive();
   const per = REL.start === REL.end ? fmtBR(REL.start) : fmtBR(REL.start) + ' a ' + fmtBR(REL.end);
+  const fechOcultas = f.mostrarFechadas ? 0 : REL.items.filter(it=> relIsFech(it.row)).length;
   el.textContent = (f ? REL.view.length + ' de ' + REL.items.length : String(REL.view.length)) + ' carga(s) · ' +
-                   REL.dates.length + ' dia(s) · ' + per + (f ? ' · com filtro' : '');
+                   REL.dates.length + ' dia(s) · ' + per + (f ? ' · com filtro' : '') +
+                   (fechOcultas ? ' · ' + fechOcultas + ' fechada(s) oculta(s)' : '');
+}
+/* aviso ao lado do botão de fechamento: quantas pendentes / fechadas no período */
+function relFechHint(){
+  const hint = relEl('rel-fech-hint'), btn = relEl('rf-fech-btn');
+  const pend = REL.items.filter(it=> !relIsFech(it.row)).length;
+  const fech = REL.items.length - pend;
+  if(btn) btn.disabled = !REL.loaded || pend === 0;
+  if(hint) hint.textContent = REL.loaded
+    ? (pend + ' pendente(s) · ' + fech + ' fechada(s) no período')
+    : '';
 }
 function renderRelFoot(){
   const foot = relEl('rel-foot'); if(!foot) return;
@@ -2523,7 +2636,7 @@ function renderRelFoot(){
     '<td></td>' +
     '<td class="num">' + fmtBRL(total) + '</td>' +
     '<td class="num">' + relFmtMedia(media) + '</td>' +
-    '<td colspan="2"></td>' +
+    '<td colspan="3"></td>' +
   '</tr>';
 }
 
@@ -2649,6 +2762,16 @@ function bindRelControls(){
       await relLoad(s ? s.value : '', e ? e.value : '');
     });
   }
+  const chkF = relEl('rf-fechadas');
+  if(chkF && chkF.dataset.relBound !== '1'){
+    chkF.dataset.relBound = '1';
+    chkF.addEventListener('change', ()=>{ relApplyFilters(); renderRelTable(); });
+  }
+  const fechBtn = relEl('rf-fech-btn');
+  if(fechBtn && fechBtn.dataset.relBound !== '1'){
+    fechBtn.dataset.relBound = '1';
+    fechBtn.addEventListener('click', openFech);
+  }
 }
 
 /* ---- download (Excel) ---- */
@@ -2656,16 +2779,17 @@ function relToAoa(items, titulo, gerado){
   const rows = items.map(it=>{
     const r = it.row, c = it.calc || relCalc(it.sec, r, it.d);
     return [fmtBR(it.d), fmtBR(c.dataFinal), r.placa || '', r.destino || '', r.carga || '',
-            c.peso, c.km, c.total, c.media != null ? c.media : '', r.motorista || '', r.transportadora || ''];
+            c.peso, c.km, c.total, c.media != null ? c.media : '', r.motorista || '', r.transportadora || '',
+            relIsFech(r) ? 'Fechado' : 'Pendente'];   // 12ª coluna (não desloca as anteriores)
   });
   const aoa = [[titulo], [gerado], [],
-    ['Data Inicial','Data Final','Placa','Rota','Ordem','Peso','KM','Total','Média','Motorista','Transportadora']];
+    ['Data Inicial','Data Final','Placa','Rota','Ordem','Peso','KM','Total','Média','Motorista','Transportadora','Status']];
   for(const r of rows) aoa.push(r);
   const totPeso = rows.reduce((a,r)=> a + (typeof r[5] === 'number' ? r[5] : 0), 0);
   const totKm = rows.reduce((a,r)=> a + (typeof r[6] === 'number' ? r[6] : 0), 0);
   const totFrete = rows.reduce((a,r)=> a + (typeof r[7] === 'number' ? r[7] : 0), 0);
   const mediaGeral = totFrete > 0 && totPeso > 0 ? totFrete / totPeso : '';
-  aoa.push(['TOTAL','','','','', totPeso, totKm, totFrete, mediaGeral, '', '']);
+  aoa.push(['TOTAL','','','','', totPeso, totKm, totFrete, mediaGeral, '', '', '']);
   return aoa;
 }
 function relWriteXlsx(items, start, end, filtrado){
@@ -2677,7 +2801,7 @@ function relWriteXlsx(items, start, end, filtrado){
   const periodo = single ? fmtBR(start) : fmtBR(start) + ' a ' + fmtBR(end);
   const titulo = 'RELATÓRIO DE CARGAS — ' + periodo + (filtrado ? ' (FILTRADO)' : '');
   const ws = XLSX.utils.aoa_to_sheet(relToAoa(items, titulo, gerado));
-  ws['!cols'] = [{wch:12},{wch:12},{wch:11},{wch:28},{wch:20},{wch:11},{wch:9},{wch:13},{wch:11},{wch:18},{wch:24}];
+  ws['!cols'] = [{wch:12},{wch:12},{wch:11},{wch:28},{wch:20},{wch:11},{wch:9},{wch:13},{wch:11},{wch:18},{wch:24},{wch:10}];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'RELATÓRIO');
   const name = 'relatorio-cargas-' + start + (single ? '' : '_a_' + end) + (filtrado ? '-filtrado' : '') + '.xlsx';
@@ -2731,6 +2855,309 @@ async function closeReportXls(){
   renderRelTable();   // limpa a tabela (não deixa valores no DOM após fechar)
   if(mapDirty) renderAll();          // mapa do dia aberto reflete as edições
   if(dashVisible) loadDashboard();   // indicadores recalculados
+}
+/* ===================== Fechamento quinzenal de frete =====================
+   A cada quinzena o admin fecha o pagamento por TRANSPORTADORA: as cargas pendentes do
+   período carregado no relatório são agrupadas por transportadora (Capital + Interior) e,
+   ao confirmar, passam de PENDENTE -> FECHADO (some do relatório, a não ser com "Exibir
+   fechadas") e o app gera:
+     1) fechamento-geral-…xlsx  = resumo p/ financeiro (mesmo layout da planilha atual:
+        REGIAO · TRANSPORTADORA · CÓDIGO · PESO · ABATIMENTO · VALOR FATURADO · VALOR A SER PAGO ·
+        PREÇO KG · ENTREGOU A NF · BOLETO, com "Subtotal - X" por transportadora e TOTAL GERAL);
+     2) fechamento-<transportadora>-…xlsx = um por transportadora, abas INTERIOR e CAPITAL
+        (layout enviado ao transportador, com faixa de Totais: peso, KM e valor).
+   O fechamento guarda um RETRATO dos valores no momento do fechamento (peso/km/total/tipo),
+   então "Baixar de novo" reproduz os arquivos mesmo que a carga seja editada depois.
+   "Reabrir" devolve as cargas para PENDENTE (grava de volta nos dias correspondentes). */
+function relIsFech(r){ return !!(r && r.stFech === 'fechado'); }
+/* tipo do veículo sem o prefixo "Caminhão " (HR, 3/4, Truck…) — coluna TIPO do transportador */
+function fechTipoFrota(sec, row){
+  const f = calcularFrete(sec, row) || {};
+  return String(f.frota || '').replace(/^caminh[aã]o\s*/i, '').trim();
+}
+function fechPeriodoTxt(f){ return f.start === f.end ? fmtBR(f.start) : fmtBR(f.start) + ' a ' + fmtBR(f.end); }
+function slugTransp(s){
+  return String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'transportadora';
+}
+/* grupos de cargas PENDENTES do período carregado, por transportadora */
+function fechGroups(){
+  const map = new Map();
+  for(const it of REL.items){
+    if(relIsFech(it.row)) continue;
+    const nome = String(it.row.transportadora || '').trim();
+    const key = normKw(nome) || '(sem transportadora)';
+    let g = map.get(key);
+    if(!g){ g = {key: key, nome: nome || '(sem transportadora)', itens: [], peso: 0, faturado: 0}; map.set(key, g); }
+    g.itens.push(it);
+    g.peso += it.calc.peso;
+    g.faturado += it.calc.total;
+  }
+  const groups = Array.from(map.values()).sort((a, b)=> a.nome.localeCompare(b.nome, 'pt-BR'));
+  for(const g of groups){
+    // Interior primeiro, depois Capital; dentro de cada uma, por data
+    g.itens.sort((a, b)=> (a.sec === b.sec) ? (a.d < b.d ? -1 : a.d > b.d ? 1 : 0) : (a.sec === 'interior' ? -1 : 1));
+  }
+  return groups;
+}
+
+/* ---- painel ---- */
+let FECH_SEL = {};   // key do grupo -> {sel, codigo, abat, nf, boleto}
+function fechSelOf(key){ return FECH_SEL[key] || (FECH_SEL[key] = {sel: true, codigo: TRANSP_CODES[key] || '', abat: '', nf: 'Sim', boleto: 'Sim'}); }
+function openFech(){
+  if(!requireAdmin()) return;
+  if(!REL.loaded){ toast('Carregue um período no relatório antes de fechar', 'err'); return; }
+  FECH_SEL = {};
+  const mask = relEl('fech-mask'); if(mask) mask.hidden = false;
+  relEl('fech-per').textContent = 'Período: ' + fechPeriodoTxt(REL) + ' · somente cargas PENDENTES entram no fechamento';
+  renderFechTable();
+  renderFechHist();
+}
+function closeFech(){ const m = relEl('fech-mask'); if(m) m.hidden = true; }
+function fechSelNF(field, val){
+  return '<select data-f="' + field + '">' +
+    '<option value="Sim"' + (val !== 'Não' ? ' selected' : '') + '>Sim</option>' +
+    '<option value="Não"' + (val === 'Não' ? ' selected' : '') + '>Não</option>' +
+  '</select>';
+}
+function renderFechTable(){
+  const body = relEl('fech-body'), foot = relEl('fech-foot');
+  if(!body) return;
+  const groups = fechGroups();
+  if(!groups.length){
+    body.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:20px;color:var(--muted)">Nenhuma carga <b>PENDENTE</b> no período ' + esc(fechPeriodoTxt(REL)) + '.</td></tr>';
+    if(foot) foot.innerHTML = '';
+    const ok = relEl('fech-ok'); if(ok) ok.disabled = true;
+    return;
+  }
+  const ok = relEl('fech-ok'); if(ok) ok.disabled = false;
+  body.innerHTML = groups.map(g=>{
+    const s = fechSelOf(g.key);
+    return '<tr data-g="' + esc(g.key) + '" class="' + (s.sel ? 'fech-on' : 'fech-off') + '">' +
+      '<td style="text-align:center"><input type="checkbox" data-f="sel"' + (s.sel ? ' checked' : '') + '></td>' +
+      '<td><b>' + esc(g.nome) + '</b></td>' +
+      '<td class="num">' + g.itens.length + '</td>' +
+      '<td class="num">' + fmtPeso2(g.peso) + '</td>' +
+      '<td class="num">' + fmtBRL(g.faturado) + '</td>' +
+      '<td style="min-width:96px"><input type="text" data-f="codigo" value="' + esc(s.codigo) + '" placeholder="código"></td>' +
+      '<td style="min-width:104px"><input type="text" inputmode="decimal" data-f="abat" value="' + esc(s.abat) + '" placeholder="0,00"></td>' +
+      '<td>' + fechSelNF('nf', s.nf) + '</td>' +
+      '<td>' + fechSelNF('boleto', s.boleto) + '</td>' +
+    '</tr>';
+  }).join('');
+  renderFechFoot();
+}
+function renderFechFoot(){
+  const foot = relEl('fech-foot'); if(!foot) return;
+  const groups = fechGroups().filter(g=> fechSelOf(g.key).sel);
+  if(!groups.length){ foot.innerHTML = '<tr><td colspan="9">Nenhuma transportadora marcada.</td></tr>'; return; }
+  let n = 0, peso = 0, fat = 0, ab = 0;
+  for(const g of groups){ n += g.itens.length; peso += g.peso; fat += g.faturado; ab += numVal(fechSelOf(g.key).abat); }
+  foot.innerHTML = '<tr><td></td><td>SELECIONADAS: ' + groups.length + ' transportadora(s)</td>' +
+    '<td class="num">' + n + '</td><td class="num">' + fmtPeso2(peso) + '</td><td class="num">' + fmtBRL(fat) + '</td>' +
+    '<td></td><td class="num">' + fmtBRL(ab) + '</td><td colspan="2">a pagar: <b>' + fmtBRL(Math.max(0, fat - ab)) + '</b></td></tr>';
+}
+function bindFechPanel(){
+  const body = relEl('fech-body');
+  if(body && body.dataset.fechBound !== '1'){
+    body.dataset.fechBound = '1';
+    const read = (t)=>{
+      const tr = t.closest('tr[data-g]'); if(!tr) return null;
+      return {g: tr.getAttribute('data-g'), f: t.dataset.f, t};
+    };
+    body.addEventListener('change', e=>{
+      const r = read(e.target); if(!r || !r.f) return;
+      const s = fechSelOf(r.g);
+      if(r.f === 'sel'){ s.sel = e.target.checked; e.target.closest('tr').className = s.sel ? 'fech-on' : 'fech-off'; renderFechFoot(); }
+      else if(r.f === 'nf'){ s.nf = e.target.value; }
+      else if(r.f === 'boleto'){ s.boleto = e.target.value; }
+    });
+    body.addEventListener('input', e=>{
+      const r = read(e.target); if(!r || !r.f) return;
+      const s = fechSelOf(r.g);
+      if(r.f === 'codigo') s.codigo = e.target.value;
+      else if(r.f === 'abat') s.abat = e.target.value;
+      renderFechFoot();
+    });
+  }
+  const hist = relEl('fech-hist-rows');
+  if(hist && hist.dataset.fechBound !== '1'){
+    hist.dataset.fechBound = '1';
+    hist.addEventListener('click', async e=>{
+      const btn = e.target.closest('[data-act]'); if(!btn) return;
+      const rowEl = e.target.closest('[data-f]'); if(!rowEl) return;
+      const id = rowEl.getAttribute('data-f');
+      if(btn.dataset.act === 'fech-dl') fechBaixarDeNovo(id);
+      else if(btn.dataset.act === 'fech-reopen') await fechReabrir(id);
+    });
+  }
+}
+
+/* ---- confirmar o fechamento ---- */
+async function fechConfirm(){
+  if(!requireAdmin()) return;
+  const groups = fechGroups().filter(g=> fechSelOf(g.key).sel);
+  if(!groups.length){ toast('Marque ao menos uma transportadora para fechar', 'err'); return; }
+  const now = new Date();
+  const id = 'f' + now.getTime().toString(36) + Math.random().toString(36).slice(2, 6);
+  const fech = {id: id, criadoEm: now.toISOString(), por: (SESSION && SESSION.name) || '—',
+                start: REL.start, end: REL.end, grupos: []};
+  const datas = new Set();
+  for(const g of groups){
+    const s = fechSelOf(g.key);
+    const abat = numVal(s.abat);
+    const cargas = g.itens.map(it=>({
+      d: it.d, sec: it.sec, id: it.row.id, placa: it.row.placa || '', destino: it.row.destino || '',
+      ordem: it.row.carga || '', motorista: it.row.motorista || '',
+      peso: it.calc.peso, km: it.calc.km, total: it.calc.total, media: it.calc.media,
+      dfinal: it.calc.dataFinal, tipo: fechTipoFrota(it.sec, it.row)
+    }));
+    fech.grupos.push({transp: g.nome, key: g.key, codigo: String(s.codigo || '').trim(),
+      abatimento: abat, nf: s.nf, boleto: s.boleto,
+      peso: g.peso, faturado: g.faturado, apagar: Math.max(0, g.faturado - abat), cargas: cargas});
+    for(const it of g.itens){ it.row.stFech = 'fechado'; it.row.fechId = id; datas.add(it.d); }
+    const cod = String(s.codigo || '').trim();
+    if(cod && cod !== TRANSP_CODES[g.key]){ TRANSP_CODES[g.key] = cod; saveSettings(); }  // lembra o código
+  }
+  for(const d of datas) await relPersistDate(d);   // grava cada dia alterado (atual = mapa ao vivo)
+  FECHAMENTOS.push(fech);
+  await Stor.set('fechamentos', FECHAMENTOS);
+  const nCargas = fech.grupos.reduce((a, g)=> a + g.cargas.length, 0);
+  audit('fechamento-criado', fech.id + ' · ' + fechPeriodoTxt(fech) + ' · ' + fech.grupos.length + ' transportadora(s) · ' + nCargas + ' carga(s) · ' + fmtBRL(fech.grupos.reduce((a, g)=> a + g.apagar, 0)));
+  closeFech();
+  relApplyFilters(); renderRelTable();
+  fechXlsGeral(fech);
+  for(const g of fech.grupos) fechXlsTransp(fech, g);
+  toast('🔒 Fechado: ' + fech.grupos.length + ' transportadora(s) / ' + nCargas + ' carga(s) → ' + (1 + fech.grupos.length) + ' arquivo(s) Excel', 'ok');
+}
+
+/* ---- Excel: resumo do financeiro ---- */
+function fechXlsGeral(fech){
+  if(typeof XLSX === 'undefined'){ toast('❌ Biblioteca XLSX não carregada (sem internet para o CDN?)', 'err'); return false; }
+  const now = new Date();
+  const gerado = 'Gerado em ' + now.toLocaleDateString('pt-BR') + ' ' + now.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+  const aoa = [['FECHAMENTO GERAL DOS VEÍCULOS TERCEIROS — ' + fechPeriodoTxt(fech)], [gerado], [],
+    ['REGIAO','TRANSPORTADORA','CÓDIGO','PESO TRANSPORTADO','ABATIMENTO','VALOR FATURADO','VALOR A SER PAGO','PREÇO KG','ENTREGOU A NF','BOLETO']];
+  let tp = 0, ta = 0, tf = 0, tap = 0;
+  for(const g of fech.grupos){
+    for(const c of g.cargas){
+      aoa.push([c.sec === 'capital' ? 'Capital' : 'Interior', g.transp, g.codigo, c.peso, '',
+                c.total, c.total, (c.peso > 0 ? c.total / c.peso : ''), g.nf, g.boleto]);
+    }
+    aoa.push(['', 'Subtotal - ' + g.transp, '', g.peso, g.abatimento, g.faturado, g.apagar,
+              (g.peso > 0 ? g.apagar / g.peso : ''), '', '']);
+    tp += g.peso; ta += g.abatimento; tf += g.faturado; tap += g.apagar;
+  }
+  aoa.push(['', 'TOTAL GERAL', '', tp, ta, tf, tap, (tp > 0 ? tap / tp : ''), '', '']);
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws['!cols'] = [{wch:9},{wch:26},{wch:9},{wch:17},{wch:12},{wch:15},{wch:15},{wch:10},{wch:13},{wch:9}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'FECHAMENTO');
+  const name = 'fechamento-geral-' + fech.start + (fech.start === fech.end ? '' : '_a_' + fech.end) + '.xlsx';
+  XLSX.writeFile(wb, name);
+  toast('📥 Resumo do financeiro: ' + name, 'ok');
+  return true;
+}
+/* ---- Excel: relatório de UMA transportadora (abas INTERIOR e CAPITAL) ---- */
+function fechXlsTransp(fech, g){
+  if(typeof XLSX === 'undefined'){ toast('❌ Biblioteca XLSX não carregada (sem internet para o CDN?)', 'err'); return false; }
+  const wb = XLSX.utils.book_new();
+  let any = false;
+  for(const sec of ['interior','capital']){
+    const cs = g.cargas.filter(c=> c.sec === sec);
+    if(!cs.length) continue;
+    any = true;
+    const peso = cs.reduce((a, c)=> a + c.peso, 0);
+    const km = cs.reduce((a, c)=> a + c.km, 0);
+    const total = cs.reduce((a, c)=> a + c.total, 0);
+    let aoa;
+    if(sec === 'interior'){
+      aoa = [['INTERIOR — ' + g.transp, '', 'Totais', fmtPeso2(peso) + ' KG', '', 'KM', km, 'VALOR: ' + fmtBRL(total)], [],
+             ['DATA INICIAL','DATA FINAL','PLACA','ROTA','ORDEM','PESO','KM','TIPO','TOTAL']];
+      for(const c of cs) aoa.push([fmtBR(c.d), fmtBR(c.dfinal), c.placa, c.destino, c.ordem, c.peso, c.km, c.tipo, c.total]);
+    } else {
+      aoa = [['CAPITAL — ' + g.transp, '', 'Totais', fmtPeso2(peso) + ' KG', '', '', 'VALOR: ' + fmtBRL(total)], [],
+             ['DATA INICIAL','PLACA','ROTA','ORDEM','PESO','TIPO','TOTAL']];
+      for(const c of cs) aoa.push([fmtBR(c.d), c.placa, c.destino, c.ordem, c.peso, c.tipo, c.total]);
+    }
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    ws['!cols'] = sec === 'interior'
+      ? [{wch:12},{wch:12},{wch:11},{wch:28},{wch:14},{wch:11},{wch:8},{wch:8},{wch:13}]
+      : [{wch:12},{wch:11},{wch:28},{wch:14},{wch:11},{wch:8},{wch:13}];
+    XLSX.utils.book_append_sheet(wb, ws, sec === 'interior' ? 'INTERIOR' : 'CAPITAL');
+  }
+  if(!any) return false;
+  const name = 'fechamento-' + slugTransp(g.transp) + '-' + fech.start + (fech.start === fech.end ? '' : '_a_' + fech.end) + '.xlsx';
+  XLSX.writeFile(wb, name);
+  return true;
+}
+
+/* ---- histórico: baixar de novo / reabrir ---- */
+function renderFechHist(){
+  const wrap = relEl('fech-hist-rows'); if(!wrap) return;
+  if(!FECHAMENTOS.length){ wrap.innerHTML = '<div class="empty">Nenhum fechamento feito ainda.</div>'; return; }
+  wrap.innerHTML = FECHAMENTOS.slice().reverse().map(f=>{
+    const n = f.grupos.reduce((a, g)=> a + g.cargas.length, 0);
+    const val = f.grupos.reduce((a, g)=> a + g.apagar, 0);
+    const quando = f.criadoEm ? new Date(f.criadoEm).toLocaleDateString('pt-BR') : '';
+    return '<div class="fech-hist-row" data-f="' + esc(f.id) + '">' +
+      '<span class="grow"><b>' + fechPeriodoTxt(f) + '</b> · ' + f.grupos.length + ' transportadora(s) · ' + n + ' carga(s) · ' + fmtBRL(val) + '</span>' +
+      '<span class="mono">' + esc(f.por || '') + (quando ? ' · ' + quando : '') + '</span>' +
+      '<button class="btn mini" type="button" data-act="fech-dl" title="Gera de novo o resumo + os arquivos por transportadora (com os valores da época)">📥 Baixar de novo</button>' +
+      '<button class="btn mini" type="button" data-act="fech-reopen" title="Desfaz: as cargas voltam para PENDENTE">↺ Reabrir</button>' +
+    '</div>';
+  }).join('');
+}
+function fechBaixarDeNovo(id){
+  const f = FECHAMENTOS.find(x=> x.id === id); if(!f) return;
+  fechXlsGeral(f);
+  for(const g of f.grupos) fechXlsTransp(f, g);
+}
+async function fechReabrir(id){
+  if(!requireAdmin()) return;
+  const f = FECHAMENTOS.find(x=> x.id === id); if(!f) return;
+  if(!confirm('Reabrir o fechamento de ' + fechPeriodoTxt(f) + ' (' + f.grupos.length + ' transportadora(s))?\nAs cargas voltam para PENDENTE no mapa dos dias correspondentes.')) return;
+  const datas = new Set();
+  f.grupos.forEach(g=> g.cargas.forEach(c=> datas.add(c.d)));
+  for(const d of Array.from(datas).sort()){
+    // AUDITORIA: se o dia está carregado no relatório, usa os MESMOS objetos de linha
+    // (REL.recs) — baixar de novo o registro criaria cópias e a tabela aberta continuaria
+    // mostrando o status antigo. Só baixa do storage o que não está carregado.
+    const loaded = REL.recs[d] || null;
+    const rec = loaded || ((d === currentMapDate) ? {data: DATA, _live: true} : relNormalizeRec(await Stor.get('map:' + d)));
+    if(!rec || !rec.data) continue;
+    for(const g of f.grupos) for(const c of g.cargas){
+      if(c.d !== d) continue;
+      const row = (rec.data[c.sec] || []).find(r=> r.id === c.id);
+      if(row){ delete row.stFech; delete row.fechId; }
+    }
+    if(loaded || d === currentMapDate){ await relPersistDate(d); }
+    else {
+      rec.savedAt = new Date().toISOString();
+      const clean = s => (rec.data[s] || []).map(r=>{ const o = Object.assign({}, r); delete o._sel; return o; });
+      await Stor.set('map:' + d, Object.assign({}, rec, {data: {frotas: clean('frotas'), capital: clean('capital'), interior: clean('interior')}}));
+    }
+  }
+  FECHAMENTOS = FECHAMENTOS.filter(x=> x.id !== id);
+  await Stor.set('fechamentos', FECHAMENTOS);
+  audit('fechamento-reaberto', id + ' · ' + fechPeriodoTxt(f));
+  renderFechHist();
+  if(REL.loaded){ relApplyFilters(); renderRelTable(); }
+  if(REL.mapDirty){ renderAll(); }
+  toast('↺ Fechamento reaberto — cargas PENDENTE de novo', 'ok');
+}
+
+/* ---- cadastro de códigos de transportadora (Configurações) ---- */
+function renderTranspCodes(){
+  const wrap = relEl('transp-rows'); if(!wrap) return;
+  const entries = Object.entries(TRANSP_CODES);
+  wrap.innerHTML = entries.length ? entries.map(([k, v])=>{
+    return '<div class="reg-row rotas-row" data-key="' + esc(k) + '">' +
+      '<input type="text" data-transp="nome" value="' + esc(k) + '">' +
+      '<input type="text" class="mono" data-transp="cod" value="' + esc(v) + '">' +
+      '<button class="btn mini" data-act="transp-del" title="Remover">🗑</button>' +
+    '</div>';
+  }).join('') : '<div class="empty">Nenhum código cadastrado. Adicione abaixo (ou digite direto na tela de fechamento — o app lembra).</div>';
 }
 /* Todas as cargas de Capital + Interior de um período (com valores) + resumo por dia */
 function openPeriodXls(){
@@ -3796,6 +4223,7 @@ function fillSettingsUI(){
   $$('.hc-chk').forEach(c=> c.checked = HIDDEN_COLS.includes(c.dataset.col));
   renderRegistry();
   renderRotas();
+  renderTranspCodes();
 }
 function renderRotas(){
   const wrap = $('#rotas-rows');
@@ -4111,9 +4539,17 @@ function bindStatic(){
   $('#rx-x').addEventListener('click', closeReportXls);
   $('#rx-dl-filt').addEventListener('click', ()=> relDownload(true));
   $('#rx-dl-all').addEventListener('click', ()=> relDownload(false));
-  /* fecha com Esc (grava antes qualquer alteração pendente) */
+  /* painel de fechamento quinzenal */
+  bindFechPanel();
+  $('#fech-cancel').addEventListener('click', closeFech);
+  $('#fech-x').addEventListener('click', closeFech);
+  $('#fech-ok').addEventListener('click', fechConfirm);
+  $('#fech-mask').addEventListener('mousedown', e=>{ if(e.target.id === 'fech-mask') closeFech(); });
+  /* fecha com Esc (painel de fechamento primeiro; depois o relatório, gravando pendências) */
   document.addEventListener('keydown', e=>{
     if(e.key !== 'Escape') return;
+    const fm = $('#fech-mask');
+    if(fm && !fm.hidden){ closeFech(); return; }
     const m = $('#report-xls-mask');
     if(m && !m.hidden) closeReportXls();
   });
@@ -4274,6 +4710,50 @@ function bindStatic(){
       delete ROTAS_DIAS[rowEl.dataset.key];
       saveSettings();
       renderRotas();
+    }
+  });
+
+  /* códigos de transportadora p/ fechamento (mesmo padrão do cadastro de rotas) */
+  $('#btn-transp-add').addEventListener('click', ()=>{
+    if(!requireAdmin()) return;
+    const nome = normKw($('#transp-add-nome').value);
+    const cod = String($('#transp-add-cod').value || '').trim();
+    if(!nome){ toast('Informe o nome da transportadora', 'err'); return; }
+    if(!cod){ toast('Informe o código', 'err'); return; }
+    TRANSP_CODES[nome] = cod;
+    saveSettings();
+    $('#transp-add-nome').value = ''; $('#transp-add-cod').value = '';
+    renderTranspCodes();
+    toast('📇 ' + nome + ' = código ' + cod, 'ok');
+  });
+  $('#transp-rows').addEventListener('change', e=>{
+    if(!requireAdmin()) return;
+    const t = e.target;
+    const rowEl = t.closest('[data-key]');
+    if(!rowEl) return;
+    const key = rowEl.dataset.key;
+    if(t.dataset.transp === 'nome'){
+      const nk = normKw(t.value);
+      if(!nk){ t.value = key; return; }
+      if(nk !== key){
+        if(TRANSP_CODES[nk] !== undefined){ toast('Já existe código para "' + nk + '"', 'warn'); t.value = key; return; }
+        TRANSP_CODES[nk] = TRANSP_CODES[key];
+        delete TRANSP_CODES[key];
+      }
+    } else if(t.dataset.transp === 'cod' && TRANSP_CODES[key] !== undefined){
+      TRANSP_CODES[key] = String(t.value || '').trim();
+    }
+    saveSettings();
+    renderTranspCodes();
+  });
+  $('#transp-rows').addEventListener('click', e=>{
+    if(!requireAdmin()) return;
+    if(!e.target.closest('[data-act="transp-del"]')) return;
+    const rowEl = e.target.closest('[data-key]');
+    if(rowEl){
+      delete TRANSP_CODES[rowEl.dataset.key];
+      saveSettings();
+      renderTranspCodes();
     }
   });
 
