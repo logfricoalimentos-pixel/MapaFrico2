@@ -303,8 +303,10 @@ body.print-big-font .custo-cell{font-size:15px}
 .reg-add{display:grid;grid-template-columns:1fr 1.2fr 1fr .7fr .55fr 34px;gap:4px;margin-top:8px}
 .reg-add input{border:1px solid var(--line);border-radius:6px;padding:4px 6px;font-size:12px;background:#fff;width:100%;min-width:0}
 .rotas-row{grid-template-columns:1fr 90px 28px}
+.transp-row{grid-template-columns:1fr 72px 96px 28px}
 .rotas-head{grid-template-columns:1fr 90px 28px}
 .rotas-add{grid-template-columns:1fr 90px 34px}
+.transp-add{grid-template-columns:1fr 72px 96px 34px}
 
 /* ===== Toasts / busy ===== */
 /* AUDITORIA (bug): z-index 200 ficava ABAIXO das máscaras de modal (#report-xls-mask e
@@ -548,6 +550,20 @@ body.readonly .sec-actions{display:none}
 .fech-table tr.fech-off td{background:#f8fafc;color:var(--muted)}
 .fech-table tr.fech-on td{background:#f0fdf4}
 .fech-table tfoot td{position:sticky;bottom:0;z-index:2;background:#f1f5f9;font-weight:700;border-top:2px solid #94a3b8;padding:6px 7px}
+.fech-exp{border:1px solid var(--line);background:#fff;border-radius:5px;width:20px;height:20px;cursor:pointer;font-size:10px;line-height:1;color:var(--muted);margin-right:6px;padding:0;vertical-align:middle}
+.fech-exp:hover{border-color:var(--blue);color:var(--blue)}
+.fech-cnt{font-size:10.5px;color:var(--muted);margin-left:6px;font-weight:600}
+.fech-det td{background:#f8fafc;padding:4px 6px}
+.fech-det-table{border-collapse:collapse;width:100%;font-size:11.5px}
+.fech-det-table th{position:static;background:#eef2f7;border-bottom:1px solid var(--line);border-right:1px solid var(--line);padding:3px 6px;text-align:left;font-size:9.5px;color:#475569;text-transform:uppercase;letter-spacing:.2px;white-space:nowrap}
+.fech-det-table th.num{text-align:right}
+.fech-det-table td{border-bottom:1px solid var(--line);border-right:1px solid var(--line);padding:2px 6px;white-space:nowrap}
+.fech-det-table td.num{text-align:right;font-family:var(--mono)}
+.fech-det-table td.mono{font-family:var(--mono);letter-spacing:.4px}
+.fech-det-table tr.off td{color:#94a3b8;background:#f1f5f9}
+.zap-link{color:#15803d;text-decoration:none;font-family:var(--mono);font-size:11.5px;white-space:nowrap}
+.zap-link:hover{text-decoration:underline}
+.fech-nozap{color:#cbd5e1}
 .fech-hist{margin-top:10px;border-top:1px dashed #cbd5e1;padding-top:8px}
 .fech-hist summary{cursor:pointer;font-size:12.5px;color:#334155;font-weight:600;user-select:none}
 .fech-hist-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px;color:#334155;padding:5px 2px;border-bottom:1px solid var(--line)}
@@ -815,13 +831,14 @@ body.readonly .sec-actions{display:none}
   </section>
 
   <section>
-    <h3>Códigos de transportadoras (fechamento)</h3>
-    <p class="hint">Código de cada transportadora no <b>resumo do financeiro</b> (coluna CÓDIGO do fechamento). Preenche sozinho na tela de fechamento; o código que você digitar lá pela primeira vez é lembrado aqui.</p>
-    <div class="reg-head rotas-head"><span>Transportadora</span><span>Código</span><span></span></div>
+    <h3>Códigos e WhatsApp das transportadoras (fechamento)</h3>
+    <p class="hint">O <b>código</b> vai na coluna CÓDIGO do resumo do financeiro; o <b>WhatsApp</b> virou o botão 💬 da tela de fechamento (abre a conversa com o total daquele transportador). A tabela padrão já vem cadastrada; edite aqui se mudar (seus valores têm prioridade). O código digitado na tela de fechamento é lembrado aqui.</p>
+    <div class="reg-head transp-row"><span>Transportadora</span><span>Código</span><span>WhatsApp</span><span></span></div>
     <div id="transp-rows" class="reg-rows"></div>
-    <div class="reg-add rotas-add">
+    <div class="reg-add transp-add">
       <input id="transp-add-nome" placeholder="nome da transportadora">
       <input id="transp-add-cod" class="mono" placeholder="código">
+      <input id="transp-add-zap" class="mono" placeholder="whatsapp">
       <button class="btn mini" id="btn-transp-add" title="Adicionar">＋</button>
     </div>
   </section>
@@ -1001,14 +1018,14 @@ body.readonly .sec-actions{display:none}
       <button class="rel-x" type="button" id="fech-x" title="Fechar (Esc)">✕</button>
     </div>
     <p class="fech-per" id="fech-per"></p>
-    <p class="modal-text" style="margin:0 0 8px">Marque as transportadoras que serão <b>pagas neste fechamento</b>. Ao confirmar, as cargas delas passam de <b>Pendente</b> para <b>Fechado</b> (somem do relatório, a não ser que você marque "Exibir fechadas") e o app gera: <b>1)</b> o resumo geral para o financeiro (por transportadora, com subtotal, abatimento e preço/kg) e <b>2)</b> um Excel por transportadora com as abas <b>INTERIOR</b> e <b>CAPITAL</b> para enviar ao transportador.</p>
+    <p class="modal-text" style="margin:0 0 8px">Marque as transportadoras que serão <b>pagas neste fechamento</b> — e, dentro de cada uma, <b>marque/desmarque cargas individuais</b> (clique no ▸ para ver a lista). Ao confirmar, as cargas marcadas passam de <b>Pendente</b> para <b>Fechado</b> (somem do relatório, a não ser que você marque "Exibir fechadas") e o app gera: <b>1)</b> o resumo geral para o financeiro (por transportadora, com subtotal, abatimento e preço/kg) e <b>2)</b> um Excel por transportadora com as abas <b>INTERIOR</b> e <b>CAPITAL</b> para enviar ao transportador (o 💬 abre o WhatsApp dele já com a mensagem do fechamento).</p>
     <div class="fech-scroll">
       <table class="fech-table" id="fech-table">
         <thead>
           <tr>
-            <th title="marcar para fechar">✓</th><th>Transportadora</th><th class="num">Cargas</th><th class="num">Peso (kg)</th>
+            <th title="marcar/desmarcar TODAS as cargas desta transportadora">✓</th><th>Transportadora</th><th class="num">Cargas</th><th class="num">Peso (kg)</th>
             <th class="num">Valor faturado (R$)</th><th>Código</th><th class="num">Abatimento (R$)</th>
-            <th>Entregou NF</th><th>Boleto</th>
+            <th>Entregou NF</th><th>Boleto</th><th>WhatsApp</th>
           </tr>
         </thead>
         <tbody id="fech-body"></tbody>
@@ -1056,6 +1073,48 @@ const DEFAULT_ROTAS_DIAS = {
   'NEROPOLIS':1, 'NILO':3, 'QUIRINOPOLIS':4, 'RIO VERDE':3, 'SILVANIA':2,
   'TRIUNFO':1, 'VALE S PATRICIO':3, 'VALPARAISO':3
 };
+/* Código e WhatsApp de cada transportadora (tabela enviada pelo usuário em 10/09/2026).
+   Sempre mesclados no loadSettings (o salvo pelo usuário tem prioridade) — mesmo padrão
+   das diárias por rota. Chaves normalizadas por normKw() ao carregar. */
+const DEFAULT_TRANSP_CODES = {
+  'ALVORADA':'19223', 'BELLA TRANSPORTES':'20316', 'EMERSON ELIAS':'28348',
+  'RAPIDIM TRANSPORTES':'28127', 'TRANSP. FABRICIO':'28187', 'TRANSP. ANDERSON':'32829',
+  'TRANSP. JOAQUIM':'31333', 'TRANSP. MARCELO REIS':'31052', 'TRANSP. MATHEUS':'31889',
+  'TRANSP. NERCY':'31286', 'TRANSP. ROBERVAL':'30590', 'TRANSP. SANTOS':'31350',
+  'TRANSP. WELINGTON':'31291', 'TRANSP. DANILO':'19077', 'TRANSP. DIONE':'27418',
+  'TRANSP. EDGAR':'27740', 'TRANSP. EDUARDO':'31050', 'TRANSP. EVERTON':'31030',
+  'TRANSP. FRED -':'31053', 'TRANSP. IBANES':'21088', 'TRANSP. ILDEMIR':'28184',
+  'TRANSP. JADERSON':'19192', 'TRANSP. JML':'28343', 'TRANSP. LUCIANO':'19017',
+  'TRANSP. MARCIO':'19023', 'TRANSP. RAFAEL AGUIAR':'22824', 'TRANSP. PEDRO':'20934',
+  'TRANSP. REYLLER':'24689', 'TRANSP. RICARDO':'28186', 'TRANSP. ROBERTO':'27071',
+  'TRANSP. RODRIGO R':'26536', 'TRANSP. WILMAR':'20862', 'TRANSP. RODOLPHO':'32807',
+  'FP TRANSPORTES':'31415', 'TRANSP. CAIO':'32593', 'TRANSP. JUNIZAN':'32599',
+  'TRANSP. JOAO PAULO':'32973', 'TRANSP. TAM':'26703', 'TRANSP. DEOLINO':'32979',
+  'SOUZA FRIO TRANSPORTES':'33061', 'TRANSP. MARCOS':'32974', 'BARUC':'33193',
+  'FELIPE TRANSPORTES':'33309', 'TRANSP. THIAGO':'30961', 'TRANSP. JUAN':'33711',
+  'STOCK - LOG LTDA':'34055', 'FP TRANSPORTE':'31415'
+};
+const DEFAULT_TRANSP_ZAP = {
+  'ALVORADA':'62920014287', 'BELLA TRANSPORTES':'6299678822', 'EMERSON ELIAS':'6298016842',
+  'RAPIDIM TRANSPORTES':'6294505105', 'TRANSP. FABRICIO':'6292744783', 'TRANSP. ANDERSON':'629285253',
+  'TRANSP. JOAQUIM':'6299062080', 'TRANSP. MARCELO REIS':'629822342', 'TRANSP. MATHEUS':'6294337689',
+  'TRANSP. NERCY':'6284394989', 'TRANSP. ROBERVAL':'6291115553', 'TRANSP. SANTOS':'6298578552',
+  'TRANSP. WELINGTON':'6285797973', 'TRANSP. DANILO':'629994746', 'TRANSP. DIONE':'62920014287',
+  'TRANSP. EDGAR':'62993050386', 'TRANSP. EDUARDO':'6291248582', 'TRANSP. EVERTON':'6292955232',
+  'TRANSP. FRED -':'6291038306', 'TRANSP. IBANES':'6294845410', 'TRANSP. ILDEMIR':'6284310737',
+  'TRANSP. JADERSON':'06293204604', 'TRANSP. JML':'6291345830', 'TRANSP. LUCIANO':'6285568044',
+  'TRANSP. MARCIO':'6294612315', 'TRANSP. RAFAEL AGUIAR':'6281413289', 'TRANSP. PEDRO':'6293091792',
+  'TRANSP. REYLLER':'06292884124', 'TRANSP. RICARDO':'06299536668', 'TRANSP. ROBERTO':'6294421070',
+  'TRANSP. RODRIGO R':'6292008237', 'TRANSP. WILMAR':'6282893595', 'TRANSP. RODOLPHO':'6286407266',
+  'FP TRANSPORTES':'6293113195', 'TRANSP. CAIO':'6295086687', 'TRANSP. JUNIZAN':'6296573343',
+  'TRANSP. JOAO PAULO':'06193216732', 'TRANSP. TAM':'6294418560', 'TRANSP. DEOLINO':'6291235731',
+  'SOUZA FRIO TRANSPORTES':'6294015662', 'TRANSP. MARCOS':'6299077392', 'BARUC':'6185143026',
+  'FELIPE TRANSPORTES':'6291515826', 'TRANSP. THIAGO':'6296030521', 'TRANSP. JUAN':'6291115553',
+  'STOCK - LOG LTDA':'6281205490', 'TRANSP. VALDIR':'6291436435', 'FP TRANSPORTE':'6293113195',
+  'TRANSP. PAULO ROBERTO':'62998072421'
+};
+/* chaves já normalizadas dos cadastros padrão (p/ saber o que é "padrão" na hora de remover) */
+const DEFAULT_TRANSP_KEYS = new Set([...Object.keys(DEFAULT_TRANSP_CODES), ...Object.keys(DEFAULT_TRANSP_ZAP)].map(normKw));
 /* Pré-cadastro padrão de transportadoras (placa -> transportadora), sempre mesclado;
    os valores editados pelo usuário têm prioridade */
 const DEFAULT_REGISTRY_RAW = [
@@ -1173,6 +1232,7 @@ let INTERIOR_KEYWORDS = [...DEFAULT_INTERIOR_KEYWORDS];
 let HIDDEN_COLS = [];     // peso, entregas, neg, valorkg
 let ROTAS_DIAS = {};      // rota (Nº Carga normalizado) -> dias (para automatizar o campo dias)
 let TRANSP_CODES = {};    // transportadora (normKw) -> código p/ coluna CÓDIGO do fechamento
+let TRANSP_ZAP = {};      // transportadora (normKw) -> whatsapp (link p/ mandar o relatório)
 let FECHAMENTOS = [];     // fechamentos quinzenais já feitos (status Pendente->Fechado das cargas)
 let currentMapDate = '';
 let dtEntrega = '';
@@ -2008,10 +2068,10 @@ async function switchToDate(dateStr){
   if(dashVisible) loadDashboard();
 }
 async function loadSettings(){
-  const [reg, ff, ck, ik, hc, av, rd, tc, fc] = await Promise.all([
+  const [reg, ff, ck, ik, hc, av, rd, tc, fc, tz] = await Promise.all([
     Stor.get('fleet-registry'), Stor.get('fixed-frotas'), Stor.get('capital-keywords'),
     Stor.get('interior-keywords'), Stor.get('hidden-cols'), Stor.get('availability'),
-    Stor.get('routes-days'), Stor.get('transp-codes'), Stor.get('fechamentos')
+    Stor.get('routes-days'), Stor.get('transp-codes'), Stor.get('fechamentos'), Stor.get('transp-zap')
   ]);
   // pré-cadastro padrão de transportadoras sempre mesclado; o salvo pelo usuário tem prioridade
   REGISTRY = Object.assign({}, DEFAULT_REGISTRY);
@@ -2030,8 +2090,21 @@ async function loadSettings(){
     for(const [name, dias] of Object.entries(saved)) m[normKw(name)] = dias;
     ROTAS_DIAS = m;
   }
-  // códigos de transportadora p/ fechamento (sem padrão — só o que o usuário cadastrou)
-  TRANSP_CODES = (tc && typeof tc === 'object') ? Object.assign({}, tc) : {};
+  // códigos/whatsapp de transportadora: tabela padrão sempre mesclada; salvo tem prioridade
+  {
+    const m = {};
+    for(const [name, cod] of Object.entries(DEFAULT_TRANSP_CODES)) m[normKw(name)] = String(cod);
+    const saved = (tc && typeof tc === 'object') ? tc : {};
+    for(const [name, cod] of Object.entries(saved)) m[normKw(name)] = cod;
+    TRANSP_CODES = m;
+  }
+  {
+    const m = {};
+    for(const [name, zap] of Object.entries(DEFAULT_TRANSP_ZAP)) m[normKw(name)] = String(zap);
+    const saved = (tz && typeof tz === 'object') ? tz : {};
+    for(const [name, zap] of Object.entries(saved)) m[normKw(name)] = zap;
+    TRANSP_ZAP = m;
+  }
   // histórico de fechamentos quinzenais
   FECHAMENTOS = Array.isArray(fc) ? fc : [];
 }
@@ -2044,6 +2117,7 @@ function saveSettings(){
   Stor.set('availability', AVAILABILITY);
   Stor.set('routes-days', ROTAS_DIAS);
   Stor.set('transp-codes', TRANSP_CODES);
+  Stor.set('transp-zap', TRANSP_ZAP);
 }
 
 /* ================= Importação de planilha ================= */
@@ -2902,14 +2976,32 @@ function fechGroups(){
 }
 
 /* ---- painel ---- */
-let FECH_SEL = {};   // key do grupo -> {sel, codigo, abat, nf, boleto}
-function fechSelOf(key){ return FECH_SEL[key] || (FECH_SEL[key] = {sel: true, codigo: TRANSP_CODES[key] || '', abat: '', nf: 'Sim', boleto: 'Sim'}); }
+let FECH_SEL = {};   // key do grupo -> {codigo, abat, nf, boleto, exp, cargas:{itemKey:false}}
+function fechSelOf(key){
+  return FECH_SEL[key] || (FECH_SEL[key] = {codigo: TRANSP_CODES[key] || '', abat: '', nf: 'Sim', boleto: 'Sim', exp: false, cargas: {}});
+}
+/* o que está MARCADO dentro de um grupo (cargas individuais) + os totais só das marcadas */
+function fechGroupSel(g){
+  const s = fechSelOf(g.key);
+  const itens = g.itens.filter(it=> s.cargas[it.key] !== false);
+  let peso = 0, fat = 0;
+  for(const it of itens){ peso += it.calc.peso; fat += it.calc.total; }
+  return {s: s, itens: itens, peso: peso, fat: fat};
+}
+/* link do WhatsApp (wa.me) já com a mensagem do fechamento daquela transportadora */
+function fechZapUrl(zap, g, gs){
+  const d = String(zap || '').replace(/\D/g, '').replace(/^0+/, '');
+  if(!d) return '';
+  const msg = 'Olá, ' + g.nome + '! Fechamento de ' + fechPeriodoTxt(REL) + ': ' +
+              gs.itens.length + ' carga(s), ' + fmtPeso2(gs.peso) + ' kg — total ' + fmtBRL(gs.fat) + '.';
+  return 'https://wa.me/55' + d + '?text=' + encodeURIComponent(msg);
+}
 function openFech(){
   if(!requireAdmin()) return;
   if(!REL.loaded){ toast('Carregue um período no relatório antes de fechar', 'err'); return; }
   FECH_SEL = {};
   const mask = relEl('fech-mask'); if(mask) mask.hidden = false;
-  relEl('fech-per').textContent = 'Período: ' + fechPeriodoTxt(REL) + ' · somente cargas PENDENTES entram no fechamento';
+  relEl('fech-per').textContent = 'Período: ' + fechPeriodoTxt(REL) + ' · somente cargas PENDENTES entram no fechamento · use o ▸ para marcar/desmarcar cargas individuais';
   renderFechTable();
   renderFechHist();
 }
@@ -2920,64 +3012,119 @@ function fechSelNF(field, val){
     '<option value="Não"' + (val === 'Não' ? ' selected' : '') + '>Não</option>' +
   '</select>';
 }
+/* linha-filha: lista as cargas do grupo com checkbox individual */
+function fechDetRow(g){
+  const s = fechSelOf(g.key);
+  return '<tr class="fech-det" data-g="' + esc(g.key) + '"><td colspan="10"><table class="fech-det-table"><thead><tr>' +
+    '<th style="width:26px" title="include esta carga no fechamento">✓</th><th>Data</th><th>Tipo</th><th>Placa</th><th>Rota</th><th>Ordem</th>' +
+    '<th class="num">Peso (kg)</th><th class="num">KM</th><th class="num">Total (R$)</th><th>Motorista</th>' +
+  '</tr></thead><tbody>' +
+  g.itens.map(it=>{
+    const on = s.cargas[it.key] !== false;
+    return '<tr data-k="' + esc(it.key) + '" class="' + (on ? '' : 'off') + '">' +
+      '<td style="text-align:center"><input type="checkbox" data-f="carga"' + (on ? ' checked' : '') + '></td>' +
+      '<td>' + fmtBR(it.d) + '</td>' +
+      '<td><span class="rel-badge ' + (it.sec === 'capital' ? 'cap' : 'int') + '">' + (it.sec === 'capital' ? 'Capital' : 'Interior') + '</span></td>' +
+      '<td class="mono">' + esc(it.row.placa || '') + '</td>' +
+      '<td>' + esc(it.row.destino || '') + '</td>' +
+      '<td>' + esc(it.row.carga || '') + '</td>' +
+      '<td class="num">' + fmtPeso2(it.calc.peso) + '</td>' +
+      '<td class="num">' + (it.calc.km ? fmtNum(it.calc.km) : '') + '</td>' +
+      '<td class="num">' + fmtBRL(it.calc.total) + '</td>' +
+      '<td>' + esc(it.row.motorista || '') + '</td>' +
+    '</tr>';
+  }).join('') + '</tbody></table></td></tr>';
+}
 function renderFechTable(){
   const body = relEl('fech-body'), foot = relEl('fech-foot');
   if(!body) return;
   const groups = fechGroups();
   if(!groups.length){
-    body.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:20px;color:var(--muted)">Nenhuma carga <b>PENDENTE</b> no período ' + esc(fechPeriodoTxt(REL)) + '.</td></tr>';
+    body.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:20px;color:var(--muted)">Nenhuma carga <b>PENDENTE</b> no período ' + esc(fechPeriodoTxt(REL)) + '.</td></tr>';
     if(foot) foot.innerHTML = '';
     const ok = relEl('fech-ok'); if(ok) ok.disabled = true;
     return;
   }
   const ok = relEl('fech-ok'); if(ok) ok.disabled = false;
-  body.innerHTML = groups.map(g=>{
-    const s = fechSelOf(g.key);
-    return '<tr data-g="' + esc(g.key) + '" class="' + (s.sel ? 'fech-on' : 'fech-off') + '">' +
-      '<td style="text-align:center"><input type="checkbox" data-f="sel"' + (s.sel ? ' checked' : '') + '></td>' +
-      '<td><b>' + esc(g.nome) + '</b></td>' +
-      '<td class="num">' + g.itens.length + '</td>' +
-      '<td class="num">' + fmtPeso2(g.peso) + '</td>' +
-      '<td class="num">' + fmtBRL(g.faturado) + '</td>' +
-      '<td style="min-width:96px"><input type="text" data-f="codigo" value="' + esc(s.codigo) + '" placeholder="código"></td>' +
-      '<td style="min-width:104px"><input type="text" inputmode="decimal" data-f="abat" value="' + esc(s.abat) + '" placeholder="0,00"></td>' +
-      '<td>' + fechSelNF('nf', s.nf) + '</td>' +
-      '<td>' + fechSelNF('boleto', s.boleto) + '</td>' +
+  let html = '';
+  for(const g of groups){
+    const gs = fechGroupSel(g);
+    const all = gs.itens.length === g.itens.length, some = gs.itens.length > 0;
+    const zap = TRANSP_ZAP[g.key] || '';
+    const url = zap ? fechZapUrl(zap, g, gs) : '';
+    html += '<tr data-g="' + esc(g.key) + '" class="' + (some ? 'fech-on' : 'fech-off') + '">' +
+      '<td style="text-align:center"><input type="checkbox" data-f="sel"' + (all ? ' checked' : '') + ' title="marcar/desmarcar todas as cargas de ' + esc(g.nome) + '"></td>' +
+      '<td><button class="fech-exp" type="button" data-f="exp" title="ver/marcar as cargas individualmente">' + (gs.s.exp ? '▾' : '▸') + '</button>' +
+        '<b>' + esc(g.nome) + '</b><span class="fech-cnt">' + gs.itens.length + '/' + g.itens.length + '</span></td>' +
+      '<td class="num">' + gs.itens.length + '</td>' +
+      '<td class="num">' + fmtPeso2(gs.peso) + '</td>' +
+      '<td class="num">' + fmtBRL(gs.fat) + '</td>' +
+      '<td style="min-width:96px"><input type="text" data-f="codigo" value="' + esc(gs.s.codigo) + '" placeholder="código"></td>' +
+      '<td style="min-width:104px"><input type="text" inputmode="decimal" data-f="abat" value="' + esc(gs.s.abat) + '" placeholder="0,00"></td>' +
+      '<td>' + fechSelNF('nf', gs.s.nf) + '</td>' +
+      '<td>' + fechSelNF('boleto', gs.s.boleto) + '</td>' +
+      '<td>' + (url ? '<a class="zap-link" href="' + esc(url) + '" target="_blank" rel="noopener" title="Abrir conversa com ' + esc(g.nome) + ' no WhatsApp">💬 ' + esc(zap) + '</a>' : '<span class="fech-nozap" title="sem WhatsApp cadastrado">—</span>') + '</td>' +
     '</tr>';
-  }).join('');
+    if(gs.s.exp) html += fechDetRow(g);
+  }
+  body.innerHTML = html;
+  // checkbox do grupo fica "indeterminado" quando só algumas cargas estão marcadas
+  for(const tr of body.querySelectorAll('tr[data-g]')){
+    const g = groups.find(x=> x.key === tr.getAttribute('data-g'));
+    if(!g) continue;
+    const gs = fechGroupSel(g);
+    const cb = tr.querySelector('input[data-f="sel"]');
+    if(cb) cb.indeterminate = gs.itens.length > 0 && gs.itens.length < g.itens.length;
+  }
   renderFechFoot();
 }
 function renderFechFoot(){
   const foot = relEl('fech-foot'); if(!foot) return;
-  const groups = fechGroups().filter(g=> fechSelOf(g.key).sel);
-  if(!groups.length){ foot.innerHTML = '<tr><td colspan="9">Nenhuma transportadora marcada.</td></tr>'; return; }
+  const sel = fechGroups().map(g=> Object.assign({g: g}, fechGroupSel(g))).filter(x=> x.itens.length);
+  if(!sel.length){ foot.innerHTML = '<tr><td colspan="10">Nenhuma carga marcada para fechar.</td></tr>'; return; }
   let n = 0, peso = 0, fat = 0, ab = 0;
-  for(const g of groups){ n += g.itens.length; peso += g.peso; fat += g.faturado; ab += numVal(fechSelOf(g.key).abat); }
-  foot.innerHTML = '<tr><td></td><td>SELECIONADAS: ' + groups.length + ' transportadora(s)</td>' +
+  for(const x of sel){ n += x.itens.length; peso += x.peso; fat += x.fat; ab += numVal(x.s.abat); }
+  foot.innerHTML = '<tr><td></td><td>SELECIONADAS: ' + sel.length + ' transportadora(s)</td>' +
     '<td class="num">' + n + '</td><td class="num">' + fmtPeso2(peso) + '</td><td class="num">' + fmtBRL(fat) + '</td>' +
-    '<td></td><td class="num">' + fmtBRL(ab) + '</td><td colspan="2">a pagar: <b>' + fmtBRL(Math.max(0, fat - ab)) + '</b></td></tr>';
+    '<td></td><td class="num">' + fmtBRL(ab) + '</td><td colspan="3">a pagar: <b>' + fmtBRL(Math.max(0, fat - ab)) + '</b></td></tr>';
 }
 function bindFechPanel(){
   const body = relEl('fech-body');
   if(body && body.dataset.fechBound !== '1'){
     body.dataset.fechBound = '1';
-    const read = (t)=>{
+    const groupOf = (t)=>{
+      // tanto a linha do grupo quanto a linha-filha (detalhe) carregam data-g
       const tr = t.closest('tr[data-g]'); if(!tr) return null;
-      return {g: tr.getAttribute('data-g'), f: t.dataset.f, t};
+      return {g: tr.getAttribute('data-g'), f: t.dataset.f, t: t, tr: tr};
     };
     body.addEventListener('change', e=>{
-      const r = read(e.target); if(!r || !r.f) return;
+      const r = groupOf(e.target); if(!r || !r.f) return;
       const s = fechSelOf(r.g);
-      if(r.f === 'sel'){ s.sel = e.target.checked; e.target.closest('tr').className = s.sel ? 'fech-on' : 'fech-off'; renderFechFoot(); }
-      else if(r.f === 'nf'){ s.nf = e.target.value; }
+      if(r.f === 'sel'){
+        // marca/desmarca TODAS as cargas do grupo
+        const g = fechGroups().find(x=> x.key === r.g);
+        if(g) for(const it of g.itens) s.cargas[it.key] = !!e.target.checked;
+        renderFechTable();
+      } else if(r.f === 'carga'){
+        const kTr = e.target.closest('tr[data-k]');
+        if(kTr) s.cargas[kTr.getAttribute('data-k')] = !!e.target.checked;
+        renderFechTable();
+      } else if(r.f === 'nf'){ s.nf = e.target.value; }
       else if(r.f === 'boleto'){ s.boleto = e.target.value; }
     });
     body.addEventListener('input', e=>{
-      const r = read(e.target); if(!r || !r.f) return;
+      const r = groupOf(e.target); if(!r || !r.f) return;
       const s = fechSelOf(r.g);
       if(r.f === 'codigo') s.codigo = e.target.value;
       else if(r.f === 'abat') s.abat = e.target.value;
       renderFechFoot();
+    });
+    body.addEventListener('click', e=>{
+      const btn = e.target.closest('[data-f="exp"]'); if(!btn) return;
+      const tr = btn.closest('tr[data-g]'); if(!tr) return;
+      const s = fechSelOf(tr.getAttribute('data-g'));
+      s.exp = !s.exp;
+      renderFechTable();
     });
   }
   const hist = relEl('fech-hist-rows');
@@ -2996,17 +3143,17 @@ function bindFechPanel(){
 /* ---- confirmar o fechamento ---- */
 async function fechConfirm(){
   if(!requireAdmin()) return;
-  const groups = fechGroups().filter(g=> fechSelOf(g.key).sel);
-  if(!groups.length){ toast('Marque ao menos uma transportadora para fechar', 'err'); return; }
+  const sel = fechGroups().map(g=> Object.assign({g: g}, fechGroupSel(g))).filter(x=> x.itens.length);
+  if(!sel.length){ toast('Marque ao menos uma carga para fechar', 'err'); return; }
   const now = new Date();
   const id = 'f' + now.getTime().toString(36) + Math.random().toString(36).slice(2, 6);
   const fech = {id: id, criadoEm: now.toISOString(), por: (SESSION && SESSION.name) || '—',
                 start: REL.start, end: REL.end, grupos: []};
   const datas = new Set();
-  for(const g of groups){
-    const s = fechSelOf(g.key);
+  for(const x of sel){
+    const g = x.g, s = x.s;
     const abat = numVal(s.abat);
-    const cargas = g.itens.map(it=>({
+    const cargas = x.itens.map(it=>({
       d: it.d, sec: it.sec, id: it.row.id, placa: it.row.placa || '', destino: it.row.destino || '',
       ordem: it.row.carga || '', motorista: it.row.motorista || '',
       peso: it.calc.peso, km: it.calc.km, total: it.calc.total, media: it.calc.media,
@@ -3014,8 +3161,8 @@ async function fechConfirm(){
     }));
     fech.grupos.push({transp: g.nome, key: g.key, codigo: String(s.codigo || '').trim(),
       abatimento: abat, nf: s.nf, boleto: s.boleto,
-      peso: g.peso, faturado: g.faturado, apagar: Math.max(0, g.faturado - abat), cargas: cargas});
-    for(const it of g.itens){ it.row.stFech = 'fechado'; it.row.fechId = id; datas.add(it.d); }
+      peso: x.peso, faturado: x.fat, apagar: Math.max(0, x.fat - abat), cargas: cargas});
+    for(const it of x.itens){ it.row.stFech = 'fechado'; it.row.fechId = id; datas.add(it.d); }
     const cod = String(s.codigo || '').trim();
     if(cod && cod !== TRANSP_CODES[g.key]){ TRANSP_CODES[g.key] = cod; saveSettings(); }  // lembra o código
   }
@@ -3148,13 +3295,18 @@ async function fechReabrir(id){
 }
 
 /* ---- cadastro de códigos de transportadora (Configurações) ---- */
+/* todas as transportadoras do cadastro (código e/ou whatsapp), em ordem alfabética */
+function transpKeys(){
+  return [...new Set([...Object.keys(TRANSP_CODES), ...Object.keys(TRANSP_ZAP)])].sort((a,b)=> a.localeCompare(b, 'pt-BR'));
+}
 function renderTranspCodes(){
   const wrap = relEl('transp-rows'); if(!wrap) return;
-  const entries = Object.entries(TRANSP_CODES);
+  const entries = transpKeys().map(k=> [k, TRANSP_CODES[k]]);
   wrap.innerHTML = entries.length ? entries.map(([k, v])=>{
-    return '<div class="reg-row rotas-row" data-key="' + esc(k) + '">' +
+    return '<div class="reg-row transp-row" data-key="' + esc(k) + '">' +
       '<input type="text" data-transp="nome" value="' + esc(k) + '">' +
-      '<input type="text" class="mono" data-transp="cod" value="' + esc(v) + '">' +
+      '<input type="text" class="mono" data-transp="cod" value="' + esc(v == null ? '' : v) + '">' +
+      '<input type="text" class="mono" data-transp="zap" value="' + esc(TRANSP_ZAP[k] || '') + '">' +
       '<button class="btn mini" data-act="transp-del" title="Remover">🗑</button>' +
     '</div>';
   }).join('') : '<div class="empty">Nenhum código cadastrado. Adicione abaixo (ou digite direto na tela de fechamento — o app lembra).</div>';
@@ -4713,18 +4865,20 @@ function bindStatic(){
     }
   });
 
-  /* códigos de transportadora p/ fechamento (mesmo padrão do cadastro de rotas) */
+  /* códigos/whatsapp de transportadora p/ fechamento (mesmo padrão do cadastro de rotas) */
   $('#btn-transp-add').addEventListener('click', ()=>{
     if(!requireAdmin()) return;
     const nome = normKw($('#transp-add-nome').value);
     const cod = String($('#transp-add-cod').value || '').trim();
+    const zap = String($('#transp-add-zap').value || '').trim();
     if(!nome){ toast('Informe o nome da transportadora', 'err'); return; }
-    if(!cod){ toast('Informe o código', 'err'); return; }
-    TRANSP_CODES[nome] = cod;
+    if(!cod && !zap){ toast('Informe ao menos o código ou o WhatsApp', 'err'); return; }
+    if(cod) TRANSP_CODES[nome] = cod;
+    if(zap) TRANSP_ZAP[nome] = zap;
     saveSettings();
-    $('#transp-add-nome').value = ''; $('#transp-add-cod').value = '';
+    $('#transp-add-nome').value = ''; $('#transp-add-cod').value = ''; $('#transp-add-zap').value = '';
     renderTranspCodes();
-    toast('📇 ' + nome + ' = código ' + cod, 'ok');
+    toast('📇 ' + nome + ' cadastrada' + (cod ? ' (código ' + cod + ')' : '') + (zap ? ' (💬 ' + zap + ')' : ''), 'ok');
   });
   $('#transp-rows').addEventListener('change', e=>{
     if(!requireAdmin()) return;
@@ -4736,12 +4890,14 @@ function bindStatic(){
       const nk = normKw(t.value);
       if(!nk){ t.value = key; return; }
       if(nk !== key){
-        if(TRANSP_CODES[nk] !== undefined){ toast('Já existe código para "' + nk + '"', 'warn'); t.value = key; return; }
         TRANSP_CODES[nk] = TRANSP_CODES[key];
+        if(TRANSP_ZAP[key] !== undefined){ TRANSP_ZAP[nk] = TRANSP_ZAP[key]; delete TRANSP_ZAP[key]; }
         delete TRANSP_CODES[key];
       }
-    } else if(t.dataset.transp === 'cod' && TRANSP_CODES[key] !== undefined){
+    } else if(t.dataset.transp === 'cod'){
       TRANSP_CODES[key] = String(t.value || '').trim();
+    } else if(t.dataset.transp === 'zap'){
+      TRANSP_ZAP[key] = String(t.value || '').trim();
     }
     saveSettings();
     renderTranspCodes();
@@ -4751,7 +4907,13 @@ function bindStatic(){
     if(!e.target.closest('[data-act="transp-del"]')) return;
     const rowEl = e.target.closest('[data-key]');
     if(rowEl){
-      delete TRANSP_CODES[rowEl.dataset.key];
+      // padrão mesclado sempre volta no load — mascarar com vazio é o "remover" que persiste
+      const k = rowEl.dataset.key;
+      if(DEFAULT_TRANSP_KEYS.has(k)){
+        TRANSP_CODES[k] = ''; TRANSP_ZAP[k] = '';
+      } else {
+        delete TRANSP_CODES[k]; delete TRANSP_ZAP[k];
+      }
       saveSettings();
       renderTranspCodes();
     }
