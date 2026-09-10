@@ -307,7 +307,10 @@ body.print-big-font .custo-cell{font-size:15px}
 .rotas-add{grid-template-columns:1fr 90px 34px}
 
 /* ===== Toasts / busy ===== */
-#toast-wrap{position:fixed;bottom:16px;right:16px;z-index:200;display:flex;flex-direction:column;gap:8px}
+/* AUDITORIA (bug): z-index 200 ficava ABAIXO das máscaras de modal (#report-xls-mask e
+   #period-xls-mask usam 400) — os avisos disparados com o painel aberto (ex.: "período inválido",
+   "alterações gravadas no mapa") apareciam escondidos atrás do fundo escurecido. */
+#toast-wrap{position:fixed;bottom:16px;right:16px;z-index:600;display:flex;flex-direction:column;gap:8px}
 .toast{background:#0f172a;color:#fff;padding:10px 14px;border-radius:10px;font-size:13px;box-shadow:0 8px 24px rgba(15,23,42,.3);max-width:380px;animation:tin .2s ease;transition:opacity .3s,transform .3s}
 .toast.ok{border-left:4px solid var(--ok)}
 .toast.warn{border-left:4px solid var(--warn)}
@@ -465,6 +468,60 @@ body.readonly .sec-actions{display:none}
 .modal-pass input:focus{border-color:var(--blue);outline:none}
 .modal-err{font-size:12px;color:var(--err);min-height:15px;margin-top:4px}
 .modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:10px;flex-wrap:wrap}
+/* ===== Relatório de Cargas (tela interativa: filtros + edição + download) =====
+   O mesmo #report-xls-mask vira um painel largo (quase tela cheia) com a tabela
+   editável. Tudo com rolagem própria para caber em qualquer altura de tela. */
+.modal-report{width:min(1480px,97vw);max-height:94vh;display:flex;flex-direction:column;padding:14px 16px 12px}
+.rel-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.rel-head h3{font-size:15px}
+.rel-x{border:1px solid var(--line);background:#fff;border-radius:8px;width:30px;height:30px;cursor:pointer;font-size:14px;line-height:1;color:var(--muted);flex:none}
+.rel-x:hover{background:#f8fafc;border-color:#cbd5e1;color:var(--ink)}
+.modal-report .modal-text{margin:6px 0 8px;font-size:12.5px}
+.rel-bar{border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:#f8fafc;flex:none}
+.rel-dates{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap}
+.rel-dates label{font-size:11px;color:var(--muted);display:flex;flex-direction:column;gap:3px;text-transform:uppercase;letter-spacing:.2px}
+.rel-dates input[type=date]{border:1px solid var(--line);border-radius:7px;padding:5px 7px;font:inherit;font-size:13px;background:#fff}
+.rel-filters{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;padding-top:8px;border-top:1px dashed #cbd5e1;align-items:flex-end}
+.rel-filters label{font-size:10.5px;color:var(--muted);display:flex;flex-direction:column;gap:3px;text-transform:uppercase;letter-spacing:.2px}
+.rel-filters input,.rel-filters select{border:1px solid var(--line);border-radius:7px;padding:5px 7px;font:inherit;font-size:12.5px;min-width:88px;background:#fff;color:var(--ink)}
+.rel-filters input:focus,.rel-filters select:focus,.rel-dates input:focus{border-color:var(--blue);outline:none}
+.rel-filters .rel-f-num{min-width:74px;width:88px;text-align:right;font-family:var(--mono)}
+.rel-scroll{flex:1 1 auto;overflow:auto;border:1px solid var(--line);border-radius:10px;margin:10px 0 6px;min-height:110px;background:#fff}
+.rel-table{border-collapse:separate;border-spacing:0;width:100%;font-size:12.5px}
+.rel-table thead th{position:sticky;top:0;z-index:2;background:#f1f5f9;border-bottom:1px solid #cbd5e1;border-right:1px solid var(--line);padding:6px 7px;text-align:left;white-space:nowrap;font-size:10.5px;color:#334155;letter-spacing:.2px;text-transform:uppercase}
+.rel-table thead th.num{text-align:right}
+.rel-table tbody td{border-bottom:1px solid var(--line);border-right:1px solid var(--line);padding:2px 3px;vertical-align:middle;white-space:nowrap}
+.rel-table tbody tr:nth-child(even) td{background:#fbfdff}
+.rel-table tbody tr:hover td{background:#f0f7ff}
+.rel-table tbody tr.rel-changed td{background:#fefce8}
+.rel-table tbody tr.rel-changed:hover td{background:#fef9c3}
+.rel-table input{width:100%;box-sizing:border-box;border:1px solid transparent;background:transparent;border-radius:5px;padding:4px 6px;font:inherit;font-size:12.5px;min-width:52px;color:var(--ink)}
+.rel-table input:hover{border-color:#cbd5e1;background:#fff}
+.rel-table input:focus{border-color:var(--blue);background:#fff;outline:none}
+.rel-table input:disabled{color:var(--muted);background:transparent;border-color:transparent;cursor:default}
+.rel-table input.numin{text-align:right;font-family:var(--mono)}
+.rel-table td.num{text-align:right;font-family:var(--mono);padding:4px 7px}
+.rel-table td.mono{font-family:var(--mono);letter-spacing:.4px;padding:4px 7px}
+.rel-table td.w-dest input{min-width:190px}
+.rel-table td.w-ordem input{min-width:110px}
+.rel-table td.w-transp input{min-width:150px}
+.rel-table td.w-mot input{min-width:130px}
+.rel-table tfoot td{position:sticky;bottom:0;z-index:2;background:#f1f5f9;font-weight:700;font-size:12.5px;border-top:2px solid #94a3b8;border-right:1px solid var(--line);padding:6px 7px;white-space:nowrap}
+.rel-table tfoot td.num{text-align:right;font-family:var(--mono)}
+.rel-badge{display:inline-block;padding:1px 7px;border-radius:999px;font-size:10.5px;font-weight:700;letter-spacing:.2px}
+.rel-badge.cap{background:#ede9fe;color:#6d28d9}
+.rel-badge.int{background:#fef3c7;color:#b45309}
+.rel-frota{display:inline-block;margin-left:5px;padding:0 5px;border-radius:5px;background:#e2e8f0;color:#334155;font-size:10px;font-weight:700}
+.rel-status{display:flex;justify-content:space-between;gap:10px;font-size:12px;color:var(--muted);min-height:17px;flex:none;flex-wrap:wrap}
+.rel-status .ok{color:var(--ok);font-weight:600}
+.rel-status .warn{color:var(--warn);font-weight:600}
+.rel-empty{color:var(--muted);text-align:center;padding:22px 12px;font-size:13px}
+@media (max-width:760px){
+  .modal-report{width:100vw;max-height:100vh;height:100vh;border-radius:0}
+  #report-xls-mask{padding:0}
+  .rel-filters label{flex:1 1 44%}
+  .rel-filters input,.rel-filters select{min-width:0;width:100%}
+}
 /* ===== Usuários & auditoria (configurações) ===== */
 .users-row{grid-template-columns:1fr 1.3fr 34px 34px;align-items:center}
 .users-row .user-name{font-size:12px;padding:5px 2px;display:flex;align-items:center;gap:5px;overflow:hidden;white-space:nowrap}
@@ -545,7 +602,7 @@ body.readonly .sec-actions{display:none}
       <div class="btn-dd-menu" id="dd-excel-menu" hidden>
         <button class="btn-dd-item" id="btn-xls-map" type="button" title="Baixar o mapa do dia em Excel (mesmo formato do print — sem valores)">📥 Excel Mapa</button>
         <button class="btn-dd-item" id="btn-xls-per" type="button" title="Baixar em Excel TODAS as cargas de Capital e Interior de um período (com valores/negociação)">📥 Excel Período</button>
-        <button class="btn-dd-item" id="btn-xls-rel" type="button" title="Relatório por dia OU por período: Placa, Rota, Ordem, Peso, KM, Total, Média, Motorista, Transportadora">📥 Relatório de Cargas</button>
+        <button class="btn-dd-item" id="btn-xls-rel" type="button" title="Relatório de Cargas: abrir na tela (com filtros por Ordem, Destino, Placa, Motorista, Transportadora, Total e Média), EDITAR os valores com recálculo na hora — gravando no mapa do dia — e baixar em Excel (tudo ou só o filtrado)">📥 Relatório de Cargas</button>
       </div>
     </div>
     <span class="sep"></span>
@@ -831,17 +888,58 @@ body.readonly .sec-actions{display:none}
   </div>
 </div>
 
-<div id="report-xls-mask" hidden>
-  <div class="modal" role="dialog" aria-modal="true">
-    <h3>📥 Relatório de Cargas (Placa/Rota/Peso/Total/Média)</h3>
-    <p class="modal-text">Exporta uma linha por carga (Capital + Interior) com <b>Data Inicial</b> (Faturamento), <b>Data Final</b> (Data Inicial + Diárias − 1), Placa, Rota, Ordem, Peso, KM, Total (R$), Média (R$/kg), Motorista e Transportadora. Escolha o mesmo dia em "De" e "Até" para um relatório de um único dia.</p>
-    <div class="period-xls-dates">
-      <label>De<input type="date" id="rx-start"></label>
-      <label>Até<input type="date" id="rx-end"></label>
+<div id="report-xls-mask" class="no-print" hidden>
+  <div class="modal modal-report" role="dialog" aria-modal="true" aria-labelledby="rel-title">
+    <div class="rel-head">
+      <h3 id="rel-title">📋 Relatório de Cargas</h3>
+      <button class="rel-x" type="button" id="rx-x" title="Fechar (Esc)">✕</button>
+    </div>
+    <p class="modal-text">Uma linha por carga (<b>Capital + Interior</b>) do período escolhido. Dá para <b>filtrar</b> e <b>editar aqui mesmo</b>: Ordem, Destino (Rota), Peso, KM, Diárias, Motorista e Transportadora. Ao editar, o app <b>refaz o cálculo</b> na hora — <b>Total</b> (previsão de frete), <b>Média (R$/kg)</b> e <b>Data Final</b> (= Data Inicial + Diárias − 1) — e <b>grava a alteração no mapa do dia</b> correspondente. Frotas não entra.</p>
+
+    <div class="rel-bar">
+      <div class="rel-dates">
+        <label>De (data inicial)<input type="date" id="rx-start"></label>
+        <label>Até<input type="date" id="rx-end"></label>
+        <button class="btn primary" type="button" id="rx-load" title="Carrega as cargas do período na tabela abaixo">🔎 Carregar</button>
+      </div>
+      <div class="rel-filters" id="rel-filters">
+        <label>Ordem<input type="search" id="rf-carga" placeholder="nº da carga" autocomplete="off"></label>
+        <label>Destino / Rota<input type="search" id="rf-destino" placeholder="ex.: RIO VERDE" autocomplete="off"></label>
+        <label>Placa<input type="search" id="rf-placa" placeholder="placa" autocomplete="off"></label>
+        <label>Motorista<input type="search" id="rf-motorista" placeholder="motorista" autocomplete="off"></label>
+        <label>Transportadora<input type="search" id="rf-transp" placeholder="transportador" autocomplete="off"></label>
+        <label>Total mín (R$)<input type="number" id="rf-total-min" class="rel-f-num" step="0.01" min="0" placeholder="0"></label>
+        <label>Total máx (R$)<input type="number" id="rf-total-max" class="rel-f-num" step="0.01" min="0" placeholder="—"></label>
+        <label>Média mín (R$/kg)<input type="number" id="rf-media-min" class="rel-f-num" step="0.01" min="0" placeholder="0"></label>
+        <label>Média máx (R$/kg)<input type="number" id="rf-media-max" class="rel-f-num" step="0.01" min="0" placeholder="—"></label>
+        <label>Tipo<select id="rf-tipo"><option value="">Todas</option><option value="capital">Capital</option><option value="interior">Interior</option></select></label>
+        <button class="btn mini" type="button" id="rf-clear" title="Limpa todos os filtros">🧹 Limpar filtros</button>
+      </div>
+    </div>
+
+    <div class="rel-scroll" id="rel-scroll">
+      <table class="rel-table" id="rel-table">
+        <thead>
+          <tr>
+            <th>Data Inicial</th><th>Data Final</th><th>Tipo</th><th>Placa</th><th>Rota / Destino</th><th>Ordem</th>
+            <th class="num">Peso (kg)</th><th class="num">KM</th><th class="num">Diárias</th>
+            <th class="num">Total (R$)</th><th class="num">Média (R$/kg)</th><th>Motorista</th><th>Transportadora</th>
+          </tr>
+        </thead>
+        <tbody id="rel-body"></tbody>
+        <tfoot id="rel-foot"></tfoot>
+      </table>
+      <div class="rel-empty" id="rel-empty" hidden>Escolha o período acima e clique em <b>🔎 Carregar</b>.</div>
+    </div>
+
+    <div class="rel-status">
+      <span id="rel-count">—</span>
+      <span id="rel-saved"></span>
     </div>
     <div class="modal-actions">
-      <button class="btn" type="button" id="rx-cancel">Cancelar</button>
-      <button class="btn primary" type="button" id="rx-ok">📥 Gerar Excel</button>
+      <button class="btn" type="button" id="rx-cancel">Fechar</button>
+      <button class="btn" type="button" id="rx-dl-all" title="Baixa em Excel TODAS as cargas do período carregado (ignora os filtros)">📥 Baixar (tudo)</button>
+      <button class="btn primary" type="button" id="rx-dl-filt" title="Baixa em Excel apenas as linhas que estão na tela, com os filtros aplicados">📥 Baixar (filtrado)</button>
     </div>
   </div>
 </div>
@@ -2216,62 +2314,423 @@ function xlsMapCompleto(){
   XLSX.writeFile(wb, name);
   toast('📥 Excel gerado: ' + name, 'ok');
 }
-/* Relatório de Cargas: Data Inicial (Faturamento) / Data Final (Data Inicial + Diárias − 1) / Placa / Rota / Ordem /
-   Peso / KM / Total / Média / Motorista / Transportadora — Capital + Interior, por dia ou por período. */
-function openReportXls(){
-  if(!requireAdmin()) return;
-  const s = $('#rx-start'), e = $('#rx-end');
-  if(s && currentMapDate) s.value = currentMapDate;
-  if(e && currentMapDate) e.value = currentMapDate;
-  const mask = $('#report-xls-mask');
-  if(mask) mask.hidden = false;
+/* ===================== Relatório de Cargas — tela interativa =====================
+   Colunas: Data Inicial (Faturamento) · Data Final (= Data Inicial + Diárias − 1) · Tipo · Placa ·
+            Rota/Destino · Ordem · Peso · KM · Diárias · Total (R$) · Média (R$/kg) · Motorista · Transportadora
+   • FILTROS: Ordem, Destino, Placa, Motorista e Transportadora (texto "contém", ignora acento/caixa),
+     faixa de Total (R$), faixa de Média (R$/kg) e Tipo (Capital/Interior).
+   • EDIÇÃO (só admin): Ordem, Destino, Peso, KM, Diárias, Motorista, Transportadora — com as MESMAS
+     regras da tela do mapa (peso ceil 2 casas · km inteiro ≥ 0 · motorista 20 caracteres ·
+     destino/ordem reaplicam as diárias automáticas do cadastro de rotas).
+   • RECÁLCULO imediato: Total (calcularFrete), Média (R$/kg), Data Final e a linha de TOTAIS.
+   • GRAVAÇÃO no mapa: dia em edição = mexe no DATA ao vivo (mapa é re-renderizado ao fechar);
+     outros dias = regrava o registro salvo daquele dia (map:AAAA-MM-DD).
+   • DOWNLOAD: "Baixar (filtrado)" exporta o que está na tela; "Baixar (tudo)" ignora os filtros.
+     O formato do Excel continua o mesmo de antes (11 colunas, linha TOTAL). */
+let REL = relEmptyState();
+function relEmptyState(){
+  return {loaded:false, start:'', end:'', dates:[], recs:{}, items:[], view:[],
+          timers:{}, pending:{}, changed:{}, changedDates:{}, editKeys:new Set(), mapDirty:false};
 }
-async function xlsRelatorio(start, end){
-  if(!requireAdmin()) return;
-  if(typeof XLSX === 'undefined'){ toast('❌ Biblioteca XLSX não carregada (sem internet para o CDN?)', 'err'); return; }
-  start = String(start||''); end = String(end||'');
-  if(!/^\d{4}-\d{2}-\d{2}$/.test(start) || !/^\d{4}-\d{2}-\d{2}$/.test(end) || start > end){ toast('Período inválido — verifique as datas', 'err'); return; }
-  const keys = await Stor.list();
-  let dates = keys.filter(k=> k.startsWith('map:')).map(k=> k.slice(4)).filter(d=> /^\d{4}-\d{2}-\d{2}$/.test(d) && d >= start && d <= end).sort();
-  if(currentMapDate >= start && currentMapDate <= end && !dates.includes(currentMapDate)) dates = dates.concat([currentMapDate]).sort();
-  if(!dates.length){ toast('Nenhum dia salvo no período selecionado', 'err'); return; }
-  const now = new Date();
-  const gerado = 'Gerado em ' + now.toLocaleDateString('pt-BR') + ' ' + now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
-  const rows = [];
-  for(const d of dates){
-    const rec = (d === currentMapDate) ? {data: DATA} : await Stor.get('map:' + d);
-    const data = (rec && rec.data) ? rec.data : null;
-    for(const sec of ['capital','interior']){
-      for(const r of ((data && data[sec]) || [])){
-        const frete = calcularFrete(sec, r).total;
-        const peso = numVal(r.peso);
-        const km = numVal(r.km);
-        const media = (frete > 0 && peso > 0) ? frete / peso : '';
-        // AUDITORIA: Data Final = (Data Inicial + Diárias) − 1 (nº de diárias da rota; 1 dia = mesma data)
-        const diarias = (r.dias === '' || r.dias == null) ? 1 : (numVal(r.dias) || 1);
-        const dataFinal = addDaysIso(d, diarias - 1);
-        rows.push([fmtBR(d), fmtBR(dataFinal), r.placa||'', r.destino||'', r.carga||'', peso, km, frete, media, r.motorista||'', r.transportadora||'']);
+function relReset(){
+  for(const k of Object.keys(REL.timers)) clearTimeout(REL.timers[k]);
+  REL = relEmptyState();
+}
+function relEl(id){ return document.getElementById(id); }
+/* Diárias da linha: vazio/nulo/0 contam como 1 (Data Final = Data Inicial) */
+function relDiarias(row){ return (row.dias === '' || row.dias == null) ? 1 : (numVal(row.dias) || 1); }
+/* Tudo que é derivado da linha: recalculado a cada edição */
+function relCalc(sec, row, dateIso){
+  const f = calcularFrete(sec, row) || {};
+  const peso = numVal(row.peso);
+  const total = numVal(f.total);
+  const media = (total > 0 && peso > 0) ? total / peso : null;
+  const diarias = relDiarias(row);
+  return {frota: f.frota || '', modo: f.modo || '', peso: peso, km: numVal(row.km), total: total,
+          media: media, diarias: diarias, dataFinal: addDaysIso(dateIso, diarias - 1)};
+}
+function relFmtMedia(v){
+  return v == null ? '—' : 'R$ ' + v.toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2}) + '/kg';
+}
+function relSavedMsg(msg, cls){
+  const el = relEl('rel-saved'); if(!el) return;
+  el.className = cls || '';
+  el.textContent = msg || '';
+}
+
+/* ---- carga do período ---- */
+/* registros salvos podem vir sem campos padrão (dados antigos/importados) — completa
+   do mesmo jeito que loadMapForDate() faz, senão calcularFrete() pega tabela/dias errados */
+function relNormalizeRec(rec){
+  if(!rec || !rec.data) return rec;
+  for(const sec of SECTIONS){
+    rec.data[sec] = (rec.data[sec] || []).map(r=> Object.assign({dias:1, tabela:'agregado', ajudante2:''}, r));
+  }
+  return rec;
+}
+async function relLoad(start, end){
+  if(!isAdmin()) return false;
+  start = String(start || ''); end = String(end || '');
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(start) || !/^\d{4}-\d{2}-\d{2}$/.test(end) || start > end){
+    toast('Período inválido — verifique as datas', 'err'); return false;
+  }
+  await relFlush();   // não perde edição pendente do período anterior
+  const btn = relEl('rx-load');
+  if(btn){ btn.disabled = true; btn.textContent = '⏳ Carregando…'; }
+  relSavedMsg('Carregando ' + fmtBR(start) + (start === end ? '' : ' a ' + fmtBR(end)) + '…');
+  let dates = [], recs = {}, items = [];
+  try{
+    const keys = await Stor.list();
+    dates = keys.filter(k=> k.startsWith('map:')).map(k=> k.slice(4))
+                .filter(d=> /^\d{4}-\d{2}-\d{2}$/.test(d) && d >= start && d <= end).sort();
+    // inclui o dia em edição (dados ao vivo, ainda não salvos) se estiver no período
+    if(currentMapDate >= start && currentMapDate <= end && !dates.includes(currentMapDate)) dates = dates.concat([currentMapDate]).sort();
+    if(!dates.length){
+      toast('Nenhum dia salvo no período selecionado', 'err');
+      relSavedMsg('Nenhum dia salvo no período.', 'warn');
+      return false;
+    }
+    for(const d of dates){
+      const rec = (d === currentMapDate) ? {data: DATA, dtEntrega: dtEntrega, _live: true}
+                                         : relNormalizeRec(await Stor.get('map:' + d));
+      recs[d] = rec || null;
+      const data = (rec && rec.data) ? rec.data : null;
+      for(const sec of ['capital','interior']){
+        const rows = (data && data[sec]) || [];
+        for(let i=0;i<rows.length;i++){
+          const row = rows[i];
+          if(!row || typeof row !== 'object') continue;
+          if(!row.id) row.id = uid();   // garante identidade estável da linha
+          items.push({d:d, sec:sec, idx:i, row:row, key: d + '|' + sec + '|' + row.id,
+                      live: !!(rec && rec._live), calc: relCalc(sec, row, d)});
+        }
       }
     }
+  } finally {
+    if(btn){ btn.disabled = false; btn.textContent = '🔎 Carregar'; }
   }
-  if(!rows.length){ toast('Nenhuma carga de Capital/Interior no período', 'err'); return; }
-  const single = start === end;
-  const titulo = 'RELATÓRIO DE CARGAS — ' + (single ? fmtBR(start) : fmtBR(start) + ' a ' + fmtBR(end));
+  REL.loaded = true; REL.start = start; REL.end = end; REL.dates = dates; REL.recs = recs; REL.items = items;
+  REL.changed = {}; REL.changedDates = {}; REL.editKeys = new Set(); REL.mapDirty = false;
+  relApplyFilters();
+  renderRelTable();
+  relSavedMsg('');
+  if(!items.length) toast('Nenhuma carga de Capital/Interior no período', 'warn');
+  return true;
+}
+
+/* ---- filtros ---- */
+const REL_TEXT_FILTER_IDS = ['rf-carga','rf-destino','rf-placa','rf-motorista','rf-transp'];
+const REL_NUM_FILTER_IDS = ['rf-total-min','rf-total-max','rf-media-min','rf-media-max'];
+function relFilterState(){
+  const v = id => { const el = relEl(id); return el ? String(el.value == null ? '' : el.value).trim() : ''; };
+  return {
+    carga: norm(v('rf-carga')), destino: norm(v('rf-destino')), placa: normPlaca(v('rf-placa')),
+    motorista: norm(v('rf-motorista')), transp: norm(v('rf-transp')), tipo: v('rf-tipo'),
+    totalMin: v('rf-total-min'), totalMax: v('rf-total-max'), mediaMin: v('rf-media-min'), mediaMax: v('rf-media-max')
+  };
+}
+function relFiltersActive(f){
+  f = f || relFilterState();
+  return !!(f.carga || f.destino || f.placa || f.motorista || f.transp || f.tipo ||
+            f.totalMin !== '' || f.totalMax !== '' || f.mediaMin !== '' || f.mediaMax !== '');
+}
+function relMatch(it, f){
+  const r = it.row, c = it.calc || relCalc(it.sec, r, it.d);
+  if(f.tipo && it.sec !== f.tipo) return false;
+  if(f.carga && !norm(r.carga).includes(f.carga)) return false;
+  if(f.destino && !norm(r.destino).includes(f.destino)) return false;
+  if(f.placa && !normPlaca(r.placa).includes(f.placa)) return false;
+  if(f.motorista && !norm(r.motorista).includes(f.motorista)) return false;
+  if(f.transp && !norm(r.transportadora).includes(f.transp)) return false;
+  if(f.totalMin !== '' && !(c.total >= numVal(f.totalMin))) return false;
+  if(f.totalMax !== '' && !(c.total <= numVal(f.totalMax))) return false;
+  if(f.mediaMin !== '' && !(c.media != null && c.media >= numVal(f.mediaMin))) return false;
+  if(f.mediaMax !== '' && !(c.media != null && c.media <= numVal(f.mediaMax))) return false;
+  return true;
+}
+function relApplyFilters(){
+  const f = relFilterState();
+  REL.view = relFiltersActive(f) ? REL.items.filter(it=> relMatch(it, f)) : REL.items.slice();
+  return REL.view;
+}
+
+/* ---- renderização ---- */
+function relRowHtml(it){
+  const r = it.row, c = it.calc, dis = isAdmin() ? '' : ' disabled';
+  const inp = (field, value, cls, extra) =>
+    '<input type="text" class="' + (cls || '') + '" data-field="' + field + '" value="' + esc(value) + '"' + (extra || '') + dis + ' autocomplete="off">';
+  const pesoTxt = (r.peso === '' || r.peso == null) ? '' : fmtPeso2(r.peso);
+  const kmTxt = (r.km === '' || r.km == null) ? '' : String(numVal(r.km));
+  const liveTag = it.live ? ' <span class="rel-frota" title="Este é o dia aberto no mapa — a alteração aparece nele assim que o relatório for fechado">atual</span>' : '';
+  return '<tr data-key="' + esc(it.key) + '"' + (REL.changed[it.key] ? ' class="rel-changed"' : '') + '>' +
+    '<td>' + fmtBR(it.d) + liveTag + '</td>' +
+    '<td data-c="dfinal">' + fmtBR(c.dataFinal) + '</td>' +
+    '<td><span class="rel-badge ' + (it.sec === 'capital' ? 'cap' : 'int') + '">' + (it.sec === 'capital' ? 'Capital' : 'Interior') + '</span></td>' +
+    '<td class="mono">' + esc(r.placa || '') + '</td>' +
+    '<td class="w-dest">' + inp('destino', r.destino || '') + '</td>' +
+    '<td class="w-ordem">' + inp('carga', r.carga || '') + '</td>' +
+    '<td class="num">' + inp('peso', pesoTxt, 'numin') + '</td>' +
+    '<td class="num">' + inp('km', kmTxt, 'numin') + '</td>' +
+    '<td class="num">' + inp('dias', String(c.diarias), 'numin') + '</td>' +
+    '<td class="num" data-c="total" title="' + esc(c.modo) + (c.frota ? ' · ' + esc(c.frota) : '') + '">' + fmtBRL(c.total) + '</td>' +
+    '<td class="num" data-c="media">' + relFmtMedia(c.media) + '</td>' +
+    '<td class="w-mot">' + inp('motorista', r.motorista || '', '', ' maxlength="20"') + '</td>' +
+    '<td class="w-transp">' + inp('transportadora', r.transportadora || '') + '</td>' +
+  '</tr>';
+}
+function renderRelTable(){
+  const body = relEl('rel-body'), empty = relEl('rel-empty'), tbl = relEl('rel-table');
+  if(!body) return;
+  if(!REL.loaded){
+    body.innerHTML = '';
+    if(tbl) tbl.hidden = true;
+    if(empty){ empty.hidden = false; empty.innerHTML = 'Escolha o período acima e clique em <b>🔎 Carregar</b>.'; }
+    renderRelFoot(); relCountMsg('—'); relSavedMsg(''); return;
+  }
+  if(tbl) tbl.hidden = false;
+  if(!REL.view.length){
+    body.innerHTML = '';
+    if(empty){
+      empty.hidden = false;
+      empty.innerHTML = REL.items.length ? 'Nenhuma carga corresponde aos filtros.' : 'Nenhuma carga de Capital/Interior no período.';
+    }
+  } else {
+    if(empty) empty.hidden = true;
+    body.innerHTML = REL.view.map(relRowHtml).join('');
+  }
+  renderRelFoot();
+  relCountMsg();
+}
+function relCountMsg(txt){
+  const el = relEl('rel-count'); if(!el) return;
+  if(txt != null){ el.textContent = txt; return; }
+  const f = relFiltersActive();
+  const per = REL.start === REL.end ? fmtBR(REL.start) : fmtBR(REL.start) + ' a ' + fmtBR(REL.end);
+  el.textContent = (f ? REL.view.length + ' de ' + REL.items.length : String(REL.view.length)) + ' carga(s) · ' +
+                   REL.dates.length + ' dia(s) · ' + per + (f ? ' · com filtro' : '');
+}
+function renderRelFoot(){
+  const foot = relEl('rel-foot'); if(!foot) return;
+  const rows = REL.view;
+  if(!rows.length){ foot.innerHTML = ''; return; }
+  let peso = 0, km = 0, total = 0;
+  for(const it of rows){ peso += it.calc.peso; km += it.calc.km; total += it.calc.total; }
+  const media = (total > 0 && peso > 0) ? total / peso : null;
+  foot.innerHTML = '<tr>' +
+    '<td colspan="6">TOTAIS (' + rows.length + ' carga' + (rows.length === 1 ? '' : 's') + (relFiltersActive() ? ' — filtrado' : '') + ')</td>' +
+    '<td class="num">' + fmtPeso2(peso) + '</td>' +
+    '<td class="num">' + fmtNum(km) + '</td>' +
+    '<td></td>' +
+    '<td class="num">' + fmtBRL(total) + '</td>' +
+    '<td class="num">' + relFmtMedia(media) + '</td>' +
+    '<td colspan="2"></td>' +
+  '</tr>';
+}
+
+/* ---- edição ---- */
+function relFindItem(key){
+  for(const it of REL.items) if(it.key === key) return it;
+  return null;
+}
+/* mesmas regras do handler de edição do mapa (capture-root) */
+function relSetField(it, field, raw){
+  const row = it.row;
+  if(field === 'peso') row.peso = (raw === '') ? '' : ceil2(num(raw));
+  else if(field === 'km') row.km = (raw === '') ? '' : Math.max(0, Math.floor(num(raw)));
+  else if(field === 'dias') row.dias = (raw === '') ? 1 : Math.max(1, Math.round(numVal(raw)) || 1);
+  else if(field === 'motorista') row.motorista = clampMotorista(raw);
+  else if(field === 'transportadora') row.transportadora = raw;
+  else if(field === 'destino'){ row.destino = raw; applyRotas(row); }   // diárias automáticas pela rota
+  else if(field === 'carga'){ row.carga = raw; applyRotas(row); }        // diárias automáticas pelo nº da rota
+  else return false;
+  it.calc = relCalc(it.sec, row, it.d);
+  return true;
+}
+function relUpdateRowDom(it, tr){
+  if(!tr) return;
+  const c = it.calc;
+  const df = tr.querySelector('[data-c="dfinal"]'); if(df) df.textContent = fmtBR(c.dataFinal);
+  const tot = tr.querySelector('[data-c="total"]');
+  if(tot){ tot.textContent = fmtBRL(c.total); tot.title = (c.modo || '') + (c.frota ? ' · ' + c.frota : ''); }
+  const med = tr.querySelector('[data-c="media"]'); if(med) med.textContent = relFmtMedia(c.media);
+  const diasInp = tr.querySelector('input[data-field="dias"]');
+  if(diasInp && document.activeElement !== diasInp) diasInp.value = String(c.diarias);
+}
+/* ao sair do campo, volta a mostrar o valor canônico (igual ao mapa) */
+function relFormatFieldInput(t, row, field){
+  if(field === 'peso') t.value = (row.peso === '' || row.peso == null) ? '' : fmtPeso2(row.peso);
+  else if(field === 'km' || field === 'dias') t.value = (row[field] === '' || row[field] == null) ? '' : String(numVal(row[field]));
+  else if(field === 'motorista') t.value = row.motorista || '';
+}
+function relSchedulePersist(d){
+  REL.pending[d] = true;
+  clearTimeout(REL.timers[d]);
+  REL.timers[d] = setTimeout(()=>{
+    REL.timers[d] = null;
+    relPersistDate(d).catch(err=>{
+      console.error(err);
+      relSavedMsg('⚠️ Falha ao gravar ' + fmtBR(d) + ' — tente novamente', 'warn');
+    });
+  }, 700);
+}
+async function relPersistDate(d){
+  clearTimeout(REL.timers[d]); REL.timers[d] = null;
+  delete REL.pending[d];
+  if(d === currentMapDate){
+    // dia em edição: os objetos de DATA já foram alterados — o mapa é re-renderizado ao fechar
+    REL.mapDirty = true;
+    scheduleSave();
+    relSavedMsg('💾 Dia ' + fmtBR(d) + ' (aberto no mapa) alterado — salvo automaticamente', 'ok');
+    return;
+  }
+  const rec = REL.recs[d];
+  if(!rec || !rec.data) return;
+  rec.savedAt = new Date().toISOString();
+  const clean = s => (rec.data[s] || []).map(r=>{ const c = Object.assign({}, r); delete c._sel; return c; });
+  await Stor.set('map:' + d, Object.assign({}, rec, {data:{frotas:clean('frotas'), capital:clean('capital'), interior:clean('interior')}}));
+  relSavedMsg('💾 Alterações de ' + fmtBR(d) + ' gravadas no mapa daquele dia', 'ok');
+}
+async function relFlush(){
+  const ds = Object.keys(REL.pending);
+  for(const d of ds) await relPersistDate(d);
+}
+function bindRelTable(){
+  const body = relEl('rel-body');
+  if(!body || body.dataset.relBound === '1') return;
+  body.dataset.relBound = '1';
+  body.addEventListener('input', e=>{
+    const t = e.target;
+    if(!t || !t.dataset || !t.dataset.field) return;
+    if(!isAdmin()) return;                       // trava de segurança (defesa em profundidade)
+    const tr = t.closest('tr[data-key]'); if(!tr) return;
+    const it = relFindItem(tr.getAttribute('data-key')); if(!it) return;
+    const field = t.dataset.field;
+    if(!relSetField(it, field, t.value)) return;
+    REL.editKeys.add(it.key + '#' + field);
+    REL.changed[it.key] = true;
+    REL.changedDates[it.d] = true;
+    tr.classList.add('rel-changed');
+    relUpdateRowDom(it, tr);
+    renderRelFoot();
+    relCountMsg();
+    relSchedulePersist(it.d);
+  });
+  body.addEventListener('focusout', e=>{
+    const t = e.target;
+    if(!t || !t.dataset || !t.dataset.field) return;
+    const tr = t.closest('tr[data-key]'); if(!tr) return;
+    const it = relFindItem(tr.getAttribute('data-key')); if(!it) return;
+    relFormatFieldInput(t, it.row, t.dataset.field);
+    // se o foco foi para outra célula da própria tabela (Tab), NÃO re-renderiza —
+    // re-renderizar aqui destruiria o campo que acabou de receber o foco
+    if(e.relatedTarget && body.contains(e.relatedTarget)) return;
+    relApplyFilters();
+    renderRelTable();
+  });
+}
+function bindRelControls(){
+  const wrap = relEl('rel-filters');
+  if(wrap && wrap.dataset.relBound !== '1'){
+    wrap.dataset.relBound = '1';
+    const apply = ()=>{ if(!REL.loaded) return; relApplyFilters(); renderRelTable(); };
+    wrap.addEventListener('input', e=>{ if(e.target && e.target.tagName === 'SELECT') return; apply(); });
+    wrap.addEventListener('change', apply);
+    const clr = relEl('rf-clear');
+    if(clr) clr.addEventListener('click', ()=>{
+      REL_TEXT_FILTER_IDS.concat(REL_NUM_FILTER_IDS).concat(['rf-tipo']).forEach(id=>{ const el = relEl(id); if(el) el.value = ''; });
+      apply();
+    });
+  }
+  const load = relEl('rx-load');
+  if(load && load.dataset.relBound !== '1'){
+    load.dataset.relBound = '1';
+    load.addEventListener('click', async ()=>{
+      const s = relEl('rx-start'), e = relEl('rx-end');
+      await relLoad(s ? s.value : '', e ? e.value : '');
+    });
+  }
+}
+
+/* ---- download (Excel) ---- */
+function relToAoa(items, titulo, gerado){
+  const rows = items.map(it=>{
+    const r = it.row, c = it.calc || relCalc(it.sec, r, it.d);
+    return [fmtBR(it.d), fmtBR(c.dataFinal), r.placa || '', r.destino || '', r.carga || '',
+            c.peso, c.km, c.total, c.media != null ? c.media : '', r.motorista || '', r.transportadora || ''];
+  });
   const aoa = [[titulo], [gerado], [],
     ['Data Inicial','Data Final','Placa','Rota','Ordem','Peso','KM','Total','Média','Motorista','Transportadora']];
   for(const r of rows) aoa.push(r);
-  const totPeso = rows.reduce((a,r)=> a + (typeof r[5]==='number'?r[5]:0), 0);
-  const totKm = rows.reduce((a,r)=> a + (typeof r[6]==='number'?r[6]:0), 0);
-  const totFrete = rows.reduce((a,r)=> a + (typeof r[7]==='number'?r[7]:0), 0);
+  const totPeso = rows.reduce((a,r)=> a + (typeof r[5] === 'number' ? r[5] : 0), 0);
+  const totKm = rows.reduce((a,r)=> a + (typeof r[6] === 'number' ? r[6] : 0), 0);
+  const totFrete = rows.reduce((a,r)=> a + (typeof r[7] === 'number' ? r[7] : 0), 0);
   const mediaGeral = totFrete > 0 && totPeso > 0 ? totFrete / totPeso : '';
   aoa.push(['TOTAL','','','','', totPeso, totKm, totFrete, mediaGeral, '', '']);
-  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  return aoa;
+}
+function relWriteXlsx(items, start, end, filtrado){
+  if(typeof XLSX === 'undefined'){ toast('❌ Biblioteca XLSX não carregada (sem internet para o CDN?)', 'err'); return false; }
+  if(!items.length){ toast('Nenhuma carga para exportar', 'err'); return false; }
+  const now = new Date();
+  const gerado = 'Gerado em ' + now.toLocaleDateString('pt-BR') + ' ' + now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  const single = start === end;
+  const periodo = single ? fmtBR(start) : fmtBR(start) + ' a ' + fmtBR(end);
+  const titulo = 'RELATÓRIO DE CARGAS — ' + periodo + (filtrado ? ' (FILTRADO)' : '');
+  const ws = XLSX.utils.aoa_to_sheet(relToAoa(items, titulo, gerado));
   ws['!cols'] = [{wch:12},{wch:12},{wch:11},{wch:28},{wch:20},{wch:11},{wch:9},{wch:13},{wch:11},{wch:18},{wch:24}];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'RELATÓRIO');
-  const name = 'relatorio-cargas-' + start + (single ? '' : '_a_' + end) + '.xlsx';
+  const name = 'relatorio-cargas-' + start + (single ? '' : '_a_' + end) + (filtrado ? '-filtrado' : '') + '.xlsx';
   XLSX.writeFile(wb, name);
-  toast('📥 Excel gerado: ' + name, 'ok');
+  toast('📥 Excel gerado: ' + name + ' — ' + items.length + ' carga(s)', 'ok');
+  return true;
+}
+async function relDownload(filtrado){
+  if(!requireAdmin()) return;
+  if(!REL.loaded){ toast('Carregue um período antes de baixar', 'err'); return; }
+  await relFlush();                                  // o Excel sai com o que já foi gravado
+  for(const it of REL.items) it.calc = relCalc(it.sec, it.row, it.d);
+  if(filtrado) relApplyFilters();
+  const items = filtrado ? REL.view : REL.items;
+  if(!items.length){ toast(filtrado ? 'Nenhuma linha corresponde aos filtros' : 'Nenhuma carga de Capital/Interior no período', 'err'); return; }
+  relWriteXlsx(items, REL.start, REL.end, !!filtrado);
+}
+/* atalho mantido por compatibilidade: baixa TUDO do período sem abrir a tela */
+async function xlsRelatorio(start, end){
+  if(!requireAdmin()) return;
+  if(!(await relLoad(start, end))) return;
+  relWriteXlsx(REL.items, REL.start, REL.end, false);
+}
+
+/* ---- abrir / fechar ---- */
+async function openReportXls(){
+  if(!requireAdmin()) return;
+  const s = relEl('rx-start'), e = relEl('rx-end');
+  if(s && !s.value && currentMapDate) s.value = currentMapDate;
+  if(e && !e.value && currentMapDate) e.value = currentMapDate;
+  const mask = relEl('report-xls-mask');
+  if(mask) mask.hidden = false;
+  bindRelControls();
+  bindRelTable();
+  renderRelTable();
+  await relLoad(s ? s.value : '', e ? e.value : '');
+}
+async function closeReportXls(){
+  await relFlush();
+  const nCampos = REL.editKeys.size;
+  const nCargas = Object.keys(REL.changed).length;
+  const dias = Object.keys(REL.changedDates).sort();
+  const mapDirty = REL.mapDirty;
+  const mask = relEl('report-xls-mask');
+  if(mask) mask.hidden = true;
+  if(nCampos){
+    audit('relatorio-cargas-edicao', nCampos + ' campo(s) em ' + nCargas + ' carga(s) · dia(s): ' + dias.map(fmtBR).join(', '));
+    toast('💾 ' + nCampos + ' alteração(ões) salva(s) no mapa — ' + dias.map(fmtBR).join(', '), 'ok');
+  }
+  relReset();
+  renderRelTable();   // limpa a tabela (não deixa valores no DOM após fechar)
+  if(mapDirty) renderAll();          // mapa do dia aberto reflete as edições
+  if(dashVisible) loadDashboard();   // indicadores recalculados
 }
 /* Todas as cargas de Capital + Interior de um período (com valores) + resumo por dia */
 function openPeriodXls(){
@@ -3647,12 +4106,19 @@ function bindStatic(){
     await xlsPeriodo(s, e);
   });
   $('#btn-xls-rel').addEventListener('click', openReportXls);
-  $('#rx-cancel').addEventListener('click', ()=>{ const m = $('#report-xls-mask'); if(m) m.hidden = true; });
-  $('#rx-ok').addEventListener('click', async ()=>{
-    const s = $('#rx-start').value, e = $('#rx-end').value;
-    const m = $('#report-xls-mask'); if(m) m.hidden = true;
-    await xlsRelatorio(s, e);
+  /* Relatório de Cargas: tela interativa (filtros + edição + download) */
+  $('#rx-cancel').addEventListener('click', closeReportXls);
+  $('#rx-x').addEventListener('click', closeReportXls);
+  $('#rx-dl-filt').addEventListener('click', ()=> relDownload(true));
+  $('#rx-dl-all').addEventListener('click', ()=> relDownload(false));
+  /* fecha com Esc (grava antes qualquer alteração pendente) */
+  document.addEventListener('keydown', e=>{
+    if(e.key !== 'Escape') return;
+    const m = $('#report-xls-mask');
+    if(m && !m.hidden) closeReportXls();
   });
+  /* clique fora do painel (no fundo escurecido) também fecha */
+  $('#report-xls-mask').addEventListener('mousedown', e=>{ if(e.target.id === 'report-xls-mask') closeReportXls(); });
   $('#btn-reclass').addEventListener('click', reclassifyAll);
   $('#btn-clear').addEventListener('click', ()=>{
     if(!requireEdit()) return;
