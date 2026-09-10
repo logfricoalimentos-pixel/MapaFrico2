@@ -540,7 +540,7 @@ body.readonly .sec-actions{display:none}
 .fech-per{font-size:12px;color:var(--muted);margin:2px 0 8px}
 .fech-scroll{flex:1 1 auto;overflow:auto;border:1px solid var(--line);border-radius:10px;background:#fff;min-height:90px}
 .fech-table{border-collapse:separate;border-spacing:0;width:100%;font-size:12.5px}
-.fech-table th{position:sticky;top:0;z-index:2;background:#f1f5f9;border-bottom:1px solid #cbd5e1;border-right:1px solid var(--line);padding:6px 7px;text-align:left;font-size:10.5px;color:#334155;text-transform:uppercase;letter-spacing:.2px;white-space:nowrap}
+.fech-table th{position:sticky;top:0;z-index:2;background:#374151;border-bottom:1px solid #1f2937;border-right:1px solid #1f2937;padding:6px 7px;text-align:left;font-size:10.5px;color:#ffffff;text-transform:uppercase;letter-spacing:.2px;white-space:nowrap}
 .fech-table th.num{text-align:right}
 .fech-table td{border-bottom:1px solid var(--line);border-right:1px solid var(--line);padding:3px 5px;vertical-align:middle;white-space:nowrap}
 .fech-table td.num{text-align:right;font-family:var(--mono)}
@@ -555,7 +555,7 @@ body.readonly .sec-actions{display:none}
 .fech-cnt{font-size:10.5px;color:var(--muted);margin-left:6px;font-weight:600}
 .fech-det td{background:#f8fafc;padding:4px 6px}
 .fech-det-table{border-collapse:collapse;width:100%;font-size:11.5px}
-.fech-det-table th{position:static;background:#eef2f7;border-bottom:1px solid var(--line);border-right:1px solid var(--line);padding:3px 6px;text-align:left;font-size:9.5px;color:#475569;text-transform:uppercase;letter-spacing:.2px;white-space:nowrap}
+.fech-det-table th{position:static;background:#4b5563;border-bottom:1px solid #374151;border-right:1px solid #374151;padding:3px 6px;text-align:left;font-size:9.5px;color:#ffffff;text-transform:uppercase;letter-spacing:.2px;white-space:nowrap}
 .fech-det-table th.num{text-align:right}
 .fech-det-table td{border-bottom:1px solid var(--line);border-right:1px solid var(--line);padding:2px 6px;white-space:nowrap}
 .fech-det-table td.num{text-align:right;font-family:var(--mono)}
@@ -1023,7 +1023,7 @@ body.readonly .sec-actions{display:none}
       <table class="fech-table" id="fech-table">
         <thead>
           <tr>
-            <th title="marcar/desmarcar TODAS as cargas desta transportadora">✓</th><th>Transportadora</th><th class="num">Cargas</th><th class="num">Peso (kg)</th>
+            <th title="marcar/desmarcar TODAS as cargas de TODAS as transportadoras de uma vez"><input type="checkbox" id="fech-all" title="marcar/desmarcar TUDO de uma só vez"></th><th>Transportadora</th><th class="num">Cargas</th><th class="num">Peso (kg)</th>
             <th class="num">Valor faturado (R$)</th><th class="num">Custo (R$/kg)</th><th>Código</th><th class="num">Abatimento (R$)</th>
             <th>Entregou NF</th><th>Boleto</th><th>WhatsApp</th>
           </tr>
@@ -2999,13 +2999,104 @@ function fechGroupSel(g){
   for(const it of itens){ peso += it.calc.peso; fat += it.calc.total; }
   return {s: s, itens: itens, peso: peso, fat: fat};
 }
-/* link do WhatsApp (wa.me) já com a mensagem do fechamento daquela transportadora */
+/* resumo COMPLETO em texto (carga a carga, Interior/Capital, consolidado) — sem custo */
+function fechMsgTexto(g, gs){
+  const L = [];
+  L.push('🔒 FECHAMENTO DE FRETE (QUINZENAL)');
+  L.push(g.nome + (TRANSP_CODES[g.key] ? ' · código ' + TRANSP_CODES[g.key] : ''));
+  L.push('Período: ' + fechPeriodoTxt(REL) + ' (pela data de entrega)');
+  L.push('');
+  for(const sec of ['interior','capital']){
+    const cs = gs.itens.filter(it=> it.sec === sec);
+    if(!cs.length) continue;
+    let ps = 0, ts = 0;
+    L.push((sec === 'interior' ? '🟡 INTERIOR' : '🟣 CAPITAL') + ' — ' + cs.length + ' carga(s):');
+    for(const it of cs){
+      ps += it.calc.peso; ts += it.calc.total;
+      L.push('• ' + fmtBR(it.d) + ' · ' + (it.row.placa || '-') + ' · ' + (it.row.destino || '-') +
+             ' · ordem ' + (it.row.carga || '-') + ' · ' + fmtPeso2(it.calc.peso) + ' kg · ' +
+             (it.calc.km ? fmtNum(it.calc.km) + ' km · ' : '') + fmtBRL(it.calc.total) +
+             (it.row.motorista ? ' · ' + it.row.motorista : ''));
+    }
+    L.push('   Subtotal ' + (sec === 'interior' ? 'INTERIOR' : 'CAPITAL') + ': ' + cs.length + ' carga(s) · ' + fmtPeso2(ps) + ' kg · ' + fmtBRL(ts));
+    L.push('');
+  }
+  const s = gs.s;
+  const ab = numVal(s.abat);
+  L.push('✅ CONSOLIDADO: ' + gs.itens.length + ' carga(s) · ' + fmtPeso2(gs.peso) + ' kg · ' + fmtBRL(gs.fat));
+  if(ab > 0) L.push('Abatimento: ' + fmtBRL(ab) + ' · A pagar: ' + fmtBRL(Math.max(0, gs.fat - ab)));
+  L.push('Entregou NF: ' + (s.nf || 'Não') + ' · Boleto: ' + (s.boleto || 'Não'));
+  return L.join('\n');
+}
+/* link do WhatsApp (wa.me) já com o resumo completo na mensagem */
 function fechZapUrl(zap, g, gs){
   const d = String(zap || '').replace(/\D/g, '').replace(/^0+/, '');
   if(!d) return '';
-  const msg = 'Olá, ' + g.nome + '! Fechamento de ' + fechPeriodoTxt(REL) + ': ' +
-              gs.itens.length + ' carga(s), ' + fmtPeso2(gs.peso) + ' kg — total ' + fmtBRL(gs.fat) + '.';
-  return 'https://wa.me/55' + d + '?text=' + encodeURIComponent(msg);
+  return 'https://wa.me/55' + d + '?text=' + encodeURIComponent(fechMsgTexto(g, gs));
+}
+/* "print" do resumo em PNG (tabela como a do painel) p/ arrastar no WhatsApp */
+function fechPrintPng(g, gs){
+  const W = 1180, RH = 24, PAD = 10;
+  const secs = ['interior','capital'].map(sc=> ({sc: sc, cs: gs.itens.filter(it=> it.sec === sc)})).filter(x=> x.cs.length);
+  const nRows = secs.reduce((a, x)=> a + x.cs.length + 1, 0);
+  const H = PAD * 2 + RH * 3 + nRows * RH + RH * 2;
+  const cv = document.createElement('canvas');
+  cv.width = W; cv.height = H;
+  const cx = cv.getContext('2d');
+  if(!cx) return null;
+  const COLS = [[10,90,'l'],[110,70,'l'],[190,90,'l'],[290,220,'l'],[520,90,'l'],[620,100,'r'],[730,80,'r'],[820,110,'r'],[940,230,'l']];
+  const HEAD = ['DATA','TIPO','PLACA','ROTA','ORDEM','PESO (KG)','KM','TOTAL (R$)','MOTORISTA'];
+  cx.fillStyle = '#ffffff'; cx.fillRect(0, 0, W, H);
+  let y = PAD;
+  cx.fillStyle = '#374151'; cx.fillRect(0, y, W, RH * 2);
+  cx.fillStyle = '#ffffff'; cx.font = 'bold 14px Segoe UI, Arial'; cx.textAlign = 'left'; cx.textBaseline = 'middle';
+  cx.fillText(g.nome + (TRANSP_CODES[g.key] ? '  ·  código ' + TRANSP_CODES[g.key] : ''), 10, y + RH / 2 + 1);
+  cx.font = '12px Segoe UI, Arial';
+  cx.fillText('Fechamento de frete (quinzenal) · período ' + fechPeriodoTxt(REL) + ' (pela data de entrega)', 10, y + RH + RH / 2 + 1);
+  y += RH * 2;
+  cx.fillStyle = '#4b5563'; cx.fillRect(0, y, W, RH);   // cabeçalho cinza escuro, letras brancas
+  cx.fillStyle = '#ffffff'; cx.font = 'bold 11px Segoe UI, Arial';
+  COLS.forEach((c, i)=> { cx.textAlign = c[2] === 'r' ? 'right' : 'left'; cx.fillText(HEAD[i], c[2] === 'r' ? c[0] + c[1] - 6 : c[0], y + RH / 2 + 1); });
+  y += RH;
+  cx.textAlign = 'left';
+  const line = ()=> { cx.strokeStyle = '#d1d5db'; cx.beginPath(); cx.moveTo(0, y); cx.lineTo(W, y); cx.stroke(); };
+  for(const sec of secs){
+    cx.fillStyle = sec.sc === 'interior' ? '#fef3c7' : '#ede9fe';
+    cx.fillRect(0, y, W, RH);
+    cx.fillStyle = sec.sc === 'interior' ? '#b45309' : '#6d28d9';
+    cx.font = 'bold 11px Segoe UI, Arial';
+    cx.fillText((sec.sc === 'interior' ? 'INTERIOR' : 'CAPITAL') + ' — ' + sec.cs.length + ' carga(s)', 10, y + RH / 2 + 1);
+    y += RH; line();
+    cx.font = '11px Segoe UI, Arial';
+    for(const it of sec.cs){
+      cx.fillStyle = '#111827';
+      const vals = [fmtBR(it.d), it.sec === 'capital' ? 'Capital' : 'Interior', it.row.placa || '-', it.row.destino || '-',
+                    it.row.carga || '-', fmtPeso2(it.calc.peso), it.calc.km ? fmtNum(it.calc.km) : '', fmtBRL(it.calc.total), it.row.motorista || ''];
+      COLS.forEach((c, i)=> { cx.textAlign = c[2] === 'r' ? 'right' : 'left'; cx.fillText(String(vals[i]), c[2] === 'r' ? c[0] + c[1] - 6 : c[0], y + RH / 2 + 1); });
+      y += RH; line();
+    }
+  }
+  cx.fillStyle = '#374151'; cx.fillRect(0, y, W, RH);
+  cx.fillStyle = '#ffffff'; cx.font = 'bold 12px Segoe UI, Arial'; cx.textAlign = 'left';
+  cx.fillText('CONSOLIDADO: ' + gs.itens.length + ' carga(s)', 10, y + RH / 2 + 1);
+  cx.textAlign = 'right';
+  cx.fillText(fmtPeso2(gs.peso) + ' kg', 720 - 6, y + RH / 2 + 1);
+  cx.fillText(fmtBRL(gs.fat), 930 - 6, y + RH / 2 + 1);
+  y += RH;
+  const fname = 'resumo-' + slugTransp(g.nome) + '-' + REL.start + '.png';
+  if(window.__pngNames) window.__pngNames.push(fname);
+  window.__lastPng = {name: fname, url: ''};
+  const entrega = (url)=> {
+    window.__lastPng.url = url;
+    if(window.__noDownload || !url) return;
+    const a = document.createElement('a');
+    a.href = url; a.download = fname;
+    document.body.appendChild(a); a.click(); a.remove();
+  };
+  // dataURL sincronamente (o CSP da página bloqueia fetch de blob:, e p/ testes/automação)
+  if(cv.toDataURL) entrega(cv.toDataURL('image/png'));
+  else entrega('');
+  return true;
 }
 function openFech(){
   if(!requireAdmin()) return;
@@ -3076,11 +3167,20 @@ function renderFechTable(){
       '<td style="min-width:104px"><input type="text" inputmode="decimal" data-f="abat" value="' + esc(gs.s.abat) + '" placeholder="0,00"></td>' +
       '<td>' + fechSelNF('nf', gs.s.nf) + '</td>' +
       '<td>' + fechSelNF('boleto', gs.s.boleto) + '</td>' +
-      '<td>' + (url ? '<a class="zap-link" href="' + esc(url) + '" target="_blank" rel="noopener" title="Abrir conversa com ' + esc(g.nome) + ' no WhatsApp">💬 ' + esc(zap) + '</a>' : '<span class="fech-nozap" title="sem WhatsApp cadastrado">—</span>') + '</td>' +
+      '<td>' + (url ? '<a class="zap-link" href="' + esc(url) + '" target="_blank" rel="noopener" title="Abre o WhatsApp com o resumo COMPLETO já escrito na mensagem">💬 ' + esc(zap) + '</a>' : '<span class="fech-nozap" title="sem WhatsApp cadastrado">—</span>') +
+        ' <button class="btn mini" type="button" data-f="print" title="Gerar o PRINT (PNG) do resumo p/ mandar no WhatsApp">🖼</button></td>' +
     '</tr>';
     if(gs.s.exp) html += fechDetRow(g);
   }
   body.innerHTML = html;
+  // checkbox MESTRE do cabeçalho: tudo marcado / parcial / nada
+  const mall = relEl('fech-all');
+  if(mall){
+    let tot = 0, sel = 0;
+    for(const g of groups){ tot += g.itens.length; sel += fechGroupSel(g).itens.length; }
+    mall.checked = tot > 0 && sel === tot;
+    mall.indeterminate = sel > 0 && sel < tot;
+  }
   // checkbox do grupo fica "indeterminado" quando só algumas cargas estão marcadas
   for(const tr of body.querySelectorAll('tr[data-g]')){
     const g = groups.find(x=> x.key === tr.getAttribute('data-g'));
@@ -3144,10 +3244,38 @@ function bindFechPanel(){
       renderFechFoot();
     });
     body.addEventListener('click', e=>{
+      const zapA = e.target.closest('a.zap-link');
+      if(zapA){
+        const trZ = zapA.closest('tr[data-g]');
+        const gZ = trZ ? fechGroups().find(x=> x.key === trZ.getAttribute('data-g')) : null;
+        if(gZ){
+          const txt = fechMsgTexto(gZ, fechGroupSel(gZ));
+          if(navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).catch(()=>{});
+          toast('📋 Resumo copiado p/ área de transferência — no WhatsApp a mensagem já abre escrita; pressione ENTER lá p/ enviar', 'ok');
+        }
+      }
+      const pb = e.target.closest('[data-f="print"]');
+      if(pb){
+        const trP = pb.closest('tr[data-g]');
+        const gP = trP ? fechGroups().find(x=> x.key === trP.getAttribute('data-g')) : null;
+        if(gP){ fechPrintPng(gP, fechGroupSel(gP)); toast('🖼 Print (PNG) do resumo gerado — arraste o arquivo p/ conversa do WhatsApp', 'ok'); }
+      }
       const btn = e.target.closest('[data-f="exp"]'); if(!btn) return;
       const tr = btn.closest('tr[data-g]'); if(!tr) return;
       const s = fechSelOf(tr.getAttribute('data-g'));
       s.exp = !s.exp;
+      renderFechTable();
+    });
+  }
+  const mall = relEl('fech-all');
+  if(mall && mall.dataset.fechBound !== '1'){
+    mall.dataset.fechBound = '1';
+    mall.addEventListener('change', ()=>{
+      const on = mall.checked;
+      for(const g of fechGroups()){
+        const s = fechSelOf(g.key);
+        for(const it of g.itens) s.cargas[it.key] = on;
+      }
       renderFechTable();
     });
   }
