@@ -836,12 +836,13 @@ body.readonly .sec-actions{display:none}
 
   <section>
     <h3>🤖 Envio automático do resumo (WhatsApp por API)</h3>
-    <p class="hint">O WhatsApp comum (wa.me) só leva <b>texto</b> — o navegador não anexa o print nem aperta "enviar" sozinho. Com uma API externa (<b>Evolution API</b> em servidor próprio, grátis, ou <b>UltraMsg</b>, paga), o botão <b>🤖</b> da tela de fechamento manda o <b>print PNG + resumo</b> para cada transportador marcada, um a um. O servidor da API precisa aceitar chamadas deste site (CORS) e ter HTTPS (o site é https).</p>
+    <p class="hint">O WhatsApp comum (wa.me) só leva <b>texto</b> — o navegador não anexa o print nem aperta "enviar" sozinho. Com uma API externa (<b>Evolution API</b> em servidor próprio, grátis, <b>UltraMsg</b>, paga, ou a <b>Meta Cloud API</b> oficial — nesta, mensagem livre só dentro da janela de 24h após o contato do transportador; fora dela, informe um template aprovado), o botão <b>🤖</b> da tela de fechamento manda o <b>print PNG + resumo</b> para cada transportador marcada, um a um. O servidor da API precisa aceitar chamadas deste site (CORS) e ter HTTPS (o site é https).</p>
     <div class="wa-grid">
-      <label>Provedor<select id="wa-prov"><option value="evolution">Evolution API (servidor próprio)</option><option value="ultramsg">UltraMsg (serviço pago)</option></select></label>
+      <label>Provedor<select id="wa-prov"><option value="evolution">Evolution API (servidor próprio)</option><option value="ultramsg">UltraMsg (serviço pago)</option><option value="meta">Meta Cloud API (oficial)</option></select></label>
       <label>Base URL<input id="wa-base" placeholder="https://…do seu túnel/servidor"></label>
       <label>API key / token<input id="wa-key" type="password" placeholder="chave da instância"></label>
-      <label>Instância (Evolution)<input id="wa-inst" placeholder="ex.: frico"></label>
+      <label>Instância / Phone ID<input id="wa-inst" placeholder="frico (Evolution) ou Phone Number ID (Meta)"></label>
+      <label>Template Meta (opcional)<input id="wa-tpl" placeholder="vazio = mensagem livre (janela 24h)"></label>
       <label>Nº para teste<input id="wa-test-num" class="mono" placeholder="55629…"></label>
       <button class="btn mini" id="btn-wa-test" title="Manda um print de teste para o número ao lado">📨 Testar</button>
     </div>
@@ -2123,7 +2124,7 @@ async function loadSettings(){
     TRANSP_ZAP = m;
   }
   // envio automático via API WhatsApp (Evolution/UltraMsg)
-  WA_AUTO = Object.assign({prov:'evolution', base:'', key:'', inst:''}, (wa && typeof wa === 'object') ? wa : {});
+  WA_AUTO = Object.assign({prov:'evolution', base:'', key:'', inst:'', tpl:''}, (wa && typeof wa === 'object') ? wa : {});
   // histórico de fechamentos quinzenais
   FECHAMENTOS = Array.isArray(fc) ? fc : [];
 }
@@ -3009,14 +3010,42 @@ function fechGroups(){
 }
 
 /* ---- painel ---- */
-let WA_AUTO = {prov:'evolution', base:'', key:'', inst:''};   // envio automático de resumo via API WhatsApp
+let WA_AUTO = {prov:'evolution', base:'', key:'', inst:'', tpl:''};   // envio automático de resumo via API WhatsApp
 function waNumOf(zap){ return '55' + String(zap || '').replace(/\D/g, '').replace(/^0+/, ''); }
 /* manda a imagem (dataURL png) + legenda p/ um número, pelo provedor configurado */
 async function waSendImage(pngDataUrl, caption, zap){
   const num = waNumOf(zap);
   const b64 = String(pngDataUrl || '').split(',')[1] || '';
   const base = String(WA_AUTO.base || '').replace(/\/+$/, '');
-  if(!base || !WA_AUTO.key) throw new Error('configure o provedor/base/key nas Configurações');
+  if(!WA_AUTO.key) throw new Error('configure a chave/token nas Configurações');
+  if(WA_AUTO.prov !== 'meta' && !base) throw new Error('configure o endereço base nas Configurações');
+  if(WA_AUTO.prov === 'meta'){
+    // oficial Meta: sobe o png p/ a nuvem do WhatsApp e referencia pelo id (multipart c/ Blob)
+    const gb = base || 'https://graph.facebook.com/v21.0';
+    const pid = String(WA_AUTO.inst || '').trim();
+    if(!pid) throw new Error('Meta: informe o Phone Number ID no campo Instância');
+    const bin = atob(b64); const u8 = new Uint8Array(bin.length);
+    for(let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+    const fd = new FormData();
+    fd.append('messaging_product', 'whatsapp'); fd.append('type', 'image');
+    fd.append('file', new Blob([u8], {type: 'image/png'}), 'resumo-fechamento.png');
+    const up = await fetch(gb + '/' + pid + '/media', {method:'POST', headers:{Authorization: 'Bearer ' + WA_AUTO.key}, body: fd});
+    if(!up.ok) throw new Error('Meta upload HTTP ' + up.status);
+    const mj = await up.json().catch(()=> ({}));
+    if(!mj || !mj.id) throw new Error('Meta: upload de mídia sem id');
+    const tpl = String(WA_AUTO.tpl || '').trim();
+    const payload = tpl
+      ? {messaging_product:'whatsapp', to:num, type:'template',
+         template:{name:tpl, language:{code:'pt_BR'}, components:[
+           {type:'header', parameters:[{type:'image', image:{id:mj.id}}]},
+           {type:'body', parameters:[{type:'text', text:caption}]}]}}
+      : {messaging_product:'whatsapp', to:num, type:'image', image:{id:mj.id, caption:caption}};
+    const r = await fetch(gb + '/' + pid + '/messages', {method:'POST',
+      headers:{Authorization: 'Bearer ' + WA_AUTO.key, 'Content-Type':'application/json'},
+      body: JSON.stringify(payload)});
+    if(!r.ok) throw new Error('Meta HTTP ' + r.status + (tpl ? '' : ' — fora da janela de 24h a Meta só aceita template aprovado'));
+    return true;
+  }
   if(WA_AUTO.prov === 'ultramsg'){
     const r = await fetch(base + '/messages/image', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'},
       body: new URLSearchParams({token: WA_AUTO.key, chatId: num, file: b64, caption: caption, filename: 'resumo-fechamento.png'})});
@@ -3045,7 +3074,7 @@ async function waAutoSendAll(){
     }catch(e){ errs.push(x.g.nome + ': ' + (e && e.message ? e.message : e)); }
   }
   audit('fechamento-wa-envio', okN + ' enviado(s)' + (errs.length ? ' · falhas: ' + errs.join(' | ') : ''));
-  if(errs.length) toast('⚠ ' + errs.length + ' falha(s): ' + errs[0] + (errs.length > 1 ? ' …' : '') + ' — veja se a API tem HTTPS+CORS', 'warn');
+  if(errs.length) toast('⚠ ' + errs.length + ' falha(s): ' + errs[0] + (errs.length > 1 ? ' …' : '') + ' — ' + (WA_AUTO.prov === 'meta' ? 'Meta: fora da janela de 24h só com template aprovado' : 'veja se a API tem HTTPS+CORS'), 'warn');
   else toast('🤖 ' + okN + ' resumo(s) enviado(s) pelo WhatsApp', 'ok');
 }
 
@@ -3180,7 +3209,7 @@ function fechDetRow(g){
   const s = fechSelOf(g.key);
   return '<tr class="fech-det" data-g="' + esc(g.key) + '"><td colspan="10"><table class="fech-det-table"><thead><tr>' +
     '<th style="width:26px" title="include esta carga no fechamento">✓</th><th>Data</th><th>Tipo</th><th>Placa</th><th>Rota</th><th>Ordem</th>' +
-    '<th class="num">Peso (kg)</th><th class="num">KM</th><th class="num">Total (R$)</th><th class="num">Custo (R$/kg)</th><th>Motorista</th>' +
+    '<th class="num">Peso (kg)</th><th class="num">KM</th><th class="num">Total (R$)</th><th>Motorista</th>' +
   '</tr></thead><tbody>' +
   g.itens.map(it=>{
     const on = s.cargas[it.key] !== false;
@@ -3194,7 +3223,6 @@ function fechDetRow(g){
       '<td class="num">' + fmtPeso2(it.calc.peso) + '</td>' +
       '<td class="num">' + (it.calc.km ? fmtNum(it.calc.km) : '') + '</td>' +
       '<td class="num">' + fmtBRL(it.calc.total) + '</td>' +
-      '<td class="num">' + (it.calc.peso > 0 ? relFmtMedia(it.calc.total / it.calc.peso) : '—') + '</td>' +
       '<td>' + esc(it.row.motorista || '') + '</td>' +
     '</tr>';
   }).join('') + '</tbody></table></td></tr>';
@@ -5233,7 +5261,7 @@ function bindStatic(){
 
   /* envio automático do resumo via API WhatsApp (Evolution/UltraMsg) */
   const TINY_PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
-  const WA_FIELDS = [['wa-prov','prov'],['wa-base','base'],['wa-key','key'],['wa-inst','inst']];
+  const WA_FIELDS = [['wa-prov','prov'],['wa-base','base'],['wa-key','key'],['wa-inst','inst'],['wa-tpl','tpl']];
   const waSync = ()=> { for(const [id, k] of WA_FIELDS){ const el = relEl(id); if(el) el.value = WA_AUTO[k] || ''; } };
   waSync();
   for(const [id] of WA_FIELDS){
