@@ -955,12 +955,12 @@ body.readonly .sec-actions{display:none}
       <h3 id="rel-title">📋 Relatório de Cargas</h3>
       <button class="rel-x" type="button" id="rx-x" title="Fechar (Esc)">✕</button>
     </div>
-    <p class="modal-text">Uma linha por carga (<b>Capital + Interior</b>) do período escolhido. Dá para <b>filtrar</b> e <b>editar aqui mesmo</b>: Ordem, Destino (Rota), Peso, KM, Diárias, Motorista e Transportadora. Ao editar, o app <b>refaz o cálculo</b> na hora — <b>Total</b> (previsão de frete), <b>Média (R$/kg)</b> e <b>Data Final</b> (= Data Inicial + Diárias − 1) — e <b>grava a alteração no mapa do dia</b> correspondente. Frotas não entra.</p>
+    <p class="modal-text">Uma linha por carga (<b>Capital + Interior</b>) do período escolhido. Dá para <b>filtrar</b> e <b>editar aqui mesmo</b>: Ordem, Destino (Rota), Peso, KM, Diárias, Motorista e Transportadora. Ao editar, o app <b>refaz o cálculo</b> na hora — <b>Total</b> (previsão de frete), <b>Média (R$/kg)</b> e <b>Data Final</b> (= Data Inicial + Diárias − 1) — e <b>grava a alteração no mapa do dia</b> correspondente. A coluna <b>Entrega</b> mostra a data de entrega do dia (campo ENTREGA); o período <b>DE/ATÉ</b> e o <b>fechamento</b> usam essa data (dia sem entrega vale pelo dia do lançamento). Frotas não entra.</p>
 
     <div class="rel-bar">
       <div class="rel-dates">
-        <label>De (data inicial)<input type="date" id="rx-start"></label>
-        <label>Até<input type="date" id="rx-end"></label>
+        <label>De (entrega)<input type="date" id="rx-start"></label>
+        <label>Até (entrega)<input type="date" id="rx-end"></label>
         <button class="btn primary" type="button" id="rx-load" title="Carrega as cargas do período na tabela abaixo">🔎 Carregar</button>
       </div>
       <div class="rel-filters" id="rel-filters">
@@ -988,7 +988,7 @@ body.readonly .sec-actions{display:none}
       <table class="rel-table" id="rel-table">
         <thead>
           <tr>
-            <th>Data Inicial</th><th>Data Final</th><th>Tipo</th><th>Placa</th><th>Rota / Destino</th><th>Ordem</th>
+            <th>Data Inicial</th><th>Entrega</th><th>Data Final</th><th>Tipo</th><th>Placa</th><th>Rota / Destino</th><th>Ordem</th>
             <th class="num">Peso (kg)</th><th class="num">KM</th><th class="num">Diárias</th>
             <th class="num">Total (R$)</th><th class="num">Média (R$/kg)</th><th>Motorista</th><th>Transportadora</th><th>Status</th>
           </tr>
@@ -2544,10 +2544,14 @@ async function relLoad(start, end){
   let dates = [], recs = {}, items = [];
   try{
     const keys = await Stor.list();
+    // o período é pela DATA DE ENTREGA (campo ENTREGA do dia); como o lançamento pode
+    // anteceder a entrega em até ~3 semanas, carrega uma janela maior de dias e depois
+    // restringe pela entrega (dia sem entrega cadastrada vale pelo dia do lançamento)
+    const wStart = addDaysIso(start, -21), wEnd = addDaysIso(end, 21);
     dates = keys.filter(k=> k.startsWith('map:')).map(k=> k.slice(4))
-                .filter(d=> /^\d{4}-\d{2}-\d{2}$/.test(d) && d >= start && d <= end).sort();
-    // inclui o dia em edição (dados ao vivo, ainda não salvos) se estiver no período
-    if(currentMapDate >= start && currentMapDate <= end && !dates.includes(currentMapDate)) dates = dates.concat([currentMapDate]).sort();
+                .filter(d=> /^\d{4}-\d{2}-\d{2}$/.test(d) && d >= wStart && d <= wEnd).sort();
+    // inclui o dia em edição (dados ao vivo, ainda não salvos) se estiver na janela
+    if(currentMapDate >= wStart && currentMapDate <= wEnd && !dates.includes(currentMapDate)) dates = dates.concat([currentMapDate]).sort();
     if(!dates.length){
       toast('Nenhum dia salvo no período selecionado', 'err');
       relSavedMsg('Nenhum dia salvo no período.', 'warn');
@@ -2565,13 +2569,17 @@ async function relLoad(start, end){
           if(!row || typeof row !== 'object') continue;
           if(!row.id) row.id = uid();   // garante identidade estável da linha
           items.push({d:d, sec:sec, idx:i, row:row, key: d + '|' + sec + '|' + row.id,
-                      live: !!(rec && rec._live), calc: relCalc(sec, row, d)});
+                      live: !!(rec && rec._live), entrega: (rec && rec.dtEntrega) || '',
+                      calc: relCalc(sec, row, d)});
         }
       }
     }
   } finally {
     if(btn){ btn.disabled = false; btn.textContent = '🔎 Carregar'; }
   }
+  // restringe ao período pedido pela data de entrega (sem entrega = dia do lançamento)
+  items = items.filter(it=> { const dd = it.entrega || it.d; return dd >= start && dd <= end; });
+  dates = Array.from(new Set(items.map(it=> it.d))).sort();
   REL.loaded = true; REL.start = start; REL.end = end; REL.dates = dates; REL.recs = recs; REL.items = items;
   REL.changed = {}; REL.changedDates = {}; REL.editKeys = new Set(); REL.mapDirty = false;
   relApplyFilters();
@@ -2635,6 +2643,7 @@ function relRowHtml(it){
   const liveTag = it.live ? ' <span class="rel-frota" title="Este é o dia aberto no mapa — a alteração aparece nele assim que o relatório for fechado">atual</span>' : '';
   return '<tr data-key="' + esc(it.key) + '"' + (REL.changed[it.key] ? ' class="rel-changed"' : '') + '>' +
     '<td>' + fmtBR(it.d) + liveTag + '</td>' +
+    '<td title="data de entrega cadastrada no dia (campo ENTREGA); sem ela vale o dia do lançamento">' + (it.entrega ? fmtBR(it.entrega) : '<span style="color:#b6c2d2">—</span>') + '</td>' +
     '<td data-c="dfinal">' + fmtBR(c.dataFinal) + '</td>' +
     '<td><span class="rel-badge ' + (it.sec === 'capital' ? 'cap' : 'int') + '">' + (it.sec === 'capital' ? 'Capital' : 'Interior') + '</span></td>' +
     '<td class="mono">' + esc(r.placa || '') + '</td>' +
@@ -2704,7 +2713,7 @@ function renderRelFoot(){
   for(const it of rows){ peso += it.calc.peso; km += it.calc.km; total += it.calc.total; }
   const media = (total > 0 && peso > 0) ? total / peso : null;
   foot.innerHTML = '<tr>' +
-    '<td colspan="6">TOTAIS (' + rows.length + ' carga' + (rows.length === 1 ? '' : 's') + (relFiltersActive() ? ' — filtrado' : '') + ')</td>' +
+    '<td colspan="7">TOTAIS (' + rows.length + ' carga' + (rows.length === 1 ? '' : 's') + (relFiltersActive() ? ' — filtrado' : '') + ')</td>' +
     '<td class="num">' + fmtPeso2(peso) + '</td>' +
     '<td class="num">' + fmtNum(km) + '</td>' +
     '<td></td>' +
@@ -2852,18 +2861,18 @@ function bindRelControls(){
 function relToAoa(items, titulo, gerado){
   const rows = items.map(it=>{
     const r = it.row, c = it.calc || relCalc(it.sec, r, it.d);
-    return [fmtBR(it.d), fmtBR(c.dataFinal), r.placa || '', r.destino || '', r.carga || '',
+    return [fmtBR(it.d), it.entrega ? fmtBR(it.entrega) : '', fmtBR(c.dataFinal), r.placa || '', r.destino || '', r.carga || '',
             c.peso, c.km, c.total, c.media != null ? c.media : '', r.motorista || '', r.transportadora || '',
-            relIsFech(r) ? 'Fechado' : 'Pendente'];   // 12ª coluna (não desloca as anteriores)
+            relIsFech(r) ? 'Fechado' : 'Pendente'];
   });
   const aoa = [[titulo], [gerado], [],
-    ['Data Inicial','Data Final','Placa','Rota','Ordem','Peso','KM','Total','Média','Motorista','Transportadora','Status']];
+    ['Data Inicial','Entrega','Data Final','Placa','Rota','Ordem','Peso','KM','Total','Média','Motorista','Transportadora','Status']];
   for(const r of rows) aoa.push(r);
-  const totPeso = rows.reduce((a,r)=> a + (typeof r[5] === 'number' ? r[5] : 0), 0);
-  const totKm = rows.reduce((a,r)=> a + (typeof r[6] === 'number' ? r[6] : 0), 0);
-  const totFrete = rows.reduce((a,r)=> a + (typeof r[7] === 'number' ? r[7] : 0), 0);
+  const totPeso = rows.reduce((a,r)=> a + (typeof r[6] === 'number' ? r[6] : 0), 0);
+  const totKm = rows.reduce((a,r)=> a + (typeof r[7] === 'number' ? r[7] : 0), 0);
+  const totFrete = rows.reduce((a,r)=> a + (typeof r[8] === 'number' ? r[8] : 0), 0);
   const mediaGeral = totFrete > 0 && totPeso > 0 ? totFrete / totPeso : '';
-  aoa.push(['TOTAL','','','','', totPeso, totKm, totFrete, mediaGeral, '', '', '']);
+  aoa.push(['TOTAL','','','','','', totPeso, totKm, totFrete, mediaGeral, '', '', '']);
   return aoa;
 }
 function relWriteXlsx(items, start, end, filtrado){
@@ -2875,7 +2884,7 @@ function relWriteXlsx(items, start, end, filtrado){
   const periodo = single ? fmtBR(start) : fmtBR(start) + ' a ' + fmtBR(end);
   const titulo = 'RELATÓRIO DE CARGAS — ' + periodo + (filtrado ? ' (FILTRADO)' : '');
   const ws = XLSX.utils.aoa_to_sheet(relToAoa(items, titulo, gerado));
-  ws['!cols'] = [{wch:12},{wch:12},{wch:11},{wch:28},{wch:20},{wch:11},{wch:9},{wch:13},{wch:11},{wch:18},{wch:24},{wch:10}];
+  ws['!cols'] = [{wch:12},{wch:12},{wch:12},{wch:11},{wch:28},{wch:20},{wch:11},{wch:9},{wch:13},{wch:11},{wch:18},{wch:24},{wch:10}];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'RELATÓRIO');
   const name = 'relatorio-cargas-' + start + (single ? '' : '_a_' + end) + (filtrado ? '-filtrado' : '') + '.xlsx';
@@ -3001,7 +3010,7 @@ function openFech(){
   if(!REL.loaded){ toast('Carregue um período no relatório antes de fechar', 'err'); return; }
   FECH_SEL = {};
   const mask = relEl('fech-mask'); if(mask) mask.hidden = false;
-  relEl('fech-per').textContent = 'Período: ' + fechPeriodoTxt(REL) + ' · somente cargas PENDENTES entram no fechamento · use o ▸ para marcar/desmarcar cargas individuais';
+  relEl('fech-per').textContent = 'Período: ' + fechPeriodoTxt(REL) + ' (pela DATA DE ENTREGA) · somente cargas PENDENTES entram no fechamento · use o ▸ para marcar/desmarcar cargas individuais';
   renderFechTable();
   renderFechHist();
 }
