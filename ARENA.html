@@ -545,7 +545,7 @@ body.readonly .sec-actions{display:none}
       <div class="btn-dd-menu" id="dd-excel-menu" hidden>
         <button class="btn-dd-item" id="btn-xls-map" type="button" title="Baixar o mapa do dia em Excel (mesmo formato do print — sem valores)">📥 Excel Mapa</button>
         <button class="btn-dd-item" id="btn-xls-per" type="button" title="Baixar em Excel TODAS as cargas de Capital e Interior de um período (com valores/negociação)">📥 Excel Período</button>
-        <button class="btn-dd-item" id="btn-xls-rel" type="button" title="Relatório por dia OU por período: Placa, Rota, Ordem, Peso, Total, Média, Motorista, Transportadora">📥 Relatório de Cargas</button>
+        <button class="btn-dd-item" id="btn-xls-rel" type="button" title="Relatório por dia OU por período: Placa, Rota, Ordem, Peso, KM, Total, Média, Motorista, Transportadora">📥 Relatório de Cargas</button>
       </div>
     </div>
     <span class="sep"></span>
@@ -834,7 +834,7 @@ body.readonly .sec-actions{display:none}
 <div id="report-xls-mask" hidden>
   <div class="modal" role="dialog" aria-modal="true">
     <h3>📥 Relatório de Cargas (Placa/Rota/Peso/Total/Média)</h3>
-    <p class="modal-text">Exporta uma linha por carga (Capital + Interior) com <b>Data Inicial</b> (Faturamento), <b>Data Final</b> (Entrega), Placa, Rota, Ordem, Peso, Total (R$), Média (R$/kg), Motorista e Transportadora. Escolha o mesmo dia em "De" e "Até" para um relatório de um único dia.</p>
+    <p class="modal-text">Exporta uma linha por carga (Capital + Interior) com <b>Data Inicial</b> (Faturamento), <b>Data Final</b> (Data Inicial + Diárias − 1), Placa, Rota, Ordem, Peso, KM, Total (R$), Média (R$/kg), Motorista e Transportadora. Escolha o mesmo dia em "De" e "Até" para um relatório de um único dia.</p>
     <div class="period-xls-dates">
       <label>De<input type="date" id="rx-start"></label>
       <label>Até<input type="date" id="rx-end"></label>
@@ -1079,6 +1079,15 @@ function stepMoney(row, field, dir){
 }
 const uid = ()=> 'r' + Date.now().toString(36) + Math.random().toString(36).slice(2,8);
 function isoDate(d){ const x=new Date(d); return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0'); }
+/* AUDITORIA: soma dias a uma data ISO (YYYY-MM-DD) usando componentes locais (evita
+   deslocamento de fuso horário que ocorreria com `new Date('YYYY-MM-DD')` em UTC). */
+function addDaysIso(iso, days){
+  const p = String(iso||'').split('-').map(Number);
+  if(p.length !== 3 || p.some(isNaN)) return iso;
+  const dt = new Date(p[0], p[1]-1, p[2]);
+  dt.setDate(dt.getDate() + (numVal(days) || 0));
+  return isoDate(dt);
+}
 function fmtBR(iso){ if(!iso) return ''; const p=String(iso).split('-'); return p.length===3? p[2]+'/'+p[1]+'/'+p[0] : iso; }
 function fmtBRL(v){ return 'R$ '+numVal(v).toLocaleString('pt-BR',{minimumFractionDigits:2, maximumFractionDigits:2}); }
 function fmtNum(v){ return numVal(v).toLocaleString('pt-BR',{maximumFractionDigits:1}); }
@@ -2207,8 +2216,8 @@ function xlsMapCompleto(){
   XLSX.writeFile(wb, name);
   toast('📥 Excel gerado: ' + name, 'ok');
 }
-/* Relatório de Cargas: Data Inicial (Faturamento) / Data Final (Entrega) / Placa / Rota / Ordem /
-   Peso / Total / Média / Motorista / Transportadora — Capital + Interior, por dia ou por período. */
+/* Relatório de Cargas: Data Inicial (Faturamento) / Data Final (Data Inicial + Diárias − 1) / Placa / Rota / Ordem /
+   Peso / KM / Total / Média / Motorista / Transportadora — Capital + Interior, por dia ou por período. */
 function openReportXls(){
   if(!requireAdmin()) return;
   const s = $('#rx-start'), e = $('#rx-end');
@@ -2230,15 +2239,18 @@ async function xlsRelatorio(start, end){
   const gerado = 'Gerado em ' + now.toLocaleDateString('pt-BR') + ' ' + now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
   const rows = [];
   for(const d of dates){
-    const rec = (d === currentMapDate) ? {data: DATA, dtEntrega} : await Stor.get('map:' + d);
+    const rec = (d === currentMapDate) ? {data: DATA} : await Stor.get('map:' + d);
     const data = (rec && rec.data) ? rec.data : null;
-    const dataFinal = (rec && rec.dtEntrega) ? rec.dtEntrega : '';
     for(const sec of ['capital','interior']){
       for(const r of ((data && data[sec]) || [])){
         const frete = calcularFrete(sec, r).total;
         const peso = numVal(r.peso);
+        const km = numVal(r.km);
         const media = (frete > 0 && peso > 0) ? frete / peso : '';
-        rows.push([fmtBR(d), dataFinal ? fmtBR(dataFinal) : '', r.placa||'', r.destino||'', r.carga||'', peso, frete, media, r.motorista||'', r.transportadora||'']);
+        // AUDITORIA: Data Final = (Data Inicial + Diárias) − 1 (nº de diárias da rota; 1 dia = mesma data)
+        const diarias = (r.dias === '' || r.dias == null) ? 1 : (numVal(r.dias) || 1);
+        const dataFinal = addDaysIso(d, diarias - 1);
+        rows.push([fmtBR(d), fmtBR(dataFinal), r.placa||'', r.destino||'', r.carga||'', peso, km, frete, media, r.motorista||'', r.transportadora||'']);
       }
     }
   }
@@ -2246,14 +2258,15 @@ async function xlsRelatorio(start, end){
   const single = start === end;
   const titulo = 'RELATÓRIO DE CARGAS — ' + (single ? fmtBR(start) : fmtBR(start) + ' a ' + fmtBR(end));
   const aoa = [[titulo], [gerado], [],
-    ['Data Inicial','Data Final','Placa','Rota','Ordem','Peso','Total','Média','Motorista','Transportadora']];
+    ['Data Inicial','Data Final','Placa','Rota','Ordem','Peso','KM','Total','Média','Motorista','Transportadora']];
   for(const r of rows) aoa.push(r);
   const totPeso = rows.reduce((a,r)=> a + (typeof r[5]==='number'?r[5]:0), 0);
-  const totFrete = rows.reduce((a,r)=> a + (typeof r[6]==='number'?r[6]:0), 0);
+  const totKm = rows.reduce((a,r)=> a + (typeof r[6]==='number'?r[6]:0), 0);
+  const totFrete = rows.reduce((a,r)=> a + (typeof r[7]==='number'?r[7]:0), 0);
   const mediaGeral = totFrete > 0 && totPeso > 0 ? totFrete / totPeso : '';
-  aoa.push(['TOTAL','','','','', totPeso, totFrete, mediaGeral, '', '']);
+  aoa.push(['TOTAL','','','','', totPeso, totKm, totFrete, mediaGeral, '', '']);
   const ws = XLSX.utils.aoa_to_sheet(aoa);
-  ws['!cols'] = [{wch:12},{wch:12},{wch:11},{wch:28},{wch:20},{wch:11},{wch:13},{wch:11},{wch:18},{wch:24}];
+  ws['!cols'] = [{wch:12},{wch:12},{wch:11},{wch:28},{wch:20},{wch:11},{wch:9},{wch:13},{wch:11},{wch:18},{wch:24}];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'RELATÓRIO');
   const name = 'relatorio-cargas-' + start + (single ? '' : '_a_' + end) + '.xlsx';
