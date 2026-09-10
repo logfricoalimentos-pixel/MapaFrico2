@@ -1024,7 +1024,7 @@ body.readonly .sec-actions{display:none}
         <thead>
           <tr>
             <th title="marcar/desmarcar TODAS as cargas desta transportadora">✓</th><th>Transportadora</th><th class="num">Cargas</th><th class="num">Peso (kg)</th>
-            <th class="num">Valor faturado (R$)</th><th>Código</th><th class="num">Abatimento (R$)</th>
+            <th class="num">Valor faturado (R$)</th><th class="num">Custo (R$/kg)</th><th>Código</th><th class="num">Abatimento (R$)</th>
             <th>Entregou NF</th><th>Boleto</th><th>WhatsApp</th>
           </tr>
         </thead>
@@ -3026,9 +3026,9 @@ function fechSelNF(field, val){
 /* linha-filha: lista as cargas do grupo com checkbox individual */
 function fechDetRow(g){
   const s = fechSelOf(g.key);
-  return '<tr class="fech-det" data-g="' + esc(g.key) + '"><td colspan="10"><table class="fech-det-table"><thead><tr>' +
+  return '<tr class="fech-det" data-g="' + esc(g.key) + '"><td colspan="11"><table class="fech-det-table"><thead><tr>' +
     '<th style="width:26px" title="include esta carga no fechamento">✓</th><th>Data</th><th>Tipo</th><th>Placa</th><th>Rota</th><th>Ordem</th>' +
-    '<th class="num">Peso (kg)</th><th class="num">KM</th><th class="num">Total (R$)</th><th>Motorista</th>' +
+    '<th class="num">Peso (kg)</th><th class="num">KM</th><th class="num">Total (R$)</th><th class="num">Custo (R$/kg)</th><th>Motorista</th>' +
   '</tr></thead><tbody>' +
   g.itens.map(it=>{
     const on = s.cargas[it.key] !== false;
@@ -3042,6 +3042,7 @@ function fechDetRow(g){
       '<td class="num">' + fmtPeso2(it.calc.peso) + '</td>' +
       '<td class="num">' + (it.calc.km ? fmtNum(it.calc.km) : '') + '</td>' +
       '<td class="num">' + fmtBRL(it.calc.total) + '</td>' +
+      '<td class="num">' + (it.calc.peso > 0 ? relFmtMedia(it.calc.total / it.calc.peso) : '—') + '</td>' +
       '<td>' + esc(it.row.motorista || '') + '</td>' +
     '</tr>';
   }).join('') + '</tbody></table></td></tr>';
@@ -3051,7 +3052,7 @@ function renderFechTable(){
   if(!body) return;
   const groups = fechGroups();
   if(!groups.length){
-    body.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:20px;color:var(--muted)">Nenhuma carga <b>PENDENTE</b> no período ' + esc(fechPeriodoTxt(REL)) + '.</td></tr>';
+    body.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:20px;color:var(--muted)">Nenhuma carga <b>PENDENTE</b> no período ' + esc(fechPeriodoTxt(REL)) + '.</td></tr>';
     if(foot) foot.innerHTML = '';
     const ok = relEl('fech-ok'); if(ok) ok.disabled = true;
     return;
@@ -3070,6 +3071,7 @@ function renderFechTable(){
       '<td class="num">' + gs.itens.length + '</td>' +
       '<td class="num">' + fmtPeso2(gs.peso) + '</td>' +
       '<td class="num">' + fmtBRL(gs.fat) + '</td>' +
+      '<td class="num" title="custo médio = valor faturado ÷ peso (só das cargas marcadas)">' + (gs.peso > 0 ? relFmtMedia(gs.fat / gs.peso) : '—') + '</td>' +
       '<td style="min-width:96px"><input type="text" data-f="codigo" value="' + esc(gs.s.codigo) + '" placeholder="código"></td>' +
       '<td style="min-width:104px"><input type="text" inputmode="decimal" data-f="abat" value="' + esc(gs.s.abat) + '" placeholder="0,00"></td>' +
       '<td>' + fechSelNF('nf', gs.s.nf) + '</td>' +
@@ -3092,11 +3094,12 @@ function renderFechTable(){
 function renderFechFoot(){
   const foot = relEl('fech-foot'); if(!foot) return;
   const sel = fechGroups().map(g=> Object.assign({g: g}, fechGroupSel(g))).filter(x=> x.itens.length);
-  if(!sel.length){ foot.innerHTML = '<tr><td colspan="10">Nenhuma carga marcada para fechar.</td></tr>'; return; }
+  if(!sel.length){ foot.innerHTML = '<tr><td colspan="11">Nenhuma carga marcada para fechar.</td></tr>'; return; }
   let n = 0, peso = 0, fat = 0, ab = 0;
   for(const x of sel){ n += x.itens.length; peso += x.peso; fat += x.fat; ab += numVal(x.s.abat); }
   foot.innerHTML = '<tr><td></td><td>SELECIONADAS: ' + sel.length + ' transportadora(s)</td>' +
     '<td class="num">' + n + '</td><td class="num">' + fmtPeso2(peso) + '</td><td class="num">' + fmtBRL(fat) + '</td>' +
+    '<td class="num">' + (peso > 0 ? relFmtMedia(fat / peso) : '—') + '</td>' +
     '<td></td><td class="num">' + fmtBRL(ab) + '</td><td colspan="3">a pagar: <b>' + fmtBRL(Math.max(0, fat - ab)) + '</b></td></tr>';
 }
 function bindFechPanel(){
@@ -3175,6 +3178,7 @@ async function fechConfirm(){
     const g = x.g, s = x.s;
     const abat = numVal(s.abat);
     const cargas = x.itens.map(it=>({
+      custoKg: it.calc.peso > 0 ? it.calc.total / it.calc.peso : null,
       d: it.d, sec: it.sec, id: it.row.id, placa: it.row.placa || '', destino: it.row.destino || '',
       ordem: it.row.carga || '', motorista: it.row.motorista || '',
       peso: it.calc.peso, km: it.calc.km, total: it.calc.total, media: it.calc.media,
@@ -3182,7 +3186,8 @@ async function fechConfirm(){
     }));
     fech.grupos.push({transp: g.nome, key: g.key, codigo: String(s.codigo || '').trim(),
       abatimento: abat, nf: s.nf, boleto: s.boleto,
-      peso: x.peso, faturado: x.fat, apagar: Math.max(0, x.fat - abat), cargas: cargas});
+      peso: x.peso, faturado: x.fat, apagar: Math.max(0, x.fat - abat),
+      custoKg: x.peso > 0 ? x.fat / x.peso : null, cargas: cargas});
     for(const it of x.itens){ it.row.stFech = 'fechado'; it.row.fechId = id; datas.add(it.d); }
     const cod = String(s.codigo || '').trim();
     if(cod && cod !== TRANSP_CODES[g.key]){ TRANSP_CODES[g.key] = cod; saveSettings(); }  // lembra o código
@@ -3240,11 +3245,14 @@ const SX_XFS = [
   [1,5,0,'center'],   // 12 faixa roxa · "Totais"
   [3,6,0,'center'],   // 13 faixa magenta (KG / KM / VALOR)
   [2,2,0,'left'],     // 14 cabeçalho vermelho (TIPO / TOTAL)
-  [0,7,165,'right']   // 15 dinheiro ciano (coluna TOTAL do transportador)
+  [0,7,165,'right'],  // 15 dinheiro ciano (coluna TOTAL do transportador)
+  [0,0,166,'right'],  // 16 custo R$/kg (dados)
+  [3,3,166,'right'],  // 17 custo R$/kg (subtotal preto)
+  [3,4,166,'right']   // 18 custo R$/kg (TOTAL verde)
 ];
 const SX_STYLES_XML = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
   '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
-  '<numFmts count="2"><numFmt numFmtId="164" formatCode="#,##0.00"/><numFmt numFmtId="165" formatCode="&quot;R$&quot; #,##0.00"/></numFmts>' +
+  '<numFmts count="3"><numFmt numFmtId="164" formatCode="#,##0.00"/><numFmt numFmtId="165" formatCode="&quot;R$&quot; #,##0.00"/><numFmt numFmtId="166" formatCode="&quot;R$&quot; #,##0.00&quot;/kg&quot;"/></numFmts>' +
   '<fonts count="' + SX_FONTS.length + '">' + SX_FONTS.join('') + '</fonts>' +
   '<fills count="' + SX_FILLS.length + '">' + SX_FILLS.join('') + '</fills>' +
   '<borders count="2"><border/>' + SX_BORDER + '</borders>' +
@@ -3355,20 +3363,22 @@ const sxBlank = (st, n)=> Array.from({length: n}, ()=> ({v: '', s: st}));
 function fechXlsGeral(fech){
   const rows = [];
   rows.push([sxT('FECHAMENTO GERAL DOS VEÍCULOS TERCEIROS — ' + fechPeriodoTxt(fech), 3)].concat(sxBlank(3, 8)));
-  rows.push(['REGIAO','TRANSPORTADORA','CÓDIGO','PESO TRANSPORTADO','ABATIMENTO','VALOR FATURADO','VALOR A SER PAGO','ENTREGOU A NF','Boleto'].map(h=> sxT(h, 4)));
+  rows.push(['REGIAO','TRANSPORTADORA','CÓDIGO','PESO TRANSPORTADO','ABATIMENTO','VALOR FATURADO','VALOR A SER PAGO','CUSTO (R$/KG)','ENTREGOU A NF','Boleto'].map(h=> sxT(h, 4)));
   let tp = 0, ta = 0, tf = 0, tap = 0;
   for(const g of fech.grupos){
     for(const c of g.cargas){
       rows.push([sxT(c.sec === 'capital' ? 'Capital' : 'Interior', 0), sxT(g.transp, 0), sxT(g.codigo, 0),
-        sxT(c.peso, 1), sxT('', 2), sxT(c.total, 2), sxT(c.total, 2), sxT('', 0), sxT('', 0)]);
+        sxT(c.peso, 1), sxT('', 2), sxT(c.total, 2), sxT(c.total, 2),
+        sxT(c.custoKg != null ? c.custoKg : (c.peso > 0 ? c.total / c.peso : ''), 16), sxT('', 0), sxT('', 0)]);
     }
     rows.push([sxT('', 5), sxT('Subtotal - ' + g.transp, 5), sxT('', 5), sxT(g.peso, 6), sxT(g.abatimento, 7),
-      sxT(g.faturado, 7), sxT(g.apagar, 7), sxT(g.nf || '', 5), sxT(g.boleto || '', 5)]);
+      sxT(g.faturado, 7), sxT(g.apagar, 7), sxT(g.custoKg != null ? g.custoKg : (g.peso > 0 ? g.faturado / g.peso : ''), 17),
+      sxT(g.nf || '', 5), sxT(g.boleto || '', 5)]);
     tp += g.peso; ta += g.abatimento; tf += g.faturado; tap += g.apagar;
   }
-  rows.push([sxT('', 8), sxT('TOTAL GERAL', 8), sxT('', 8), sxT(tp, 9), sxT(ta, 10), sxT(tf, 10), sxT(tap, 10), sxT('', 8), sxT('', 8)]);
+  rows.push([sxT('', 8), sxT('TOTAL GERAL', 8), sxT('', 8), sxT(tp, 9), sxT(ta, 10), sxT(tf, 10), sxT(tap, 10), sxT(tp > 0 ? tf / tp : '', 18), sxT('', 8), sxT('', 8)]);
   const name = 'fechamento-geral-' + fech.start + (fech.start === fech.end ? '' : '_a_' + fech.end) + '.xlsx';
-  const ok = sxWrite(name, [{name:'FECHAMENTO', cols:[10,26,10,18,14,18,18,14,10], af:'A2:I' + rows.length, merges:['A1:I1'], rows: rows}]);
+  const ok = sxWrite(name, [{name:'FECHAMENTO', cols:[10,26,10,18,14,18,18,14,14,10], af:'A2:J' + rows.length, merges:['A1:J1'], rows: rows}]);
   if(ok) toast('📥 Resumo do financeiro: ' + name, 'ok');
   return ok;
 }
@@ -3385,19 +3395,21 @@ function fechXlsTransp(fech, g){
     let rows, cols, af;
     if(sec === 'interior'){
       rows = [[sxT(label + ' — ' + g.transp, 11), sxT('', 11), sxT('', 11), sxT('Totais', 12), sxT('', 12),
-               sxT(fmtPeso2(peso) + ' KG', 13), sxT('', 11), sxT('KM: ' + fmtNum(km), 13), sxT('VALOR: ' + fmtBRL(total), 13)],
-        ['DATA INICIAL','DATA FINAL','PLACA','ROTA','ORDEM','PESO','KM','TIPO','TOTAL'].map((h, i)=> sxT(h, (i === 7 || i === 8) ? 14 : 4))];
+               sxT(fmtPeso2(peso) + ' KG', 13), sxT('', 11), sxT('KM: ' + fmtNum(km), 13), sxT('', 11), sxT('VALOR: ' + fmtBRL(total), 13)],
+        ['DATA INICIAL','DATA FINAL','PLACA','ROTA','ORDEM','PESO','KM','TIPO','TOTAL','CUSTO (R$/KG)'].map((h, i)=> sxT(h, (i === 7 || i === 8 || i === 9) ? 14 : 4))];
       for(const c of cs) rows.push([sxT(fmtBR(c.d), 0), sxT(fmtBR(c.dfinal), 0), sxT(c.placa, 0), sxT(c.destino, 0),
-        sxT(c.ordem, 0), sxT(c.peso, 1), sxT(c.km, 1), sxT(c.tipo, 0), sxT(c.total, 15)]);
-      cols = [12,12,11,28,14,11,9,8,13]; af = 'A2:I' + rows.length;
+        sxT(c.ordem, 0), sxT(c.peso, 1), sxT(c.km, 1), sxT(c.tipo, 0), sxT(c.total, 15),
+        sxT(c.custoKg != null ? c.custoKg : (c.peso > 0 ? c.total / c.peso : ''), 16)]);
+      cols = [12,12,11,28,14,11,9,8,13,14]; af = 'A2:J' + rows.length;
       sheets.push({name:'INTERIOR', cols: cols, af: af, merges:['A1:C1','D1:E1'], rows: rows});
     } else {
       rows = [[sxT(label + ' — ' + g.transp, 11), sxT('', 11), sxT('Totais', 12), sxT('', 12),
-               sxT(fmtPeso2(peso) + ' KG', 13), sxT('', 11), sxT('VALOR: ' + fmtBRL(total), 13)],
-        ['DATA INICIAL','PLACA','ROTA','ORDEM','PESO','TIPO','TOTAL'].map((h, i)=> sxT(h, (i === 5 || i === 6) ? 14 : 4))];
+               sxT(fmtPeso2(peso) + ' KG', 13), sxT('', 11), sxT('', 11), sxT('VALOR: ' + fmtBRL(total), 13)],
+        ['DATA INICIAL','PLACA','ROTA','ORDEM','PESO','TIPO','TOTAL','CUSTO (R$/KG)'].map((h, i)=> sxT(h, (i === 5 || i === 6 || i === 7) ? 14 : 4))];
       for(const c of cs) rows.push([sxT(fmtBR(c.d), 0), sxT(c.placa, 0), sxT(c.destino, 0), sxT(c.ordem, 0),
-        sxT(c.peso, 1), sxT(c.tipo, 0), sxT(c.total, 15)]);
-      cols = [12,11,28,14,11,8,13]; af = 'A2:G' + rows.length;
+        sxT(c.peso, 1), sxT(c.tipo, 0), sxT(c.total, 15),
+        sxT(c.custoKg != null ? c.custoKg : (c.peso > 0 ? c.total / c.peso : ''), 16)]);
+      cols = [12,11,28,14,11,8,13,14]; af = 'A2:H' + rows.length;
       sheets.push({name:'CAPITAL', cols: cols, af: af, merges:['A1:B1','C1:D1'], rows: rows});
     }
   }
