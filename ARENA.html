@@ -2858,40 +2858,42 @@ function bindRelControls(){
 }
 
 /* ---- download (Excel) ---- */
-function relToAoa(items, titulo, gerado){
-  const rows = items.map(it=>{
+/* linhas formatadas do relatório (writer próprio: cabeçalho preto, R$ nas moedas, TOTAL verde) */
+function relToStyled(items, titulo, gerado){
+  const H = ['Data Inicial','Entrega','Data Final','Tipo','Placa','Rota','Ordem','Peso','KM','Total','Média','Motorista','Transportadora','Status'];
+  const rows = [];
+  rows.push([sxT(titulo, 3)].concat(sxBlank(3, H.length - 1)));
+  rows.push([sxT(gerado, 0)].concat(sxBlank(0, H.length - 1)));
+  rows.push(sxBlank(0, H.length));
+  rows.push(H.map(h=> sxT(h, 4)));
+  let tp = 0, tk = 0, tt = 0;
+  for(const it of items){
     const r = it.row, c = it.calc || relCalc(it.sec, r, it.d);
-    return [fmtBR(it.d), it.entrega ? fmtBR(it.entrega) : '', fmtBR(c.dataFinal), r.placa || '', r.destino || '', r.carga || '',
-            c.peso, c.km, c.total, c.media != null ? c.media : '', r.motorista || '', r.transportadora || '',
-            relIsFech(r) ? 'Fechado' : 'Pendente'];
-  });
-  const aoa = [[titulo], [gerado], [],
-    ['Data Inicial','Entrega','Data Final','Placa','Rota','Ordem','Peso','KM','Total','Média','Motorista','Transportadora','Status']];
-  for(const r of rows) aoa.push(r);
-  const totPeso = rows.reduce((a,r)=> a + (typeof r[6] === 'number' ? r[6] : 0), 0);
-  const totKm = rows.reduce((a,r)=> a + (typeof r[7] === 'number' ? r[7] : 0), 0);
-  const totFrete = rows.reduce((a,r)=> a + (typeof r[8] === 'number' ? r[8] : 0), 0);
-  const mediaGeral = totFrete > 0 && totPeso > 0 ? totFrete / totPeso : '';
-  aoa.push(['TOTAL','','','','','', totPeso, totKm, totFrete, mediaGeral, '', '', '']);
-  return aoa;
+    tp += c.peso; tk += c.km; tt += c.total;
+    rows.push([sxT(fmtBR(it.d), 0), sxT(it.entrega ? fmtBR(it.entrega) : '', 0), sxT(fmtBR(c.dataFinal), 0),
+      sxT(it.sec === 'capital' ? 'Capital' : 'Interior', 0), sxT(r.placa || '', 0), sxT(r.destino || '', 0), sxT(r.carga || '', 0),
+      sxT(c.peso, 1), sxT(c.km, 1), sxT(c.total, 2), sxT(c.media != null ? c.media : '', 2),
+      sxT(r.motorista || '', 0), sxT(r.transportadora || '', 0), sxT(relIsFech(r) ? 'Fechado' : 'Pendente', 0)]);
+  }
+  rows.push([sxT('TOTAL', 8), sxT('', 8), sxT('', 8), sxT('', 8), sxT('', 8), sxT('', 8), sxT('', 8),
+    sxT(tp, 9), sxT(tk, 9), sxT(tt, 10), sxT(tt > 0 && tp > 0 ? tt / tp : '', 10), sxT('', 8), sxT('', 8), sxT('', 8)]);
+  return rows;
 }
 function relWriteXlsx(items, start, end, filtrado){
-  if(typeof XLSX === 'undefined'){ toast('❌ Biblioteca XLSX não carregada (sem internet para o CDN?)', 'err'); return false; }
-  if(!items.length){ toast('Nenhuma carga para exportar', 'err'); return false; }
+  if(!items.length){ toast('❌ Nenhuma carga para exportar', 'err'); return false; }
   const now = new Date();
-  const gerado = 'Gerado em ' + now.toLocaleDateString('pt-BR') + ' ' + now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  const gerado = 'Gerado em ' + now.toLocaleDateString('pt-BR') + ' ' + now.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
   const single = start === end;
   const periodo = single ? fmtBR(start) : fmtBR(start) + ' a ' + fmtBR(end);
   const titulo = 'RELATÓRIO DE CARGAS — ' + periodo + (filtrado ? ' (FILTRADO)' : '');
-  const ws = XLSX.utils.aoa_to_sheet(relToAoa(items, titulo, gerado));
-  ws['!cols'] = [{wch:12},{wch:12},{wch:12},{wch:11},{wch:28},{wch:20},{wch:11},{wch:9},{wch:13},{wch:11},{wch:18},{wch:24},{wch:10}];
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'RELATÓRIO');
+  const rows = relToStyled(items, titulo, gerado);
   const name = 'relatorio-cargas-' + start + (single ? '' : '_a_' + end) + (filtrado ? '-filtrado' : '') + '.xlsx';
-  XLSX.writeFile(wb, name);
-  toast('📥 Excel gerado: ' + name + ' — ' + items.length + ' carga(s)', 'ok');
-  return true;
+  const ok = sxWrite(name, [{name:'RELATÓRIO', cols:[12,12,12,9,11,28,12,11,9,13,12,18,24,10],
+                             af:'A4:N' + rows.length, merges:['A1:N1'], rows: rows}]);
+  if(ok) toast('📥 Relatório: ' + name, 'ok');
+  return ok;
 }
+
 async function relDownload(filtrado){
   if(!requireAdmin()) return;
   if(!REL.loaded){ toast('Carregue um período antes de baixar', 'err'); return; }
