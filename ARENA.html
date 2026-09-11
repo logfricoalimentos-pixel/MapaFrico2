@@ -3613,30 +3613,32 @@ function fechResumoRows(grupos){
 function renderFechResumo(){
   const wrap = relEl('fech-resumo'); if(!wrap) return;
   const groups = fechGroups();
-  const selG = groups.map(g=> ({g: g, s: fechGroupSel(g)})).filter(x=> x.s.itens.length);
+  const selG = groups.map(g=> ({g: g, gs: fechGroupSel(g)})).filter(x=> x.gs.itens.length);
   if(!selG.length){ wrap.innerHTML = '<div class="empty">Nenhuma carga MARCADA no período — o resumo aparece conforme você marca.</div>'; return; }
-  const grupos = selG.map(x=> ({transp: x.g.nome, codigo: String(x.s.codigo || '').trim(), nf: x.s.nf, boleto: x.s.boleto,
-    cargas: x.s.itens.map(it=> ({sec: it.sec, peso: it.calc.peso, total: it.calc.total}))}));
+  const grupos = selG.map(x=> ({transp: x.g.nome,
+    codigo: String(x.gs.s.codigo || '').trim() || TRANSP_CODES[x.g.key] || '',
+    nf: x.gs.s.nf, boleto: x.gs.s.boleto, abatimento: numVal(x.gs.s.abat),
+    cargas: x.gs.itens.map(it=> ({sec: it.sec, peso: it.calc.peso, total: it.calc.total}))}));
   const rows = fechResumoRows(grupos);
   let html = '<div class="res-actions"><button class="btn mini" type="button" id="res-print" title="Imprime o resumo geral agrupado (1 linha Capital + 1 Interior por transportadora, subtotais e TOTAL GERAL)">🖨 Imprimir</button></div>' +
     '<table class="fech-table fech-resumo"><thead><tr>' +
     '<th>Região</th><th>Transportadora</th><th>Código</th><th class="num">Peso transportado (kg)</th><th class="num">Abatimento (R$)</th>' +
-    '<th class="num">Valor faturado (R$)</th><th class="num">Valor a ser pago (R$)</th><th class="num">Custo (R$/kg)</th><th>Entregou a NF</th><th>Boleto</th>' +
+    '<th class="num">Valor faturado (R$)</th><th class="num">Valor a ser pago (R$)</th><th>Entregou a NF</th><th>Boleto</th>' +
     '</tr></thead><tbody>';
   for(const r of rows){
     if(r.t === 'reg'){
       html += '<tr><td>' + r.regiao + '</td><td>' + esc(r.transp) + '</td><td class="mono">' + esc(r.codigo) + '</td>' +
         '<td class="num">' + fmtPeso2(r.peso) + '</td><td class="num"></td><td class="num">' + fmtBRL(r.fat) + '</td>' +
-        '<td class="num">' + fmtBRL(r.pagar) + '</td><td class="num">' + relFmtMedia(r.custo) + '</td><td></td><td></td></tr>';
+        '<td class="num">' + fmtBRL(r.pagar) + '</td><td></td><td></td></tr>';
     } else if(r.t === 'sub'){
-      html += '<tr class="res-sub"><td></td><td>Subtotal — ' + esc(r.transp) + '</td><td></td>' +
+      html += '<tr class="res-sub"><td></td><td>Subtotal — ' + esc(r.transp) + '</td><td class="mono">' + esc(r.codigo) + '</td>' +
         '<td class="num">' + fmtPeso2(r.peso) + '</td><td class="num">' + (r.abat ? fmtBRL(r.abat) : '') + '</td>' +
-        '<td class="num">' + fmtBRL(r.fat) + '</td><td class="num">' + fmtBRL(r.pagar) + '</td><td class="num">' + relFmtMedia(r.custo) + '</td>' +
+        '<td class="num">' + fmtBRL(r.fat) + '</td><td class="num">' + fmtBRL(r.pagar) + '</td>' +
         '<td>' + esc(r.nf) + '</td><td>' + esc(r.boleto) + '</td></tr>';
     } else {
       html += '<tr class="res-total"><td></td><td>TOTAL GERAL</td><td></td>' +
         '<td class="num">' + fmtPeso2(r.peso) + '</td><td class="num">' + (r.abat ? fmtBRL(r.abat) : '') + '</td>' +
-        '<td class="num">' + fmtBRL(r.fat) + '</td><td class="num">' + fmtBRL(r.pagar) + '</td><td class="num">' + relFmtMedia(r.custo) + '</td><td></td><td></td></tr>';
+        '<td class="num">' + fmtBRL(r.fat) + '</td><td class="num">' + fmtBRL(r.pagar) + '</td><td></td><td></td></tr>';
     }
   }
   html += '</tbody></table>';
@@ -3705,7 +3707,7 @@ function bindFechPanel(){
       const s = fechSelOf(r.g);
       if(r.f === 'codigo') s.codigo = e.target.value;
       else if(r.f === 'abat') s.abat = e.target.value;
-      renderFechFoot();
+      renderFechFoot(); renderFechResumo();   // resumo ao vivo tbm p/ código/abatimento
     });
     body.addEventListener('click', e=>{
       const zapA = e.target.closest('a.zap-link');
@@ -3810,7 +3812,7 @@ async function fechConfirm(){
       peso: it.calc.peso, km: it.calc.km, total: it.calc.total, media: it.calc.media,
       dfinal: it.calc.dataFinal, tipo: fechTipoFrota(it.sec, it.row)
     }));
-    fech.grupos.push({transp: g.nome, key: g.key, codigo: String(s.codigo || '').trim(),
+    fech.grupos.push({transp: g.nome, key: g.key, codigo: String(s.codigo || '').trim() || TRANSP_CODES[g.key] || '',
       abatimento: abat, nf: s.nf, boleto: s.boleto,
       peso: x.peso, faturado: x.fat, apagar: Math.max(0, x.fat - abat),
       custoKg: x.peso > 0 ? x.fat / x.peso : null, cargas: cargas});
