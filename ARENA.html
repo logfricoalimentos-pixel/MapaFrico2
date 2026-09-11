@@ -586,6 +586,9 @@ body.readonly .sec-actions{display:none}
 .edc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;margin:10px 0}
 .edc-grid label{display:flex;flex-direction:column;gap:3px;font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.3px}
 .edc-grid input{border:1px solid var(--line);border-radius:6px;padding:6px 8px;font-size:12.5px;background:#fff;width:100%;min-width:0}
+.fech-resumo{margin-top:8px}
+.res-sub td{background:#1f2937 !important;color:#fff;font-weight:700}
+.res-total td{background:#15803d !important;color:#fff;font-weight:800}
 .fh-filter{display:flex;align-items:end;gap:8px;flex-wrap:wrap;font-size:11px;color:var(--muted);padding:6px 2px}
 .fh-filter label{display:flex;flex-direction:column;gap:2px}
 .fh-filter input{border:1px solid var(--line);border-radius:6px;padding:3px 6px;font-size:11.5px}
@@ -1090,6 +1093,10 @@ body.readonly .sec-actions{display:none}
         <tfoot id="fech-foot"></tfoot>
       </table>
     </div>
+    <details class="fech-resumo-wrap" id="fech-resumo-wrap">
+      <summary>📊 Resumo geral — Interior/Capital por transportadora + TOTAL GERAL (atualiza conforme você marca)</summary>
+      <div id="fech-resumo"></div>
+    </details>
     <details class="fech-hist" id="fech-hist">
       <summary>📚 Fechamentos anteriores (reabrir / baixar de novo)</summary>
       <div class="fh-filter"><label>Fechados entre <input type="date" id="fh-start"></label><label>e <input type="date" id="fh-end"></label><button class="btn mini" type="button" id="fh-clear" title="Limpa o filtro de período">limpar</button></div>
@@ -3497,6 +3504,45 @@ function renderFechTable(){
     if(cb) cb.indeterminate = gs.itens.length > 0 && gs.itens.length < g.itens.length;
   }
   renderFechFoot();
+  renderFechResumo();
+}
+/* ---- 📊 resumo geral do fechamento: linhas Interior/Capital por transportadora,
+   subtotal por transportadora (c/ código + abatimento + a pagar) e TOTAL GERAL —
+   mesmas informações da planilha do financeiro, recalculado a cada marcação ---- */
+function renderFechResumo(){
+  const wrap = relEl('fech-resumo'); if(!wrap) return;
+  const groups = fechGroups();
+  const selG = groups.map(g=> ({g: g, s: fechGroupSel(g)})).filter(x=> x.s.itens.length);
+  if(!selG.length){ wrap.innerHTML = '<div class="empty">Nenhuma carga MARCADA no período — o resumo aparece conforme você marca.</div>'; return; }
+  let tPeso = 0, tFat = 0, tAbat = 0, tPagar = 0, tCg = 0;
+  let html = '<table class="fech-table fech-resumo"><thead><tr>' +
+    '<th>Região</th><th>Transportadora</th><th class="num">Cargas</th><th class="num">Peso (kg)</th>' +
+    '<th class="num">Abatimento (R$)</th><th class="num">Valor faturado (R$)</th><th class="num">Valor a ser pago (R$)</th>' +
+    '</tr></thead><tbody>';
+  for(const {g, s} of selG){
+    const ab = numVal(s.abat);
+    let gP = 0, gF = 0, gC = 0;
+    for(const sec of ['interior','capital']){
+      const its = s.itens.filter(it=> it.sec === sec);
+      if(!its.length) continue;
+      const p = its.reduce((a, it)=> a + it.calc.peso, 0);
+      const f = its.reduce((a, it)=> a + it.calc.total, 0);
+      gP += p; gF += f; gC += its.length;
+      html += '<tr><td>' + (sec === 'capital' ? 'Capital' : 'Interior') + '</td><td>' + esc(g.nome) + '</td>' +
+        '<td class="num">' + its.length + '</td><td class="num">' + fmtPeso2(p) + '</td><td class="num"></td>' +
+        '<td class="num">' + fmtBRL(f) + '</td><td class="num">' + fmtBRL(f) + '</td></tr>';
+    }
+    if(!gC) continue;
+    const pagar = Math.max(0, gF - ab);
+    tPeso += gP; tFat += gF; tAbat += ab; tPagar += pagar; tCg += gC;
+    html += '<tr class="res-sub"><td></td><td>Subtotal — ' + esc(g.nome) + (String(s.codigo || '').trim() ? ' · cód. ' + esc(String(s.codigo).trim()) : '') + '</td>' +
+      '<td class="num">' + gC + '</td><td class="num">' + fmtPeso2(gP) + '</td><td class="num">' + (ab ? fmtBRL(ab) : '') + '</td>' +
+      '<td class="num">' + fmtBRL(gF) + '</td><td class="num">' + fmtBRL(pagar) + '</td></tr>';
+  }
+  html += '<tr class="res-total"><td></td><td>TOTAL GERAL</td><td class="num">' + tCg + '</td><td class="num">' + fmtPeso2(tPeso) + '</td>' +
+    '<td class="num">' + (tAbat ? fmtBRL(tAbat) : '') + '</td><td class="num">' + fmtBRL(tFat) + '</td><td class="num">' + fmtBRL(tPagar) + '</td></tr>' +
+    '</tbody></table>';
+  wrap.innerHTML = html;
 }
 function renderFechFoot(){
   const foot = relEl('fech-foot'); if(!foot) return;
