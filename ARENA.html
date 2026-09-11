@@ -1057,9 +1057,12 @@ body.readonly .sec-actions{display:none}
       <label>Motorista<input id="edc-motorista" maxlength="20"></label>
       <label>Transportadora<input id="edc-transp" maxlength="40"></label>
       <label>Veículo p/ frete (tabela)<select id="edc-frota"></select></label>
+      <label>Negociada? (Neg?)<select id="edc-neg"><option value="">—</option><option value="Sim">Sim</option><option value="Não">Não</option></select></label>
+      <label>Vlr/kg (R$)<input id="edc-valorkg" inputmode="decimal" placeholder="0,00"></label>
+      <label>Valor Frete manual (R$)<input id="edc-valorfrete" inputmode="decimal" placeholder="0,00"></label>
     </div>
     <div class="hint edc-calc" id="edc-calc" style="border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:#f8fafc;font-size:12px;line-height:1.5"></div>
-    <p class="hint">💾 Salvar grava no mapa do dia da carga e refaz o cálculo (Total/Média); destino/nº da carga reaplicam as diárias do cadastro de rotas; o veículo escolhido vale só p/ esta carga (tabela negociada, ex.: pagar 3/4 num toco).</p>
+    <p class="hint">💾 Salvar grava no mapa do dia da carga e refaz o cálculo (Total/Média); destino/nº da carga reaplicam as diárias do cadastro de rotas; o veículo escolhido vale só p/ esta carga (tabela negociada, ex.: pagar 3/4 num toco). Prioridade do cálculo: Valor Frete manual &gt; Neg?=Sim (Vlr/kg × peso) &gt; tabela do veículo +10% — o painel 💰 recalcula a cada mudança.</p>
     <div class="modal-actions">
       <button class="btn" type="button" id="edc-cancel">Cancelar</button>
       <button class="btn primary" type="button" id="edc-save">💾 Salvar no mapa</button>
@@ -3138,6 +3141,9 @@ function abrirEdicaoCarga(key){
   selF.innerHTML = '<option value="">Auto pelo peso (' + esc(auto || 'N/A') + ')</option>' +
     FLEET_TIERS.map(t=> '<option value="' + esc(t.name) + '">Tabela ' + esc(String(t.name).replace(/^Caminh[aã]o\s*/i, '')) + '</option>').join('');
   selF.value = r.frotaCalc || '';
+  relEl('edc-neg').value = String(r.neg || '');
+  relEl('edc-valorkg').value = (r.valorKg == null || r.valorKg === '') ? '' : String(r.valorKg);
+  relEl('edc-valorfrete').value = (r.valorFrete == null || r.valorFrete === '') ? '' : String(r.valorFrete);
   relEl('edc-mask').hidden = false;
   edcPreview();
   const f = relEl('edc-destino'); if(f) f.focus();
@@ -3146,8 +3152,10 @@ function closeEdc(){ const m = relEl('edc-mask'); if(m) m.hidden = true; EDC_KEY
 /* preview ao vivo do cálculo (valor do frete + média da rota) com o que está digitado na janela */
 function edcPreview(){
   const it = relFindItem(EDC_KEY); const box = relEl('edc-calc'); if(!it || !box) return;
+  const rd2 = v => { const x = String(v == null ? '' : v).trim(); return x === '' ? '' : Math.round(num(x) * 100) / 100; };
   const tmp = Object.assign({}, it.row, {
     destino: relEl('edc-destino').value, carga: relEl('edc-carga').value,
+    neg: relEl('edc-neg').value || '', valorKg: rd2(relEl('edc-valorkg').value), valorFrete: rd2(relEl('edc-valorfrete').value),
     peso: (relEl('edc-peso').value === '') ? '' : ceil2(num(relEl('edc-peso').value)),
     km: (relEl('edc-km').value === '') ? '' : Math.max(0, Math.floor(num(relEl('edc-km').value))),
     dias: (relEl('edc-dias').value === '') ? 1 : Math.max(1, Math.round(numVal(relEl('edc-dias').value)) || 1),
@@ -3175,6 +3183,12 @@ async function salvarEdicaoCarga(){
   relSetField(it, 'transportadora', relEl('edc-transp').value);
   const fv = String(relEl('edc-frota').value || '');
   if(fv) it.row.frotaCalc = fv; else delete it.row.frotaCalc;
+  const nv = String(relEl('edc-neg').value || '');
+  if(nv) it.row.neg = nv; else delete it.row.neg;
+  const vk = relEl('edc-valorkg').value; const vkN = (String(vk == null ? '' : vk).trim() === '') ? null : Math.round(num(vk) * 100) / 100;
+  if(vkN == null) delete it.row.valorKg; else it.row.valorKg = vkN;
+  const vf = relEl('edc-valorfrete').value; const vfN = (String(vf == null ? '' : vf).trim() === '') ? null : Math.round(num(vf) * 100) / 100;
+  if(vfN == null) delete it.row.valorFrete; else it.row.valorFrete = vfN;
   it.calc = relCalc(it.sec, it.row, it.d);
   const d = it.d;
   await relPersistDate(d);
@@ -3418,7 +3432,7 @@ function fechDetRow(g){
       '<td style="text-align:center"><input type="checkbox" data-f="carga"' + (on ? ' checked' : '') + '></td>' +
       '<td>' + fmtBR(it.d) + '</td>' +
       '<td><span class="rel-badge ' + (it.sec === 'capital' ? 'cap' : 'int') + '">' + (it.sec === 'capital' ? 'Capital' : 'Interior') + '</span></td>' +
-      '<td><input type="text" class="mono" data-f="placa" value="' + esc(it.row.placa || '') + '" title="placa editável — grava no mapa do dia"></td>' +
+      '<td class="mono">' + esc(it.row.placa || '') + '</td>' +
       '<td>' + esc(it.row.destino || '') + '</td>' +
       '<td>' + esc(it.row.carga || '') + '</td>' +
       '<td class="num">' + fmtPeso2(it.calc.peso) + '</td>' +
@@ -3515,16 +3529,6 @@ function bindFechPanel(){
         const kTr = e.target.closest('tr[data-k]');
         if(kTr) s.cargas[kTr.getAttribute('data-k')] = !!e.target.checked;
         renderFechTable();
-      } else if(r.f === 'placa'){
-        const kTr = e.target.closest('tr[data-k]');
-        const g = fechGroups().find(x=> x.key === r.g);
-        const it = g && kTr ? g.itens.find(x=> x.key === kTr.getAttribute('data-k')) : null;
-        if(it){
-          it.row.placa = String(e.target.value || '').trim().toUpperCase();
-          e.target.value = it.row.placa;
-          relPersistDate(it.d);
-          renderRelTable();
-        }
       } else if(r.f === 'nf'){ s.nf = e.target.value; }
       else if(r.f === 'boleto'){ s.boleto = e.target.value; }
     });
