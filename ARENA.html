@@ -1062,7 +1062,7 @@ body.readonly .sec-actions{display:none}
       <label>Valor Frete manual (R$)<input id="edc-valorfrete" inputmode="decimal" placeholder="0,00"></label>
     </div>
     <div class="hint edc-calc" id="edc-calc" style="border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:#f8fafc;font-size:12px;line-height:1.5"></div>
-    <p class="hint">💾 Salvar grava no mapa do dia da carga e refaz o cálculo (Total/Média); destino/nº da carga reaplicam as diárias do cadastro de rotas; o veículo escolhido vale só p/ esta carga (tabela negociada, ex.: pagar 3/4 num toco). Prioridade do cálculo: Valor Frete manual &gt; Neg?=Sim (Vlr/kg × peso) &gt; tabela do veículo +10% — o painel 💰 recalcula a cada mudança.</p>
+    <p class="hint">💾 Salvar grava no mapa do dia da carga e refaz o cálculo (Total/Média); destino/nº da carga reaplicam as diárias do cadastro de rotas; o veículo escolhido vale só p/ esta carga (tabela negociada, ex.: pagar 3/4 num toco). Prioridade do cálculo: Valor Frete manual &gt; Neg?=Sim (Vlr/kg × peso) &gt; tabela do veículo +10%. <b>Trocar o veículo limpa Neg?/Vlr/kg/Valor manual e recalcula pela tabela escolhida</b> (mesmo que o peso seja de outra faixa); depois dá p/ renegociar por cima, se quiser.</p>
     <div class="modal-actions">
       <button class="btn" type="button" id="edc-cancel">Cancelar</button>
       <button class="btn primary" type="button" id="edc-save">💾 Salvar no mapa</button>
@@ -3167,7 +3167,7 @@ function edcPreview(){
   const auto = selecionarFrota(tmp.peso);
   box.innerHTML = '💰 Valor do frete: <b>' + fmtBRL(tot) + '</b> · Média da rota: <b>' + relFmtMedia(med) + '</b><br>' +
     'Veículo p/ cálculo: <b>' + esc(cf.frota || '—') + '</b> ' +
-    (tmp.frotaCalc ? '(manual — tabela negociada)' : '(auto pelo peso: ' + esc(auto || 'N/A') + ')') +
+    (tmp.frotaCalc ? '(tabela escolhida p/ esta carga)' : '(auto pelo peso: ' + esc(auto || 'N/A') + ')') +
     ' · Regra: ' + esc(cf.modo || '—');
 }
 async function salvarEdicaoCarga(){
@@ -5517,6 +5517,14 @@ function bindStatic(){
   $('#edc-mask').addEventListener('mousedown', e=>{ if(e.target.id === 'edc-mask') closeEdc(); });
   $('#edc-mask').addEventListener('input', edcPreview);
   $('#edc-mask').addEventListener('change', edcPreview);
+  relEl('edc-frota').addEventListener('change', ()=>{
+    // mudar o veículo p/ frete = recalcular PELAA tabela dele (mesmo c/ peso de outra faixa):
+    // limpa os overrides de negociação p/ a tabela escolhida valer de fato
+    relEl('edc-valorfrete').value = '';
+    relEl('edc-valorkg').value = '';
+    relEl('edc-neg').value = '';
+    edcPreview();
+  });
   for(const fid of ['fh-start','fh-end']){ const fe2 = relEl(fid); if(fe2) fe2.addEventListener('change', ()=> renderFechHist()); }
   const fhc = relEl('fh-clear'); if(fhc) fhc.addEventListener('click', ()=>{ const a2 = relEl('fh-start'), b2 = relEl('fh-end'); if(a2) a2.value = ''; if(b2) b2.value = ''; renderFechHist(); });
 
