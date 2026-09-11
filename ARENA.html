@@ -1056,6 +1056,7 @@ body.readonly .sec-actions{display:none}
       <div id="fech-hist-rows"></div>
     </details>
     <div class="modal-actions">
+      <button class="btn" type="button" id="fech-copy-next" title="Copia o print do resumo da próxima transportadora MARCADA (com WhatsApp) e abre a conversa vazia — lá é só Ctrl+V e Enviar">📋 Copiar e abrir próxima ➡</button>
       <button class="btn" type="button" id="fech-wa-auto" title="Manda o print + resumo por WhatsApp (API configurada) para cada transportador marcada, um a um">🤖 Enviar resumo p/ marcados</button>
       <button class="btn" type="button" id="fech-cancel">Cancelar</button>
       <button class="btn primary" type="button" id="fech-ok" title="Marca as transportadoras marcadas como Fechado e gera os arquivos Excel">🔒 Fechar selecionadas + gerar Excel</button>
@@ -3060,6 +3061,30 @@ async function waSendImage(pngDataUrl, caption, zap){
   if(!r.ok) throw new Error('Evolution HTTP ' + r.status);
   return true;
 }
+/* copia o print E abre a conversa do transportador (wa.me sem texto) — o Ctrl+V lá é manual:
+   nenhum site consegue colar dentro de outra aba/app (WhatsApp Web/Desktop) por segurança */
+async function fechCopyOpenZap(g, gs, pos){
+  const zap = TRANSP_ZAP[g.key];
+  if(!zap){ toast('Sem WhatsApp cadastrado p/ ' + g.nome, 'err'); return false; }
+  const d = String(zap).replace(/\D/g, '').replace(/^0+/, '');
+  const w = window.open('https://wa.me/55' + d, '_blank');
+  const okc = await fechCopyPng(g, gs);
+  const p = pos ? pos + ' ' : '';
+  if(okc && w) toast('📋 ' + p + 'Print de ' + g.nome + ' copiado e conversa aberta — no WhatsApp: Ctrl+V e Enviar', 'ok');
+  else if(okc) toast('📋 ' + p + 'Imagem copiada — abra a conversa pelo link 💬 e cole Ctrl+V', 'warn');
+  else if(w) toast('Conversa aberta, mas a cópia falhou — use 🖼 → 📋 Copiar imagem', 'err');
+  return !!okc;
+}
+let FECH_COPY_IDX = 0;
+function fechCopyNext(){
+  if(!requireAdmin()) return;
+  const alvos = fechGroups().map(g=> Object.assign({g: g}, fechGroupSel(g))).filter(x=> x.itens.length && (TRANSP_ZAP[x.g.key] || ''));
+  if(!alvos.length){ toast('Nenhuma transportadora MARCADA com WhatsApp cadastrado', 'err'); return; }
+  if(FECH_COPY_IDX >= alvos.length){ FECH_COPY_IDX = 0; toast('✅ Ciclo dos marcados completo — recomeçando do primeiro', 'ok'); }
+  const x = alvos[FECH_COPY_IDX];
+  FECH_COPY_IDX++;
+  fechCopyOpenZap(x.g, x, '(' + FECH_COPY_IDX + '/' + alvos.length + ')');
+}
 /* menu do 🖼: morar no <body> em posição fixa (a tabela tem scroll horizontal e cortaria o menu) */
 function fecharMenuPrint(){
   for(const m of Array.from(document.querySelectorAll('.fech-print-menu'))) m.remove();
@@ -3068,7 +3093,8 @@ function abrirMenuPrint(btn, g){
   const menu = document.createElement('div');
   menu.className = 'fech-print-menu'; menu.setAttribute('role', 'menu');
   menu.innerHTML = '<button class="btn mini" type="button" data-f="print-copy" role="menuitem">📋 Copiar imagem</button>' +
-                   '<button class="btn mini" type="button" data-f="print-save" role="menuitem">⬇ Baixar PNG</button>';
+                   '<button class="btn mini" type="button" data-f="print-save" role="menuitem">⬇ Baixar PNG</button>' +
+                   '<button class="btn mini" type="button" data-f="print-copyopen" role="menuitem">💬 Copiar e abrir WhatsApp</button>';
   menu.dataset.g = g.key;
   document.body.appendChild(menu);
   const r = btn.getBoundingClientRect();
@@ -3077,9 +3103,10 @@ function abrirMenuPrint(btn, g){
   let ty = r.bottom + 4; if(ty + mh > window.innerHeight - 8) ty = Math.max(8, r.top - mh - 4);
   menu.style.left = Math.round(lx) + 'px'; menu.style.top = Math.round(ty) + 'px';
   menu.addEventListener('click', ev=>{
-    const op = ev.target.closest('[data-f="print-copy"],[data-f="print-save"]'); if(!op) return;
+    const op = ev.target.closest('[data-f="print-copy"],[data-f="print-save"],[data-f="print-copyopen"]'); if(!op) return;
     fecharMenuPrint();
     if(op.getAttribute('data-f') === 'print-copy') fechCopyPng(g, fechGroupSel(g));
+    else if(op.getAttribute('data-f') === 'print-copyopen') fechCopyOpenZap(g, fechGroupSel(g));
     else { fechPrintPng(g, fechGroupSel(g)); toast('🖼 Print (PNG) baixado — arraste o arquivo p/ conversa do WhatsApp', 'ok'); }
   });
   setTimeout(()=>{
@@ -3237,6 +3264,7 @@ function fechPrintPng(g, gs){
   return true;
 }
 function openFech(){
+  FECH_COPY_IDX = 0;
   if(!requireAdmin()) return;
   if(!REL.loaded){ toast('Carregue um período no relatório antes de fechar', 'err'); return; }
   FECH_SEL = {};
@@ -5335,6 +5363,7 @@ function bindStatic(){
     }catch(e){ toast('❌ Falha no teste: ' + (e && e.message ? e.message : e) + ' — a API precisa de HTTPS + CORS', 'err'); }
   });
   $('#fech-wa-auto').addEventListener('click', waAutoSendAll);
+  $('#fech-copy-next').addEventListener('click', fechCopyNext);
 
   /* códigos/whatsapp de transportadora p/ fechamento (mesmo padrão do cadastro de rotas) */
   $('#btn-transp-add').addEventListener('click', ()=>{
