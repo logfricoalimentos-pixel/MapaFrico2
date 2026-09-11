@@ -46,6 +46,8 @@ h1,h2,h3{margin:0}
 .btn.mini{padding:2px 6px;font-size:12px;border-radius:6px}
 /* AUDITORIA: fonte do topo +2px (só aqui — não mexe nos botões do resto do app) */
 .topbar .btn{background:#1e293b;border-color:#334155;color:#e2e8f0;font-size:15px}
+.topbar .btn-ff{background:#a855f7;border-color:#9333ea;color:#fff;font-weight:700}
+.topbar .btn-ff:hover{background:#9333ea}
 .topbar .btn:hover{background:#334155}
 .topbar .btn.primary{background:var(--blue);border-color:var(--blue);color:#fff}
 .topbar .btn.primary:hover{background:var(--blue-d)}
@@ -483,7 +485,7 @@ body.readonly .sec-actions{display:none}
 .modal-pass input:focus{border-color:var(--blue);outline:none}
 .modal-err{font-size:12px;color:var(--err);min-height:15px;margin-top:4px}
 .modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:10px;flex-wrap:wrap}
-/* ===== Relatório de Cargas (tela interativa: filtros + edição + download) =====
+/* ===== Fechamento de Fretes (tela interativa: filtros + edição + download) =====
    O mesmo #report-xls-mask vira um painel largo (quase tela cheia) com a tabela
    editável. Tudo com rolagem própria para caber em qualquer altura de tela. */
 .modal-report{width:min(1480px,97vw);max-height:94vh;display:flex;flex-direction:column;padding:14px 16px 12px}
@@ -694,12 +696,12 @@ body.readonly .sec-actions{display:none}
     <button class="btn" id="btn-pdf">🖨 PDF</button>
     <button class="btn" id="btn-etiq" title="Imprimir etiquetas A4 (8×5cm, 10 por página) — uma por carga">🏷 Etiquetas</button>
     <button class="btn" id="btn-plan" title="Gerar relatório Planejamento de Transporte (Capital × Interior × Total)">📊 Planejamento</button>
+    <button class="btn btn-ff" id="btn-ff" title="Fechamento de Fretes: abre a tela interativa (filtros por Ordem, Destino, Placa, Motorista, Transportadora, Total e Média), edição com recálculo na hora — gravando no mapa do dia —, fechamento quinzenal e download em Excel (tudo ou só o filtrado)">📋 Fechamento de Fretes</button>
     <div class="btn-dd" id="dd-excel">
       <button class="btn" id="btn-xls-toggle" type="button" aria-haspopup="true" aria-expanded="false" title="Exportar em Excel">📥 Excel ▾</button>
       <div class="btn-dd-menu" id="dd-excel-menu" hidden>
         <button class="btn-dd-item" id="btn-xls-map" type="button" title="Baixar o mapa do dia em Excel (mesmo formato do print — sem valores)">📥 Excel Mapa</button>
         <button class="btn-dd-item" id="btn-xls-per" type="button" title="Baixar em Excel TODAS as cargas de Capital e Interior de um período (com valores/negociação)">📥 Excel Período</button>
-        <button class="btn-dd-item" id="btn-xls-rel" type="button" title="Relatório de Cargas: abrir na tela (com filtros por Ordem, Destino, Placa, Motorista, Transportadora, Total e Média), EDITAR os valores com recálculo na hora — gravando no mapa do dia — e baixar em Excel (tudo ou só o filtrado)">📥 Relatório de Cargas</button>
       </div>
     </div>
     <span class="sep"></span>
@@ -1027,7 +1029,7 @@ body.readonly .sec-actions{display:none}
 <div id="report-xls-mask" class="no-print" hidden>
   <div class="modal modal-report" role="dialog" aria-modal="true" aria-labelledby="rel-title">
     <div class="rel-head">
-      <h3 id="rel-title">📋 Relatório de Cargas</h3>
+      <h3 id="rel-title">📋 Fechamento de Fretes</h3>
       <button class="rel-x" type="button" id="rx-x" title="Fechar (Esc)">✕</button>
     </div>
     <p class="modal-text">Uma linha por carga (<b>Capital + Interior</b>) do período escolhido. Dá para <b>filtrar</b> e <b>editar aqui mesmo</b>: Ordem, Destino (Rota), Peso, KM, Diárias, Motorista e Transportadora. Ao editar, o app <b>refaz o cálculo</b> na hora — <b>Total</b> (previsão de frete), <b>Média (R$/kg)</b> e <b>Data Final</b> (= Entrega + Diárias − 1; sem Entrega, = Data Inicial + Diárias − 1; Capital sempre = Entrega) — e <b>grava a alteração no mapa do dia</b> correspondente. A coluna <b>Entrega</b> mostra a data de entrega do dia (campo ENTREGA); o período <b>DE/ATÉ</b> e o <b>fechamento</b> usam essa data (dia sem entrega vale pelo dia do lançamento). Frotas não entra.</p>
@@ -2610,7 +2612,7 @@ function xlsMapCompleto(){
   XLSX.writeFile(wb, name);
   toast('📥 Excel gerado: ' + name, 'ok');
 }
-/* ===================== Relatório de Cargas — tela interativa =====================
+/* ===================== Fechamento de Fretes — tela interativa =====================
    Colunas: Data Inicial (Faturamento) · Entrega · Data Final (= Entrega + Diárias − 1; sem Entrega, = Data Inicial + Diárias − 1) · Tipo · Placa ·
             Rota/Destino · Ordem · Peso · KM · Diárias · Total (R$) · Média (R$/kg) · Motorista · Transportadora
    • FILTROS: Ordem, Destino, Placa, Motorista e Transportadora (texto "contém", ignora acento/caixa),
@@ -4955,7 +4957,7 @@ let SESSION = null;             // {id, key, name, level, at, access_token, refr
 let AUDIT = [];                 // [{ts, user, action, detail, ok}] — máx. 200
 const loginFails = {};          // usuário (maiúsculo) -> {n, until} — throttle local nesta aba
 /* Botões da topbar -> nível mínimo para exibir (botões de edição = só admin) */
-const TOPBAR_BTN_MIN = {'btn-import':4,'btn-backup':4,'btn-restore':4,'btn-mapa-toggle':2,'btn-shot-full':2,'btn-shot-nopv':2,'btn-pdf':2,'btn-etiq':2,'btn-plan':2,'btn-xls-toggle':2,'btn-xls-map':2,'btn-xls-per':4,'btn-xls-rel':4,'btn-reclass':4,'btn-clear':4,'btn-settings':4,'btn-dash':3};
+const TOPBAR_BTN_MIN = {'btn-import':4,'btn-backup':4,'btn-restore':4,'btn-mapa-toggle':2,'btn-shot-full':2,'btn-shot-nopv':2,'btn-pdf':2,'btn-etiq':2,'btn-plan':2,'btn-xls-toggle':2,'btn-xls-map':2,'btn-xls-per':4,'btn-ff':4,'btn-reclass':4,'btn-clear':4,'btn-settings':4,'btn-dash':3};
 
 function normUser(s){ return String(s==null?'':s).trim().toUpperCase(); }
 function validUsername(s){
@@ -5717,8 +5719,8 @@ function bindStatic(){
     const m = $('#period-xls-mask'); if(m) m.hidden = true;
     await xlsPeriodo(s, e);
   });
-  $('#btn-xls-rel').addEventListener('click', openReportXls);
-  /* Relatório de Cargas: tela interativa (filtros + edição + download) */
+  $('#btn-ff').addEventListener('click', openReportXls);
+  /* Fechamento de Fretes: tela interativa (filtros + edição + download) */
   $('#rx-cancel').addEventListener('click', closeReportXls);
   $('#rx-x').addEventListener('click', closeReportXls);
   $('#rx-dl-filt').addEventListener('click', ()=> relDownload(true));
