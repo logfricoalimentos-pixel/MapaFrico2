@@ -575,7 +575,17 @@ body.readonly .sec-actions{display:none}
 .fech-hist-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px;color:#334155;padding:5px 2px;border-bottom:1px solid var(--line)}
 .fech-hist-row .grow{flex:1;min-width:160px}
 .fech-hist-row .mono{font-size:11.5px;color:var(--muted)}
+@media (min-width:1000px){ .modal-fech{width:min(1500px,97vw)} .fech-table{font-size:12px} .fech-table th{padding:5px 6px} .fech-table td{padding:4px 6px} }
+@media (min-width:1600px){ .modal-fech{width:min(1780px,97vw)} }
 @media (max-width:760px){ .modal-fech{width:100vw;max-height:100vh;height:100vh;border-radius:0} #fech-mask{padding:0} }
+.st-badge.anal{background:#fef3c7;color:#92400e;border:1px solid #fde68a}
+.stok.on-ok{background:#15803d;border-color:#15803d;color:#fff;font-weight:800}
+.stok.on-null{background:#dc2626;border-color:#dc2626;color:#fff;font-weight:800}
+.fech-conf{white-space:nowrap;text-align:center}
+.fech-stok.none{color:#cbd5e1}
+.fh-filter{display:flex;align-items:end;gap:8px;flex-wrap:wrap;font-size:11px;color:var(--muted);padding:6px 2px}
+.fh-filter label{display:flex;flex-direction:column;gap:2px}
+.fh-filter input{border:1px solid var(--line);border-radius:6px;padding:3px 6px;font-size:11.5px}
 /* ===== Usuários & auditoria (configurações) ===== */
 .users-row{grid-template-columns:1fr 1.3fr 34px 34px;align-items:center}
 .users-row .user-name{font-size:12px;padding:5px 2px;display:flex;align-items:center;gap:5px;overflow:hidden;white-space:nowrap}
@@ -1053,9 +1063,11 @@ body.readonly .sec-actions{display:none}
     </div>
     <details class="fech-hist" id="fech-hist">
       <summary>📚 Fechamentos anteriores (reabrir / baixar de novo)</summary>
+      <div class="fh-filter"><label>Fechados entre <input type="date" id="fh-start"></label><label>e <input type="date" id="fh-end"></label><button class="btn mini" type="button" id="fh-clear" title="Limpa o filtro de período">limpar</button></div>
       <div id="fech-hist-rows"></div>
     </details>
     <div class="modal-actions">
+      <button class="btn" type="button" id="fech-analise" title="Alterna as cargas MARCADAS entre PENDENTE e EM ANÁLISE — em análise dá p/ editar, incluir e excluir, e marcar ✔/✘ na lista de cargas">🔍 Marcar Em Análise</button>
       <button class="btn" type="button" id="fech-copy-next" title="Copia o print do resumo da próxima transportadora MARCADA (com WhatsApp) e abre a conversa vazia — lá é só Ctrl+V e Enviar">📋 Copiar e abrir próxima ➡</button>
       <button class="btn" type="button" id="fech-wa-auto" title="Manda o print + resumo por WhatsApp (API configurada) para cada transportador marcada, um a um">🤖 Enviar resumo p/ marcados</button>
       <button class="btn" type="button" id="fech-cancel">Cancelar</button>
@@ -2682,7 +2694,9 @@ function relRowHtml(it){
     '<td class="w-transp">' + inp('transportadora', r.transportadora || '') + '</td>' +
     '<td>' + (relIsFech(r)
         ? '<span class="st-badge fech" title="Fechado para pagamento' + (r.fechId ? ' no fechamento ' + esc(r.fechId) : '') + '">Fechado</span>'
-        : '<span class="st-badge pend" title="Aguardando fechamento de frete">Pendente</span>') + '</td>' +
+        : relIsAnalise(r)
+          ? '<span class="st-badge anal" title="Em análise — ainda dá p/ editar, incluir e excluir; marque ✔ (ok) ou ✘ (null) no painel de fechamento">Em análise</span>'
+          : '<span class="st-badge pend" title="Aguardando fechamento de frete">Pendente</span>') + '</td>' +
   '</tr>';
 }
 function renderRelTable(){
@@ -2899,7 +2913,7 @@ function relToStyled(items, titulo, gerado){
     rows.push([sxT(fmtBR(it.d), 0), sxT(it.entrega ? fmtBR(it.entrega) : '', 0), sxT(fmtBR(c.dataFinal), 0),
       sxT(it.sec === 'capital' ? 'Capital' : 'Interior', 0), sxT(r.placa || '', 0), sxT(r.destino || '', 0), sxT(r.carga || '', 0),
       sxT(c.peso, 1), sxT(c.km, 1), sxT(c.total, 2), sxT(c.media != null ? c.media : '', 2),
-      sxT(r.motorista || '', 0), sxT(r.transportadora || '', 0), sxT(relIsFech(r) ? 'Fechado' : 'Pendente', 0)]);
+      sxT(r.motorista || '', 0), sxT(r.transportadora || '', 0), sxT(relIsFech(r) ? 'Fechado' : relIsAnalise(r) ? 'Em análise' : 'Pendente', 0)]);
   }
   rows.push([sxT('TOTAL', 8), sxT('', 8), sxT('', 8), sxT('', 8), sxT('', 8), sxT('', 8), sxT('', 8),
     sxT(tp, 9), sxT(tk, 9), sxT(tt, 10), sxT(tt > 0 && tp > 0 ? tt / tp : '', 10), sxT('', 8), sxT('', 8), sxT('', 8)]);
@@ -2981,6 +2995,8 @@ async function closeReportXls(){
    então "Baixar de novo" reproduz os arquivos mesmo que a carga seja editada depois.
    "Reabrir" devolve as cargas para PENDENTE (grava de volta nos dias correspondentes). */
 function relIsFech(r){ return !!(r && r.stFech === 'fechado'); }
+function relIsAnalise(r){ return !!(r && r.stFech === 'analise'); }
+function hojeIso(){ return new Date().toISOString().slice(0, 10); }
 /* tipo do veículo sem o prefixo "Caminhão " (HR, 3/4, Truck…) — coluna TIPO do transportador */
 function fechTipoFrota(sec, row){
   const f = calcularFrete(sec, row) || {};
@@ -3074,6 +3090,22 @@ async function fechCopyOpenZap(g, gs, pos){
   else if(okc) toast('📋 ' + p + 'Imagem copiada — abra a conversa pelo link 💬 e cole Ctrl+V', 'warn');
   else if(w) toast('Conversa aberta, mas a cópia falhou — use 🖼 → 📋 Copiar imagem', 'err');
   return !!okc;
+}
+/* alterna as marcadas entre PENDENTE <-> EM ANÁLISE (antes de pagar, p/ poder editar/incluir/excluir) */
+async function fechToggleAnalise(){
+  if(!requireAdmin()) return;
+  const sel = fechGroups().map(g=> Object.assign({g: g}, fechGroupSel(g))).filter(x=> x.itens.length);
+  if(!sel.length){ toast('Marque ao menos uma carga antes de mudar o status', 'err'); return; }
+  const todas = sel.every(x=> x.itens.every(it=> it.row.stFech === 'analise'));
+  const datas = new Set(); let n = 0;
+  for(const x of sel) for(const it of x.itens){
+    if(todas) delete it.row.stFech; else it.row.stFech = 'analise';
+    delete it.row.stOk; datas.add(it.d); n++;
+  }
+  for(const d of datas) await relPersistDate(d);
+  audit('fechamento-analise', (todas ? 'devolvidas p/ Pendente: ' : 'marcadas Em Análise: ') + n + ' carga(s)');
+  toast(todas ? '↩ ' + n + ' carga(s) de volta a PENDENTE' : '🔍 ' + n + ' carga(s) EM ANÁLISE — edição/inclusão/exclusão liberadas; marque ✔ ou ✘ na lista (▸)', 'ok');
+  renderFechTable(); relApplyFilters(); renderRelTable();
 }
 let FECH_COPY_IDX = 0;
 function fechCopyNext(){
@@ -3269,7 +3301,7 @@ function openFech(){
   if(!REL.loaded){ toast('Carregue um período no relatório antes de fechar', 'err'); return; }
   FECH_SEL = {};
   const mask = relEl('fech-mask'); if(mask) mask.hidden = false;
-  relEl('fech-per').textContent = 'Período: ' + fechPeriodoTxt(REL) + ' (pela DATA DE ENTREGA) · somente cargas PENDENTES entram no fechamento · use o ▸ para marcar/desmarcar cargas individuais';
+  relEl('fech-per').textContent = 'Período: ' + fechPeriodoTxt(REL) + ' (pela DATA DE ENTREGA) · entram cargas PENDENTES e EM ANÁLISE · use o ▸ p/ marcar cargas individuais · 🔍 Em Análise libera editar/incluir/excluir e marca ✔ (ok) ou ✘ (null) na lista de cargas';
   renderFechTable();
   renderFechHist();
 }
@@ -3285,7 +3317,7 @@ function fechDetRow(g){
   const s = fechSelOf(g.key);
   return '<tr class="fech-det" data-g="' + esc(g.key) + '"><td colspan="10"><table class="fech-det-table"><thead><tr>' +
     '<th style="width:26px" title="include esta carga no fechamento">✓</th><th>Data</th><th>Tipo</th><th>Placa</th><th>Rota</th><th>Ordem</th>' +
-    '<th class="num">Peso (kg)</th><th class="num">KM</th><th class="num">Total (R$)</th><th>Motorista</th>' +
+    '<th class="num">Peso (kg)</th><th class="num">KM</th><th class="num">Total (R$)</th><th>Motorista</th><th class="fech-conf" title="para cargas EM ANÁLISE: ✔ = ok / ✘ = null">Conferência</th>' +
   '</tr></thead><tbody>' +
   g.itens.map(it=>{
     const on = s.cargas[it.key] !== false;
@@ -3300,6 +3332,10 @@ function fechDetRow(g){
       '<td class="num">' + (it.calc.km ? fmtNum(it.calc.km) : '') + '</td>' +
       '<td class="num">' + fmtBRL(it.calc.total) + '</td>' +
       '<td>' + esc(it.row.motorista || '') + '</td>' +
+      '<td class="fech-conf">' + (it.row.stFech === 'analise'
+        ? '<button class="btn mini stok' + (it.row.stOk === 'ok' ? ' on-ok' : '') + '" type="button" data-f="stok-ok" title="Marcar OK (conferida) — clique de novo p/ tirar">✔</button> ' +
+          '<button class="btn mini stok' + (it.row.stOk === 'null' ? ' on-null' : '') + '" type="button" data-f="stok-null" title="Marcar NULL (não confere) — clique de novo p/ tirar">✘</button>'
+        : (it.row.stFech === 'fechado' ? '<span class="fech-stok" title="fechada p/ pagamento">🔒</span>' : '<span class="fech-stok none" title="pendente">—</span>')) + '</td>' +
     '</tr>';
   }).join('') + '</tbody></table></td></tr>';
 }
@@ -3308,7 +3344,7 @@ function renderFechTable(){
   if(!body) return;
   const groups = fechGroups();
   if(!groups.length){
-    body.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:20px;color:var(--muted)">Nenhuma carga <b>PENDENTE</b> no período ' + esc(fechPeriodoTxt(REL)) + '.</td></tr>';
+    body.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:20px;color:var(--muted)">Nenhuma carga <b>PENDENTE</b> ou <b>EM ANÁLISE</b> no período ' + esc(fechPeriodoTxt(REL)) + '.</td></tr>';
     if(foot) foot.innerHTML = '';
     const ok = relEl('fech-ok'); if(ok) ok.disabled = true;
     return;
@@ -3323,7 +3359,8 @@ function renderFechTable(){
     html += '<tr data-g="' + esc(g.key) + '" class="' + (some ? 'fech-on' : 'fech-off') + '">' +
       '<td style="text-align:center"><input type="checkbox" data-f="sel"' + (all ? ' checked' : '') + ' title="marcar/desmarcar todas as cargas de ' + esc(g.nome) + '"></td>' +
       '<td><button class="fech-exp" type="button" data-f="exp" title="ver/marcar as cargas individualmente">' + (gs.s.exp ? '▾' : '▸') + '</button>' +
-        '<b>' + esc(g.nome) + '</b><span class="fech-cnt">' + gs.itens.length + '/' + g.itens.length + '</span></td>' +
+        '<b>' + esc(g.nome) + '</b><span class="fech-cnt">' + gs.itens.length + '/' + g.itens.length + '</span>' +
+        (g.itens.some(it=> it.row.stFech === 'analise') ? '<span class="st-badge anal" title="carga(s) em análise — edição/inclusão/exclusão liberadas e conferência ✔/✘"> ' + g.itens.filter(it=> it.row.stFech === 'analise').length + ' em análise</span>' : '') + '</td>' +
       '<td class="num">' + gs.itens.length + '</td>' +
       '<td class="num">' + fmtPeso2(gs.peso) + '</td>' +
       '<td class="num">' + fmtBRL(gs.fat) + '</td>' +
@@ -3417,6 +3454,18 @@ function bindFechPanel(){
           toast('📋 Resumo copiado p/ área de transferência — no WhatsApp a mensagem já abre escrita; pressione ENTER lá p/ enviar', 'ok');
         }
       }
+      const stkB = e.target.closest('[data-f="stok-ok"],[data-f="stok-null"]');
+      if(stkB){
+        const trS = stkB.closest('tr[data-k]');
+        const itS = trS ? relFindItem(trS.getAttribute('data-k')) : null;
+        if(itS && itS.row.stFech === 'analise'){
+          const want = stkB.getAttribute('data-f') === 'stok-ok' ? 'ok' : 'null';
+          if(itS.row.stOk === want) delete itS.row.stOk; else itS.row.stOk = want;
+          relSchedulePersist(itS.d);
+          renderFechTable();
+        }
+        return;
+      }
       const pb = e.target.closest('[data-f="print"]');
       if(pb){
         const trP = pb.closest('tr[data-g]');
@@ -3466,7 +3515,7 @@ async function fechConfirm(){
   if(!sel.length){ toast('Marque ao menos uma carga para fechar', 'err'); return; }
   const now = new Date();
   const id = 'f' + now.getTime().toString(36) + Math.random().toString(36).slice(2, 6);
-  const fech = {id: id, criadoEm: now.toISOString(), por: (SESSION && SESSION.name) || '—',
+  const fech = {id: id, criadoEm: now.toISOString(), dataFech: hojeIso(), por: (SESSION && SESSION.name) || '—',
                 start: REL.start, end: REL.end, grupos: []};
   const datas = new Set();
   for(const x of sel){
@@ -3483,7 +3532,7 @@ async function fechConfirm(){
       abatimento: abat, nf: s.nf, boleto: s.boleto,
       peso: x.peso, faturado: x.fat, apagar: Math.max(0, x.fat - abat),
       custoKg: x.peso > 0 ? x.fat / x.peso : null, cargas: cargas});
-    for(const it of x.itens){ it.row.stFech = 'fechado'; it.row.fechId = id; datas.add(it.d); }
+    for(const it of x.itens){ it.row.stFech = 'fechado'; it.row.fechId = id; it.row.fechDt = hojeIso(); datas.add(it.d); }
     const cod = String(s.codigo || '').trim();
     if(cod && cod !== TRANSP_CODES[g.key]){ TRANSP_CODES[g.key] = cod; saveSettings(); }  // lembra o código
   }
@@ -3717,13 +3766,20 @@ function fechXlsTransp(fech, g){
 function renderFechHist(){
   const wrap = relEl('fech-hist-rows'); if(!wrap) return;
   if(!FECHAMENTOS.length){ wrap.innerHTML = '<div class="empty">Nenhum fechamento feito ainda.</div>'; return; }
-  wrap.innerHTML = FECHAMENTOS.slice().reverse().map(f=>{
+  const fs = String((relEl('fh-start') || {}).value || ''), fe = String((relEl('fh-end') || {}).value || '');
+  let list = FECHAMENTOS.slice().reverse();
+  if(fs || fe) list = list.filter(f=>{
+    const d = f.dataFech || (f.criadoEm ? String(f.criadoEm).slice(0, 10) : '');
+    return (!fs || d >= fs) && (!fe || d <= fe);
+  });
+  if(!list.length){ wrap.innerHTML = '<div class="empty">Nenhum fechamento entre ' + esc(fs || '…') + ' e ' + esc(fe || '…') + '.</div>'; return; }
+  wrap.innerHTML = list.map(f=>{
     const n = f.grupos.reduce((a, g)=> a + g.cargas.length, 0);
     const val = f.grupos.reduce((a, g)=> a + g.apagar, 0);
-    const quando = f.criadoEm ? new Date(f.criadoEm).toLocaleDateString('pt-BR') : '';
+    const quando = f.dataFech ? fmtBR(f.dataFech) : (f.criadoEm ? new Date(f.criadoEm).toLocaleDateString('pt-BR') : '');
     return '<div class="fech-hist-row" data-f="' + esc(f.id) + '">' +
-      '<span class="grow"><b>' + fechPeriodoTxt(f) + '</b> · ' + f.grupos.length + ' transportadora(s) · ' + n + ' carga(s) · ' + fmtBRL(val) + '</span>' +
-      '<span class="mono">' + esc(f.por || '') + (quando ? ' · ' + quando : '') + '</span>' +
+      '<span class="grow"><b>' + fechPeriodoTxt(f) + '</b> · ' + f.grupos.length + ' transportadora(s) · ' + n + ' carga(s) · ' + fmtBRL(val) + ' · 🔒 Fechado em ' + esc(quando || '—') + '</span>' +
+      '<span class="mono">' + esc(f.por || '') + '</span>' +
       '<button class="btn mini" type="button" data-act="fech-dl" title="Gera de novo o resumo + os arquivos por transportadora (com os valores da época)">📥 Baixar de novo</button>' +
       '<button class="btn mini" type="button" data-act="fech-reopen" title="Desfaz: as cargas voltam para PENDENTE">↺ Reabrir</button>' +
     '</div>';
@@ -3750,7 +3806,7 @@ async function fechReabrir(id){
     for(const g of f.grupos) for(const c of g.cargas){
       if(c.d !== d) continue;
       const row = (rec.data[c.sec] || []).find(r=> r.id === c.id);
-      if(row){ delete row.stFech; delete row.fechId; }
+      if(row){ delete row.stFech; delete row.fechId; delete row.fechDt; delete row.stOk; }
     }
     if(loaded || d === currentMapDate){ await relPersistDate(d); }
     else {
@@ -5364,6 +5420,9 @@ function bindStatic(){
   });
   $('#fech-wa-auto').addEventListener('click', waAutoSendAll);
   $('#fech-copy-next').addEventListener('click', fechCopyNext);
+  $('#fech-analise').addEventListener('click', fechToggleAnalise);
+  for(const fid of ['fh-start','fh-end']){ const fe2 = relEl(fid); if(fe2) fe2.addEventListener('change', ()=> renderFechHist()); }
+  const fhc = relEl('fh-clear'); if(fhc) fhc.addEventListener('click', ()=>{ const a2 = relEl('fh-start'), b2 = relEl('fh-end'); if(a2) a2.value = ''; if(b2) b2.value = ''; renderFechHist(); });
 
   /* códigos/whatsapp de transportadora p/ fechamento (mesmo padrão do cadastro de rotas) */
   $('#btn-transp-add').addEventListener('click', ()=>{
