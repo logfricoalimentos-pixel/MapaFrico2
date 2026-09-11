@@ -579,10 +579,13 @@ body.readonly .sec-actions{display:none}
 @media (min-width:1600px){ .modal-fech{width:min(1780px,97vw)} }
 @media (max-width:760px){ .modal-fech{width:100vw;max-height:100vh;height:100vh;border-radius:0} #fech-mask{padding:0} }
 .st-badge.anal{background:#fef3c7;color:#92400e;border:1px solid #fde68a}
-.stok.on-ok{background:#15803d;border-color:#15803d;color:#fff;font-weight:800}
-.stok.on-null{background:#dc2626;border-color:#dc2626;color:#fff;font-weight:800}
 .fech-conf{white-space:nowrap;text-align:center}
-.fech-stok.none{color:#cbd5e1}
+#edc-mask{position:fixed;inset:0;z-index:470;background:rgba(15,23,42,.6);display:flex;align-items:center;justify-content:center;padding:16px}
+#edc-mask[hidden]{display:none}
+.modal-edc{width:min(620px,94vw);max-height:92vh;overflow:auto}
+.edc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;margin:10px 0}
+.edc-grid label{display:flex;flex-direction:column;gap:3px;font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.3px}
+.edc-grid input{border:1px solid var(--line);border-radius:6px;padding:6px 8px;font-size:12.5px;background:#fff;width:100%;min-width:0}
 .fh-filter{display:flex;align-items:end;gap:8px;flex-wrap:wrap;font-size:11px;color:var(--muted);padding:6px 2px}
 .fh-filter label{display:flex;flex-direction:column;gap:2px}
 .fh-filter input{border:1px solid var(--line);border-radius:6px;padding:3px 6px;font-size:11.5px}
@@ -1040,6 +1043,27 @@ body.readonly .sec-actions{display:none}
   </div>
 </div>
 
+<div id="edc-mask" class="no-print" hidden>
+  <div class="modal modal-edc">
+    <div class="fech-head"><h3>✏️ Editar carga do mapa</h3><button class="x" type="button" id="edc-x" title="Fechar sem salvar">✕</button></div>
+    <p class="hint" id="edc-sub"></p>
+    <div class="edc-grid">
+      <label>Destino (rota)<input id="edc-destino" maxlength="40"></label>
+      <label>Placa<input id="edc-placa" class="mono" maxlength="8"></label>
+      <label>Ordem (nº carga)<input id="edc-carga" maxlength="10"></label>
+      <label>Peso (kg)<input id="edc-peso" inputmode="decimal"></label>
+      <label>KM<input id="edc-km" inputmode="decimal"></label>
+      <label>Diárias<input id="edc-dias" inputmode="numeric"></label>
+      <label>Motorista<input id="edc-motorista" maxlength="20"></label>
+      <label>Transportadora<input id="edc-transp" maxlength="40"></label>
+    </div>
+    <p class="hint">💾 Salvar grava no mapa do dia da carga e refaz o cálculo (Total/Média); destino/nº da carga reaplicam as diárias do cadastro de rotas.</p>
+    <div class="modal-actions">
+      <button class="btn" type="button" id="edc-cancel">Cancelar</button>
+      <button class="btn primary" type="button" id="edc-save">💾 Salvar no mapa</button>
+    </div>
+  </div>
+</div>
 <div id="fech-mask" class="no-print" hidden>
   <div class="modal modal-fech" role="dialog" aria-modal="true" aria-labelledby="fech-title">
     <div class="fech-head">
@@ -3091,6 +3115,46 @@ async function fechCopyOpenZap(g, gs, pos){
   else if(w) toast('Conversa aberta, mas a cópia falhou — use 🖼 → 📋 Copiar imagem', 'err');
   return !!okc;
 }
+/* ---- janela ✏️: edita os campos da carga direto no mapa do dia dela ---- */
+let EDC_KEY = null;
+function abrirEdicaoCarga(key){
+  if(!requireAdmin()) return;
+  const it = relFindItem(key); if(!it || relIsFech(it.row)) return;
+  EDC_KEY = key;
+  const r = it.row;
+  relEl('edc-sub').textContent = 'Dia ' + fmtBR(it.d) + ' · ' + (it.sec === 'capital' ? 'Capital' : 'Interior') + ' — o que salvar aqui vale p/ o mapa daquele dia';
+  relEl('edc-destino').value = r.destino || '';
+  relEl('edc-placa').value = r.placa || '';
+  relEl('edc-carga').value = r.carga || '';
+  relEl('edc-peso').value = (r.peso === '' || r.peso == null) ? '' : String(r.peso);
+  relEl('edc-km').value = (r.km === '' || r.km == null) ? '' : String(r.km);
+  relEl('edc-dias').value = String(r.dias == null ? 1 : r.dias);
+  relEl('edc-motorista').value = r.motorista || '';
+  relEl('edc-transp').value = r.transportadora || '';
+  relEl('edc-mask').hidden = false;
+  const f = relEl('edc-destino'); if(f) f.focus();
+}
+function closeEdc(){ const m = relEl('edc-mask'); if(m) m.hidden = true; EDC_KEY = null; }
+async function salvarEdicaoCarga(){
+  const it = relFindItem(EDC_KEY);
+  if(!it){ closeEdc(); return; }
+  relSetField(it, 'destino', relEl('edc-destino').value);
+  it.row.placa = String(relEl('edc-placa').value || '').trim().toUpperCase();
+  relSetField(it, 'carga', relEl('edc-carga').value);
+  relSetField(it, 'peso', relEl('edc-peso').value);
+  relSetField(it, 'km', relEl('edc-km').value);
+  relSetField(it, 'dias', relEl('edc-dias').value);
+  relSetField(it, 'motorista', relEl('edc-motorista').value);
+  relSetField(it, 'transportadora', relEl('edc-transp').value);
+  it.calc = relCalc(it.sec, it.row, it.d);
+  const d = it.d;
+  await relPersistDate(d);
+  if(d === currentMapDate){ REL.mapDirty = true; renderAll(); }
+  relApplyFilters(); renderRelTable(); renderFechTable();
+  audit('carga-editada-janela', fmtBR(d) + ' · ' + (it.row.placa || '') + ' · ' + (it.row.destino || ''));
+  toast('💾 Carga de ' + fmtBR(d) + ' atualizada no mapa', 'ok');
+  closeEdc();
+}
 /* alterna as marcadas entre PENDENTE <-> EM ANÁLISE (antes de pagar, p/ poder editar/incluir/excluir) */
 async function fechToggleAnalise(){
   if(!requireAdmin()) return;
@@ -3100,7 +3164,7 @@ async function fechToggleAnalise(){
   const datas = new Set(); let n = 0;
   for(const x of sel) for(const it of x.itens){
     if(todas) delete it.row.stFech; else it.row.stFech = 'analise';
-    delete it.row.stOk; datas.add(it.d); n++;
+    datas.add(it.d); n++;
   }
   for(const d of datas) await relPersistDate(d);
   audit('fechamento-analise', (todas ? 'devolvidas p/ Pendente: ' : 'marcadas Em Análise: ') + n + ' carga(s)');
@@ -3301,7 +3365,7 @@ function openFech(){
   if(!REL.loaded){ toast('Carregue um período no relatório antes de fechar', 'err'); return; }
   FECH_SEL = {};
   const mask = relEl('fech-mask'); if(mask) mask.hidden = false;
-  relEl('fech-per').textContent = 'Período: ' + fechPeriodoTxt(REL) + ' (pela DATA DE ENTREGA) · entram cargas PENDENTES e EM ANÁLISE · use o ▸ p/ marcar cargas individuais · 🔍 Em Análise libera editar/incluir/excluir e marca ✔ (ok) ou ✘ (null) na lista de cargas';
+  relEl('fech-per').textContent = 'Período: ' + fechPeriodoTxt(REL) + ' (pela DATA DE ENTREGA) · entram cargas PENDENTES e EM ANÁLISE · use o ▸ p/ marcar cargas individuais · 🔍 Em Análise libera editar/incluir/excluir · use o ✏️ na lista de cargas p/ abrir a janela de edição do mapa';
   renderFechTable();
   renderFechHist();
 }
@@ -3317,7 +3381,7 @@ function fechDetRow(g){
   const s = fechSelOf(g.key);
   return '<tr class="fech-det" data-g="' + esc(g.key) + '"><td colspan="10"><table class="fech-det-table"><thead><tr>' +
     '<th style="width:26px" title="include esta carga no fechamento">✓</th><th>Data</th><th>Tipo</th><th>Placa</th><th>Rota</th><th>Ordem</th>' +
-    '<th class="num">Peso (kg)</th><th class="num">KM</th><th class="num">Total (R$)</th><th>Motorista</th><th class="fech-conf" title="para cargas EM ANÁLISE: ✔ = ok / ✘ = null">Conferência</th>' +
+    '<th class="num">Peso (kg)</th><th class="num">KM</th><th class="num">Total (R$)</th><th>Motorista</th><th class="fech-conf" title="Abre a janela de edição desta carga no mapa">Edit</th>' +
   '</tr></thead><tbody>' +
   g.itens.map(it=>{
     const on = s.cargas[it.key] !== false;
@@ -3332,10 +3396,9 @@ function fechDetRow(g){
       '<td class="num">' + (it.calc.km ? fmtNum(it.calc.km) : '') + '</td>' +
       '<td class="num">' + fmtBRL(it.calc.total) + '</td>' +
       '<td>' + esc(it.row.motorista || '') + '</td>' +
-      '<td class="fech-conf">' + (it.row.stFech === 'analise'
-        ? '<button class="btn mini stok' + (it.row.stOk === 'ok' ? ' on-ok' : '') + '" type="button" data-f="stok-ok" title="Marcar OK (conferida) — clique de novo p/ tirar">✔</button> ' +
-          '<button class="btn mini stok' + (it.row.stOk === 'null' ? ' on-null' : '') + '" type="button" data-f="stok-null" title="Marcar NULL (não confere) — clique de novo p/ tirar">✘</button>'
-        : (it.row.stFech === 'fechado' ? '<span class="fech-stok" title="fechada p/ pagamento">🔒</span>' : '<span class="fech-stok none" title="pendente">—</span>')) + '</td>' +
+      '<td class="fech-conf">' + (it.row.stFech === 'fechado'
+        ? '<span class="fech-stok" title="fechada p/ pagamento — reabra o fechamento p/ editar">🔒</span>'
+        : '<button class="btn mini" type="button" data-f="edit-carga" title="Editar as informações desta carga no mapa (janela)">✏️</button>') + '</td>' +
     '</tr>';
   }).join('') + '</tbody></table></td></tr>';
 }
@@ -3454,16 +3517,10 @@ function bindFechPanel(){
           toast('📋 Resumo copiado p/ área de transferência — no WhatsApp a mensagem já abre escrita; pressione ENTER lá p/ enviar', 'ok');
         }
       }
-      const stkB = e.target.closest('[data-f="stok-ok"],[data-f="stok-null"]');
-      if(stkB){
-        const trS = stkB.closest('tr[data-k]');
-        const itS = trS ? relFindItem(trS.getAttribute('data-k')) : null;
-        if(itS && itS.row.stFech === 'analise'){
-          const want = stkB.getAttribute('data-f') === 'stok-ok' ? 'ok' : 'null';
-          if(itS.row.stOk === want) delete itS.row.stOk; else itS.row.stOk = want;
-          relSchedulePersist(itS.d);
-          renderFechTable();
-        }
+      const edB = e.target.closest('[data-f="edit-carga"]');
+      if(edB){
+        const trE = edB.closest('tr[data-k]');
+        if(trE) abrirEdicaoCarga(trE.getAttribute('data-k'));
         return;
       }
       const pb = e.target.closest('[data-f="print"]');
@@ -3806,7 +3863,7 @@ async function fechReabrir(id){
     for(const g of f.grupos) for(const c of g.cargas){
       if(c.d !== d) continue;
       const row = (rec.data[c.sec] || []).find(r=> r.id === c.id);
-      if(row){ delete row.stFech; delete row.fechId; delete row.fechDt; delete row.stOk; }
+      if(row){ delete row.stFech; delete row.fechId; delete row.fechDt; }
     }
     if(loaded || d === currentMapDate){ await relPersistDate(d); }
     else {
@@ -5421,6 +5478,10 @@ function bindStatic(){
   $('#fech-wa-auto').addEventListener('click', waAutoSendAll);
   $('#fech-copy-next').addEventListener('click', fechCopyNext);
   $('#fech-analise').addEventListener('click', fechToggleAnalise);
+  $('#edc-save').addEventListener('click', salvarEdicaoCarga);
+  $('#edc-cancel').addEventListener('click', closeEdc);
+  $('#edc-x').addEventListener('click', closeEdc);
+  $('#edc-mask').addEventListener('mousedown', e=>{ if(e.target.id === 'edc-mask') closeEdc(); });
   for(const fid of ['fh-start','fh-end']){ const fe2 = relEl(fid); if(fe2) fe2.addEventListener('change', ()=> renderFechHist()); }
   const fhc = relEl('fh-clear'); if(fhc) fhc.addEventListener('click', ()=>{ const a2 = relEl('fh-start'), b2 = relEl('fh-end'); if(a2) a2.value = ''; if(b2) b2.value = ''; renderFechHist(); });
 
