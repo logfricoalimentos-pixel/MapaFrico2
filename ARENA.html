@@ -575,6 +575,12 @@ body.readonly .sec-actions{display:none}
 .fech-hist-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px;color:#334155;padding:5px 2px;border-bottom:1px solid var(--line)}
 .fech-hist-row .grow{flex:1;min-width:160px}
 .fech-hist-row .mono{font-size:11.5px;color:var(--muted)}
+.fech-rs{flex-basis:100%;margin:6px 0 4px;padding:8px 10px;background:#f8fafc;border:1px solid var(--line);border-radius:8px}
+.fech-rs .rs-top{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px;font-size:12px;color:#334155}
+.fech-rs .rs-g{margin:4px 0;padding:4px 8px;border:1px solid var(--line);border-radius:6px;background:#fff}
+.fech-rs .rs-gh{display:flex;gap:6px;align-items:center;font-size:12px;color:#0f172a;margin-bottom:2px}
+.fech-rs .rs-c{display:flex;gap:6px;align-items:center;font-size:11.5px;color:#334155;padding:2px 0 2px 18px}
+.fech-rs label{cursor:pointer}
 @media (min-width:1000px){ .modal-fech{width:min(1500px,97vw)} .fech-table{font-size:12px} .fech-table th{padding:5px 6px} .fech-table td{padding:4px 6px} }
 @media (min-width:1600px){ .modal-fech{width:min(1780px,97vw)} }
 @media (max-width:760px){ .modal-fech{width:100vw;max-height:100vh;height:100vh;border-radius:0} #fech-mask{padding:0} }
@@ -1016,7 +1022,7 @@ body.readonly .sec-actions{display:none}
       <h3 id="rel-title">📋 Relatório de Cargas</h3>
       <button class="rel-x" type="button" id="rx-x" title="Fechar (Esc)">✕</button>
     </div>
-    <p class="modal-text">Uma linha por carga (<b>Capital + Interior</b>) do período escolhido. Dá para <b>filtrar</b> e <b>editar aqui mesmo</b>: Ordem, Destino (Rota), Peso, KM, Diárias, Motorista e Transportadora. Ao editar, o app <b>refaz o cálculo</b> na hora — <b>Total</b> (previsão de frete), <b>Média (R$/kg)</b> e <b>Data Final</b> (= Data Inicial + Diárias − 1) — e <b>grava a alteração no mapa do dia</b> correspondente. A coluna <b>Entrega</b> mostra a data de entrega do dia (campo ENTREGA); o período <b>DE/ATÉ</b> e o <b>fechamento</b> usam essa data (dia sem entrega vale pelo dia do lançamento). Frotas não entra.</p>
+    <p class="modal-text">Uma linha por carga (<b>Capital + Interior</b>) do período escolhido. Dá para <b>filtrar</b> e <b>editar aqui mesmo</b>: Ordem, Destino (Rota), Peso, KM, Diárias, Motorista e Transportadora. Ao editar, o app <b>refaz o cálculo</b> na hora — <b>Total</b> (previsão de frete), <b>Média (R$/kg)</b> e <b>Data Final</b> (Capital: = Entrega; Interior: Data Inicial + Diárias − 1, nunca antes da Entrega) — e <b>grava a alteração no mapa do dia</b> correspondente. A coluna <b>Entrega</b> mostra a data de entrega do dia (campo ENTREGA); o período <b>DE/ATÉ</b> e o <b>fechamento</b> usam essa data (dia sem entrega vale pelo dia do lançamento). Frotas não entra.</p>
 
     <div class="rel-bar">
       <div class="rel-dates">
@@ -2576,7 +2582,7 @@ function xlsMapCompleto(){
   toast('📥 Excel gerado: ' + name, 'ok');
 }
 /* ===================== Relatório de Cargas — tela interativa =====================
-   Colunas: Data Inicial (Faturamento) · Data Final (= Data Inicial + Diárias − 1) · Tipo · Placa ·
+   Colunas: Data Inicial (Faturamento) · Entrega · Data Final (Capital = Entrega; Interior = fim da viagem, nunca antes da Entrega) · Tipo · Placa ·
             Rota/Destino · Ordem · Peso · KM · Diárias · Total (R$) · Média (R$/kg) · Motorista · Transportadora
    • FILTROS: Ordem, Destino, Placa, Motorista e Transportadora (texto "contém", ignora acento/caixa),
      faixa de Total (R$), faixa de Média (R$/kg) e Tipo (Capital/Interior).
@@ -2598,17 +2604,22 @@ function relReset(){
   REL = relEmptyState();
 }
 function relEl(id){ return document.getElementById(id); }
-/* Diárias da linha: vazio/nulo/0 contam como 1 (Data Final = Data Inicial) */
+/* Diárias da linha: vazio/nulo/0 contam como 1 (fim da viagem = Data Inicial) */
 function relDiarias(row){ return (row.dias === '' || row.dias == null) ? 1 : (numVal(row.dias) || 1); }
 /* Tudo que é derivado da linha: recalculado a cada edição */
-function relCalc(sec, row, dateIso){
+function relCalc(sec, row, dateIso, entregaIso){
   const f = calcularFrete(sec, row) || {};
   const peso = numVal(row.peso);
   const total = numVal(f.total);
   const media = (total > 0 && peso > 0) ? total / peso : null;
   const diarias = relDiarias(row);
+  /* DATA FINAL = último dia de entrega: CAPITAL sempre = Entrega; INTERIOR = fim da
+     viagem (Data Inicial + Diárias − 1) mas NUNCA antes da Entrega. Sem Entrega → fim da viagem. */
+  const base = addDaysIso(dateIso, diarias - 1);
+  const ent = String(entregaIso || '');
+  const dataFinal = (sec === 'capital') ? (ent || base) : ((ent && ent > base) ? ent : base);
   return {frota: f.frota || '', modo: f.modo || '', peso: peso, km: numVal(row.km), total: total,
-          media: media, diarias: diarias, dataFinal: addDaysIso(dateIso, diarias - 1)};
+          media: media, diarias: diarias, dataFinal: dataFinal};
 }
 function relFmtMedia(v){
   return v == null ? '—' : 'R$ ' + v.toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2}) + '/kg';
@@ -2666,9 +2677,10 @@ async function relLoad(start, end){
           const row = rows[i];
           if(!row || typeof row !== 'object') continue;
           if(!row.id) row.id = uid();   // garante identidade estável da linha
+          const entD = (rec && rec.dtEntrega) || '';
           items.push({d:d, sec:sec, idx:i, row:row, key: d + '|' + sec + '|' + row.id,
-                      live: !!(rec && rec._live), entrega: (rec && rec.dtEntrega) || '',
-                      calc: relCalc(sec, row, d)});
+                      live: !!(rec && rec._live), entrega: entD,
+                      calc: relCalc(sec, row, d, entD)});
         }
       }
     }
@@ -2706,7 +2718,7 @@ function relFiltersActive(f){
             f.totalMin !== '' || f.totalMax !== '' || f.mediaMin !== '' || f.mediaMax !== '');
 }
 function relMatch(it, f){
-  const r = it.row, c = it.calc || relCalc(it.sec, r, it.d);
+  const r = it.row, c = it.calc || relCalc(it.sec, r, it.d, it.entrega);
   // cargas já fechadas p/ pagamento só aparecem com "Exibir fechadas" marcado
   if(!f.mostrarFechadas && relIsFech(r)) return false;
   if(f.tipo && it.sec !== f.tipo) return false;
@@ -2733,7 +2745,7 @@ function relApplyFilters(){
 
 /* ---- renderização ---- */
 function relRowHtml(it){
-  const r = it.row, c = it.calc, dis = isAdmin() ? '' : ' disabled';
+  const r = it.row, c = it.calc, dis = (isAdmin() && !relIsFech(r)) ? '' : ' disabled';
   const inp = (field, value, cls, extra) =>
     '<input type="text" class="' + (cls || '') + '" data-field="' + field + '" value="' + esc(value) + '"' + (extra || '') + dis + ' autocomplete="off">';
   const pesoTxt = (r.peso === '' || r.peso == null) ? '' : fmtPeso2(r.peso);
@@ -2839,7 +2851,7 @@ function relSetField(it, field, raw){
   else if(field === 'destino'){ row.destino = raw; applyRotas(row); }   // diárias automáticas pela rota
   else if(field === 'carga'){ row.carga = raw; applyRotas(row); }        // diárias automáticas pelo nº da rota
   else return false;
-  it.calc = relCalc(it.sec, row, it.d);
+  it.calc = relCalc(it.sec, row, it.d, it.entrega);
   return true;
 }
 function relUpdateRowDom(it, tr){
@@ -2902,6 +2914,7 @@ function bindRelTable(){
     if(!isAdmin()) return;                       // trava de segurança (defesa em profundidade)
     const tr = t.closest('tr[data-key]'); if(!tr) return;
     const it = relFindItem(tr.getAttribute('data-key')); if(!it) return;
+    if(relIsFech(it.row)){ toast('🔒 Carga FECHADA não pode ser editada — reabra no histórico de fechamentos', 'err'); return; }
     const field = t.dataset.field;
     if(!relSetField(it, field, t.value)) return;
     REL.editKeys.add(it.key + '#' + field);
@@ -2970,7 +2983,7 @@ function relToStyled(items, titulo, gerado){
   rows.push(H.map(h=> sxT(h, 4)));
   let tp = 0, tk = 0, tt = 0;
   for(const it of items){
-    const r = it.row, c = it.calc || relCalc(it.sec, r, it.d);
+    const r = it.row, c = it.calc || relCalc(it.sec, r, it.d, it.entrega);
     tp += c.peso; tk += c.km; tt += c.total;
     rows.push([sxT(fmtBR(it.d), 0), sxT(it.entrega ? fmtBR(it.entrega) : '', 0), sxT(fmtBR(c.dataFinal), 0),
       sxT(it.sec === 'capital' ? 'Capital' : 'Interior', 0), sxT(r.placa || '', 0), sxT(r.destino || '', 0), sxT(r.carga || '', 0),
@@ -3000,7 +3013,7 @@ async function relDownload(filtrado){
   if(!requireAdmin()) return;
   if(!REL.loaded){ toast('Carregue um período antes de baixar', 'err'); return; }
   await relFlush();                                  // o Excel sai com o que já foi gravado
-  for(const it of REL.items) it.calc = relCalc(it.sec, it.row, it.d);
+  for(const it of REL.items) it.calc = relCalc(it.sec, it.row, it.d, it.entrega);
   if(filtrado) relApplyFilters();
   const items = filtrado ? REL.view : REL.items;
   if(!items.length){ toast(filtrado ? 'Nenhuma linha corresponde aos filtros' : 'Nenhuma carga de Capital/Interior no período', 'err'); return; }
@@ -3157,7 +3170,8 @@ async function fechCopyOpenZap(g, gs, pos){
 let EDC_KEY = null;
 function abrirEdicaoCarga(key){
   if(!requireAdmin()) return;
-  const it = relFindItem(key); if(!it || relIsFech(it.row)) return;
+  const it = relFindItem(key); if(!it) return;
+  if(relIsFech(it.row)){ toast('🔒 Carga FECHADA não pode ser editada — reabra no histórico de fechamentos', 'err'); return; }
   EDC_KEY = key;
   const r = it.row;
   relEl('edc-sub').textContent = 'Dia ' + fmtBR(it.d) + ' · ' + (it.sec === 'capital' ? 'Capital' : 'Interior') + ' — o que salvar aqui vale p/ o mapa daquele dia';
@@ -3222,7 +3236,7 @@ async function salvarEdicaoCarga(){
   if(vkN == null) delete it.row.valorKg; else it.row.valorKg = vkN;
   const vf = relEl('edc-valorfrete').value; const vfN = (String(vf == null ? '' : vf).trim() === '') ? null : Math.round(num(vf) * 100) / 100;
   if(vfN == null) delete it.row.valorFrete; else it.row.valorFrete = vfN;
-  it.calc = relCalc(it.sec, it.row, it.d);
+  it.calc = relCalc(it.sec, it.row, it.d, it.entrega);
   const d = it.d;
   await relPersistDate(d);
   if(d === currentMapDate){ REL.mapDirty = true; renderAll(); }
@@ -3661,11 +3675,35 @@ function bindFechPanel(){
   if(hist && hist.dataset.fechBound !== '1'){
     hist.dataset.fechBound = '1';
     hist.addEventListener('click', async e=>{
-      const btn = e.target.closest('[data-act]'); if(!btn) return;
-      const rowEl = e.target.closest('[data-f]'); if(!rowEl) return;
+      const rowEl = e.target.closest('.fech-hist-row'); if(!rowEl) return;
       const id = rowEl.getAttribute('data-f');
-      if(btn.dataset.act === 'fech-dl') fechBaixarDeNovo(id);
-      else if(btn.dataset.act === 'fech-reopen') await fechReabrir(id);
+      const act = e.target.closest('[data-act]');
+      if(act){
+        if(act.dataset.act === 'fech-dl'){ fechBaixarDeNovo(id); return; }
+        if(act.dataset.act === 'fech-rs'){
+          const p = rowEl.querySelector('[data-rs-panel]');
+          if(p){ if(p.hidden){ p.innerHTML = fechRsPanel(id); p.hidden = false; } else { p.hidden = true; } }
+          return;
+        }
+      }
+      const rs = e.target.closest('[data-rs]'); if(!rs) return;
+      const panel = rowEl.querySelector('[data-rs-panel]'); if(!panel || panel.hidden) return;
+      const kind = rs.dataset.rs;
+      if(kind === 'all' || kind === 'none'){
+        const on = kind === 'all';
+        panel.querySelectorAll('input[data-rs="c"], input[data-rs="g"]').forEach(cb=>{ cb.checked = on; });
+      } else if(kind === 'g'){
+        rs.closest('.rs-g').querySelectorAll('input[data-rs="c"]').forEach(cb=>{ cb.checked = rs.checked; });
+      } else if(kind === 'c'){
+        const gEl = rs.closest('.rs-g');
+        const cbs = Array.from(gEl.querySelectorAll('input[data-rs="c"]'));
+        gEl.querySelector('input[data-rs="g"]').checked = cbs.every(cb=> cb.checked);
+      } else if(kind === 'ok'){
+        const st = (panel.querySelector('select[data-rs-st]') || {}).value || 'pendente';
+        const keys = new Set();
+        panel.querySelectorAll('input[data-rs="c"]:checked').forEach(cb=> keys.add(cb.getAttribute('data-d') + '|' + cb.getAttribute('data-sec') + '|' + cb.getAttribute('data-id')));
+        await fechReopenSel(id, st, keys);
+      }
     });
   }
 }
@@ -3925,6 +3963,19 @@ function fechXlsTransp(fech, g){
 }
 
 /* ---- histórico: baixar de novo / reabrir ---- */
+function fechRsPanel(id){
+  const f = FECHAMENTOS.find(x=> x.id === id); if(!f) return '';
+  return '<div class="rs-top"><label>Devolver para: <select data-rs-st title="status de volta das cargas marcadas">' +
+    '<option value="pendente">Pendente</option><option value="analise">Em análise</option></select></label>' +
+    '<button class="btn mini" type="button" data-rs="all" title="Marca todas as cargas deste fechamento">Selecionar tudo</button>' +
+    '<button class="btn mini" type="button" data-rs="none" title="Desmarca todas">Limpar</button>' +
+    '<span class="grow"></span>' +
+    '<button class="btn primary mini" type="button" data-rs="ok" title="As marcadas saem do fechamento e voltam ao status escolhido">↺ Reabrir selecionadas</button></div>' +
+    f.grupos.map(g=> '<div class="rs-g"><label class="rs-gh"><input type="checkbox" data-rs="g" checked> <b>' + esc(g.transp) + '</b> · cód. ' + esc(g.codigo || '—') + ' · ' + g.cargas.length + ' carga(s)</label>' +
+      g.cargas.map(c=> '<label class="rs-c"><input type="checkbox" data-rs="c" data-d="' + esc(c.d) + '" data-sec="' + esc(c.sec) + '" data-id="' + esc(c.id) + '" checked> ' +
+        fmtBR(c.d) + ' · ' + (c.sec === 'capital' ? 'Capital' : 'Interior') + ' · ' + esc(c.placa || '—') + ' · ' + esc(c.destino || '') + ' · nº ' + esc(c.ordem || '—') + ' · ' + fmtBRL(c.total) + '</label>').join('') +
+      '</div>').join('');
+}
 function renderFechHist(){
   const wrap = relEl('fech-hist-rows'); if(!wrap) return;
   if(!FECHAMENTOS.length){ wrap.innerHTML = '<div class="empty">Nenhum fechamento feito ainda.</div>'; return; }
@@ -3943,7 +3994,8 @@ function renderFechHist(){
       '<span class="grow"><b>' + fechPeriodoTxt(f) + '</b> · ' + f.grupos.length + ' transportadora(s) · ' + n + ' carga(s) · ' + fmtBRL(val) + ' · 🔒 Fechado em ' + esc(quando || '—') + '</span>' +
       '<span class="mono">' + esc(f.por || '') + '</span>' +
       '<button class="btn mini" type="button" data-act="fech-dl" title="Gera de novo o resumo + os arquivos por transportadora (com os valores da época)">📥 Baixar de novo</button>' +
-      '<button class="btn mini" type="button" data-act="fech-reopen" title="Desfaz: as cargas voltam para PENDENTE">↺ Reabrir</button>' +
+      '<button class="btn mini" type="button" data-act="fech-rs" title="Devolve as cargas escolhidas deste fechamento para PENDENTE ou EM ANÁLISE (filtre pela data de fechamento acima)">↺ Reabrir cargas</button>' +
+      '<div class="fech-rs" data-rs-panel hidden></div>' +
     '</div>';
   }).join('');
 }
@@ -3952,38 +4004,49 @@ function fechBaixarDeNovo(id){
   fechXlsGeral(f);
   for(const g of f.grupos) fechXlsTransp(f, g);
 }
-async function fechReabrir(id){
+async function fechReopenSel(id, st, keys){
   if(!requireAdmin()) return;
   const f = FECHAMENTOS.find(x=> x.id === id); if(!f) return;
-  if(!confirm('Reabrir o fechamento de ' + fechPeriodoTxt(f) + ' (' + f.grupos.length + ' transportadora(s))?\nAs cargas voltam para PENDENTE no mapa dos dias correspondentes.')) return;
-  const datas = new Set();
-  f.grupos.forEach(g=> g.cargas.forEach(c=> datas.add(c.d)));
+  if(!keys || !keys.size){ toast('Marque ao menos uma carga para reabrir', 'err'); return; }
+  const datas = new Set(); keys.forEach(k=> datas.add(k.split('|')[0]));
   for(const d of Array.from(datas).sort()){
-    // AUDITORIA: se o dia está carregado no relatório, usa os MESMOS objetos de linha
-    // (REL.recs) — baixar de novo o registro criaria cópias e a tabela aberta continuaria
-    // mostrando o status antigo. Só baixa do storage o que não está carregado.
+    // mesma auditoria do reabrir total: usa os objetos de linha já carregados (REL.recs)
+    // para não criar cópias — o storage só é lido para dias fora do relatório
     const loaded = REL.recs[d] || null;
     const rec = loaded || ((d === currentMapDate) ? {data: DATA, _live: true} : relNormalizeRec(await Stor.get('map:' + d)));
     if(!rec || !rec.data) continue;
-    for(const g of f.grupos) for(const c of g.cargas){
-      if(c.d !== d) continue;
-      const row = (rec.data[c.sec] || []).find(r=> r.id === c.id);
-      if(row){ delete row.stFech; delete row.fechId; delete row.fechDt; }
+    for(const k of keys){
+      const p = k.split('|'); if(p[0] !== d) continue;
+      const row = (rec.data[p[1]] || []).find(r=> r.id === p[2]);
+      if(!row) continue;
+      if(st === 'analise') row.stFech = 'analise'; else delete row.stFech;
+      delete row.fechId; delete row.fechDt;
     }
     if(loaded || d === currentMapDate){ await relPersistDate(d); }
     else {
       rec.savedAt = new Date().toISOString();
-      const clean = s => (rec.data[s] || []).map(r=>{ const o = Object.assign({}, r); delete o._sel; return o; });
+      const clean = s2 => (rec.data[s2] || []).map(r=>{ const o = Object.assign({}, r); delete o._sel; return o; });
       await Stor.set('map:' + d, Object.assign({}, rec, {data: {frotas: clean('frotas'), capital: clean('capital'), interior: clean('interior')}}));
     }
   }
-  FECHAMENTOS = FECHAMENTOS.filter(x=> x.id !== id);
+  let n = 0;
+  for(const g of f.grupos){
+    const antes = g.cargas.length;
+    g.cargas = g.cargas.filter(c=> !keys.has(c.d + '|' + c.sec + '|' + c.id));
+    n += antes - g.cargas.length;
+    g.peso = g.cargas.reduce((a,c)=> a + (numVal(c.peso) || 0), 0);
+    g.faturado = g.cargas.reduce((a,c)=> a + (numVal(c.total) || 0), 0);
+    g.apagar = Math.max(0, g.faturado - (numVal(g.abatimento) || 0));
+    g.custoKg = g.peso > 0 ? g.faturado / g.peso : null;
+  }
+  f.grupos = f.grupos.filter(g=> g.cargas.length);
+  if(!f.grupos.length) FECHAMENTOS = FECHAMENTOS.filter(x=> x.id !== id);
   await Stor.set('fechamentos', FECHAMENTOS);
-  audit('fechamento-reaberto', id + ' · ' + fechPeriodoTxt(f));
+  audit('fechamento-reaberto-parcial', id + ' · ' + n + ' carga(s) → ' + (st === 'analise' ? 'EM ANÁLISE' : 'PENDENTE'));
   renderFechHist();
   if(REL.loaded){ relApplyFilters(); renderRelTable(); }
   if(REL.mapDirty){ renderAll(); }
-  toast('↺ Fechamento reaberto — cargas PENDENTE de novo', 'ok');
+  toast('↺ ' + n + ' carga(s) reaberta(s) → ' + (st === 'analise' ? 'EM ANÁLISE' : 'PENDENTE') + (f.grupos.length ? '' : ' · fechamento saiu do histórico'), 'ok');
 }
 
 /* ---- cadastro de códigos de transportadora (Configurações) ---- */
@@ -5268,6 +5331,7 @@ function bindStatic(){
     if(!field) return;
     const row = DATA[sec].find(r=> r.id === id);
     if(!row) return;
+    if(row.stFech === 'fechado'){ toast('🔒 Carga FECHADA não pode ser editada — reabra no histórico de fechamentos', 'err'); renderAll(); return; }
     const f = {rowId:id, sec, placa:row.placa, field, sel: t.selectionStart != null? t.selectionStart : null, raw:t.value};
     if(field === 'placa'){
       row.placa = t.value;
@@ -5323,6 +5387,7 @@ function bindStatic(){
     const row = DATA[sec].find(r=> r.id === tr.dataset.id);
     if(!row) return;
     if(t.dataset.act === 'sel'){ row._sel = t.checked; return; }
+    if(row.stFech === 'fechado'){ toast('🔒 Carga FECHADA não pode ser editada — reabra no histórico de fechamentos', 'err'); return; }
     if(t.dataset.act === 'move'){
       const target = t.value;
       if(target !== sec){
