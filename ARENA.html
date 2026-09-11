@@ -307,6 +307,7 @@ body.print-big-font .custo-cell{font-size:15px}
 .rotas-head{grid-template-columns:1fr 90px 28px}
 .rotas-add{grid-template-columns:1fr 90px 34px}
 .transp-add{grid-template-columns:1fr 72px 96px 34px}
+.res-actions{display:flex;justify-content:flex-end;margin:0 0 6px}
 .ret-list{max-height:264px;overflow:auto;border:1px solid var(--line);border-radius:8px;margin:10px 0 4px;padding:4px;background:#fff}
 .ret-list label{display:flex;gap:8px;align-items:center;font-size:12px;color:#334155;padding:3px 6px;border-bottom:1px solid var(--line);cursor:pointer}
 .ret-list label:last-child{border-bottom:0}
@@ -3582,40 +3583,86 @@ function renderFechTable(){
 /* ---- 📊 resumo geral do fechamento: linhas Interior/Capital por transportadora,
    subtotal por transportadora (c/ código + abatimento + a pagar) e TOTAL GERAL —
    mesmas informações da planilha do financeiro, recalculado a cada marcação ---- */
+/* linhas do resumo geral AGRUPADO: 1 linha Capital + 1 Interior por transportadora,
+   subtotal por transportadora e TOTAL GERAL (mesmo layout no painel e no Excel geral) */
+function fechResumoRows(grupos){
+  const rows = []; let tp = 0, ta = 0, tf = 0, tap = 0;
+  for(const g of grupos){
+    const cargas = g.cargas || [];
+    let gP = 0, gF = 0;
+    for(const sec of ['interior','capital']){
+      const cs = cargas.filter(c=> c.sec === sec);
+      if(!cs.length) continue;
+      const p = cs.reduce((a,c)=> a + (numVal(c.peso) || 0), 0);
+      const f = cs.reduce((a,c)=> a + (numVal(c.total) || 0), 0);
+      gP += p; gF += f;
+      rows.push({t:'reg', regiao: sec === 'capital' ? 'Capital' : 'Interior', transp: g.transp, codigo: String(g.codigo || ''),
+                 peso: p, abat: null, fat: f, pagar: f, custo: p > 0 ? f / p : null, nf: '', boleto: ''});
+    }
+    const ab = numVal(g.abatimento) || 0;
+    const pagar = Math.max(0, gF - ab);
+    rows.push({t:'sub', transp: g.transp, codigo: String(g.codigo || ''), peso: gP, abat: ab, fat: gF, pagar: pagar,
+               custo: gP > 0 ? gF / gP : null, nf: g.nf || '', boleto: g.boleto || ''});
+    tp += gP; ta += ab; tf += gF; tap += pagar;
+  }
+  rows.push({t:'tot', peso: tp, abat: ta, fat: tf, pagar: tap, custo: tp > 0 ? tf / tp : null});
+  return rows;
+}
 function renderFechResumo(){
   const wrap = relEl('fech-resumo'); if(!wrap) return;
   const groups = fechGroups();
   const selG = groups.map(g=> ({g: g, s: fechGroupSel(g)})).filter(x=> x.s.itens.length);
   if(!selG.length){ wrap.innerHTML = '<div class="empty">Nenhuma carga MARCADA no período — o resumo aparece conforme você marca.</div>'; return; }
-  let tPeso = 0, tFat = 0, tAbat = 0, tPagar = 0, tCg = 0;
-  let html = '<table class="fech-table fech-resumo"><thead><tr>' +
-    '<th>Região</th><th>Transportadora</th><th class="num">Cargas</th><th class="num">Peso (kg)</th>' +
-    '<th class="num">Abatimento (R$)</th><th class="num">Valor faturado (R$)</th><th class="num">Valor a ser pago (R$)</th>' +
+  const grupos = selG.map(x=> ({transp: x.g.nome, codigo: String(x.s.codigo || '').trim(), nf: x.s.nf, boleto: x.s.boleto,
+    cargas: x.s.itens.map(it=> ({sec: it.sec, peso: it.calc.peso, total: it.calc.total}))}));
+  const rows = fechResumoRows(grupos);
+  let html = '<div class="res-actions"><button class="btn mini" type="button" id="res-print" title="Imprime o resumo geral agrupado (1 linha Capital + 1 Interior por transportadora, subtotais e TOTAL GERAL)">🖨 Imprimir</button></div>' +
+    '<table class="fech-table fech-resumo"><thead><tr>' +
+    '<th>Região</th><th>Transportadora</th><th>Código</th><th class="num">Peso transportado (kg)</th><th class="num">Abatimento (R$)</th>' +
+    '<th class="num">Valor faturado (R$)</th><th class="num">Valor a ser pago (R$)</th><th class="num">Custo (R$/kg)</th><th>Entregou a NF</th><th>Boleto</th>' +
     '</tr></thead><tbody>';
-  for(const {g, s} of selG){
-    const ab = numVal(s.abat);
-    let gP = 0, gF = 0, gC = 0;
-    for(const sec of ['interior','capital']){
-      const its = s.itens.filter(it=> it.sec === sec);
-      if(!its.length) continue;
-      const p = its.reduce((a, it)=> a + it.calc.peso, 0);
-      const f = its.reduce((a, it)=> a + it.calc.total, 0);
-      gP += p; gF += f; gC += its.length;
-      html += '<tr><td>' + (sec === 'capital' ? 'Capital' : 'Interior') + '</td><td>' + esc(g.nome) + '</td>' +
-        '<td class="num">' + its.length + '</td><td class="num">' + fmtPeso2(p) + '</td><td class="num"></td>' +
-        '<td class="num">' + fmtBRL(f) + '</td><td class="num">' + fmtBRL(f) + '</td></tr>';
+  for(const r of rows){
+    if(r.t === 'reg'){
+      html += '<tr><td>' + r.regiao + '</td><td>' + esc(r.transp) + '</td><td class="mono">' + esc(r.codigo) + '</td>' +
+        '<td class="num">' + fmtPeso2(r.peso) + '</td><td class="num"></td><td class="num">' + fmtBRL(r.fat) + '</td>' +
+        '<td class="num">' + fmtBRL(r.pagar) + '</td><td class="num">' + relFmtMedia(r.custo) + '</td><td></td><td></td></tr>';
+    } else if(r.t === 'sub'){
+      html += '<tr class="res-sub"><td></td><td>Subtotal — ' + esc(r.transp) + '</td><td></td>' +
+        '<td class="num">' + fmtPeso2(r.peso) + '</td><td class="num">' + (r.abat ? fmtBRL(r.abat) : '') + '</td>' +
+        '<td class="num">' + fmtBRL(r.fat) + '</td><td class="num">' + fmtBRL(r.pagar) + '</td><td class="num">' + relFmtMedia(r.custo) + '</td>' +
+        '<td>' + esc(r.nf) + '</td><td>' + esc(r.boleto) + '</td></tr>';
+    } else {
+      html += '<tr class="res-total"><td></td><td>TOTAL GERAL</td><td></td>' +
+        '<td class="num">' + fmtPeso2(r.peso) + '</td><td class="num">' + (r.abat ? fmtBRL(r.abat) : '') + '</td>' +
+        '<td class="num">' + fmtBRL(r.fat) + '</td><td class="num">' + fmtBRL(r.pagar) + '</td><td class="num">' + relFmtMedia(r.custo) + '</td><td></td><td></td></tr>';
     }
-    if(!gC) continue;
-    const pagar = Math.max(0, gF - ab);
-    tPeso += gP; tFat += gF; tAbat += ab; tPagar += pagar; tCg += gC;
-    html += '<tr class="res-sub"><td></td><td>Subtotal — ' + esc(g.nome) + (String(s.codigo || '').trim() ? ' · cód. ' + esc(String(s.codigo).trim()) : '') + '</td>' +
-      '<td class="num">' + gC + '</td><td class="num">' + fmtPeso2(gP) + '</td><td class="num">' + (ab ? fmtBRL(ab) : '') + '</td>' +
-      '<td class="num">' + fmtBRL(gF) + '</td><td class="num">' + fmtBRL(pagar) + '</td></tr>';
   }
-  html += '<tr class="res-total"><td></td><td>TOTAL GERAL</td><td class="num">' + tCg + '</td><td class="num">' + fmtPeso2(tPeso) + '</td>' +
-    '<td class="num">' + (tAbat ? fmtBRL(tAbat) : '') + '</td><td class="num">' + fmtBRL(tFat) + '</td><td class="num">' + fmtBRL(tPagar) + '</td></tr>' +
-    '</tbody></table>';
+  html += '</tbody></table>';
   wrap.innerHTML = html;
+  if(wrap.dataset.resBound !== '1'){
+    wrap.dataset.resBound = '1';
+    wrap.addEventListener('click', e=>{ if(e.target.closest('#res-print')) printResumo(); });
+  }
+}
+/* 🖨 imprime o resumo agrupado (frame oculto p/ não levar o resto da tela) */
+function printResumo(){
+  const node = relEl('fech-resumo'); if(!node) return;
+  const tbl = node.querySelector('table'); if(!tbl){ toast('Nada para imprimir ainda — marque cargas no período', 'err'); return; }
+  const css = 'body{font-family:Arial,Helvetica,sans-serif;margin:14px}table{border-collapse:collapse;width:100%;font-size:11px}' +
+    'th,td{border:1px solid #94a3b8;padding:4px 6px;text-align:left}td.num,th.num{text-align:right}' +
+    'thead th{background:#0f172a;color:#fff}.res-sub td{background:#111;color:#fff;font-weight:700}.res-total td{background:#15803d;color:#fff;font-weight:700}' +
+    'h3{margin:0 0 8px;font-size:14px}';
+  const head = '<html><head><meta charset="utf-8"><title>Resumo geral do fechamento</title><style>' + css + '</style></head><body>' +
+    '<h3>RESUMO GERAL DO FECHAMENTO — ' + esc(fechPeriodoTxt(REL)) + ' · gerado em ' + new Date().toLocaleDateString('pt-BR') + '</h3>' +
+    tbl.outerHTML + '</body></html>';
+  const f = document.createElement('iframe');
+  f.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0';
+  document.body.appendChild(f);
+  const d = f.contentDocument || (f.contentWindow && f.contentWindow.document);
+  d.open(); d.write(head); d.close();
+  try{ f.contentWindow.focus(); f.contentWindow.print(); }catch(e){ console.error(e); }
+  setTimeout(()=> f.remove(), 6000);
+  toast('🖨 Resumo agrupado enviado p/ impressão', 'ok');
 }
 function renderFechFoot(){
   const foot = relEl('fech-foot'); if(!foot) return;
@@ -3941,19 +3988,19 @@ function fechXlsGeral(fech){
   const rows = [];
   rows.push([sxT('FECHAMENTO GERAL DOS VEÍCULOS TERCEIROS — ' + fechPeriodoTxt(fech), 3)].concat(sxBlank(3, 8)));
   rows.push(['REGIAO','TRANSPORTADORA','CÓDIGO','PESO TRANSPORTADO','ABATIMENTO','VALOR FATURADO','VALOR A SER PAGO','CUSTO (R$/KG)','ENTREGOU A NF','Boleto'].map(h=> sxT(h, 4)));
-  let tp = 0, ta = 0, tf = 0, tap = 0;
-  for(const g of fech.grupos){
-    for(const c of g.cargas){
-      rows.push([sxT(c.sec === 'capital' ? 'Capital' : 'Interior', 0), sxT(g.transp, 0), sxT(g.codigo, 0),
-        sxT(c.peso, 1), sxT('', 2), sxT(c.total, 2), sxT(c.total, 2),
-        sxT(c.custoKg != null ? c.custoKg : (c.peso > 0 ? c.total / c.peso : ''), 16), sxT('', 0), sxT('', 0)]);
+  /* agrupado: 1 linha Capital + 1 Interior por transportadora, subtotal e TOTAL GERAL */
+  for(const r of fechResumoRows(fech.grupos)){
+    if(r.t === 'reg'){
+      rows.push([sxT(r.regiao, 0), sxT(r.transp, 0), sxT(r.codigo, 0), sxT(r.peso, 1), sxT('', 2), sxT(r.fat, 2), sxT(r.pagar, 2),
+        sxT(r.custo != null ? r.custo : '', 16), sxT('', 0), sxT('', 0)]);
+    } else if(r.t === 'sub'){
+      rows.push([sxT('', 5), sxT('Subtotal - ' + r.transp, 5), sxT('', 5), sxT(r.peso, 6), sxT(r.abat, 7), sxT(r.fat, 7), sxT(r.pagar, 7),
+        sxT(r.custo != null ? r.custo : '', 17), sxT(r.nf, 5), sxT(r.boleto, 5)]);
+    } else {
+      rows.push([sxT('', 8), sxT('TOTAL GERAL', 8), sxT('', 8), sxT(r.peso, 9), sxT(r.abat, 10), sxT(r.fat, 10), sxT(r.pagar, 10),
+        sxT(r.custo != null ? r.custo : '', 18), sxT('', 8), sxT('', 8)]);
     }
-    rows.push([sxT('', 5), sxT('Subtotal - ' + g.transp, 5), sxT('', 5), sxT(g.peso, 6), sxT(g.abatimento, 7),
-      sxT(g.faturado, 7), sxT(g.apagar, 7), sxT(g.custoKg != null ? g.custoKg : (g.peso > 0 ? g.faturado / g.peso : ''), 17),
-      sxT(g.nf || '', 5), sxT(g.boleto || '', 5)]);
-    tp += g.peso; ta += g.abatimento; tf += g.faturado; tap += g.apagar;
   }
-  rows.push([sxT('', 8), sxT('TOTAL GERAL', 8), sxT('', 8), sxT(tp, 9), sxT(ta, 10), sxT(tf, 10), sxT(tap, 10), sxT(tp > 0 ? tf / tp : '', 18), sxT('', 8), sxT('', 8)]);
   const name = 'fechamento-geral-' + fech.start + (fech.start === fech.end ? '' : '_a_' + fech.end) + '.xlsx';
   const ok = sxWrite(name, [{name:'FECHAMENTO', cols:[10,26,10,18,14,18,18,14,14,10], af:'A2:J' + rows.length, merges:['A1:J1'], rows: rows}]);
   if(ok) toast('📥 Resumo do financeiro: ' + name, 'ok');
