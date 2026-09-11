@@ -1056,8 +1056,10 @@ body.readonly .sec-actions{display:none}
       <label>Diárias<input id="edc-dias" inputmode="numeric"></label>
       <label>Motorista<input id="edc-motorista" maxlength="20"></label>
       <label>Transportadora<input id="edc-transp" maxlength="40"></label>
+      <label>Veículo p/ frete (tabela)<select id="edc-frota"></select></label>
     </div>
-    <p class="hint">💾 Salvar grava no mapa do dia da carga e refaz o cálculo (Total/Média); destino/nº da carga reaplicam as diárias do cadastro de rotas.</p>
+    <div class="hint edc-calc" id="edc-calc" style="border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:#f8fafc;font-size:12px;line-height:1.5"></div>
+    <p class="hint">💾 Salvar grava no mapa do dia da carga e refaz o cálculo (Total/Média); destino/nº da carga reaplicam as diárias do cadastro de rotas; o veículo escolhido vale só p/ esta carga (tabela negociada, ex.: pagar 3/4 num toco).</p>
     <div class="modal-actions">
       <button class="btn" type="button" id="edc-cancel">Cancelar</button>
       <button class="btn primary" type="button" id="edc-save">💾 Salvar no mapa</button>
@@ -1525,7 +1527,7 @@ function isNegSim(row){ return String(row.neg||'').trim().toLowerCase() === 'sim
    Atenção: valor BRUTO da tabela — a margem +10% (FRETE_MARGIN_NONNEG) é aplicada por calcularFrete()
    e metricsFromData() para cargas não negociadas. */
 function tableForecast(section, row){
-  const frota = selecionarFrota(row.peso);
+  const frota = row.frotaCalc || selecionarFrota(row.peso);   // frotaCalc = tabela negociada p/ esta carga
   if(!frota) return {frota, total:0};
   const tabelaTipo = normalizarTipo(row.tabela);
   const grupo = section === 'capital' ? 'capital' : 'interior';
@@ -1540,8 +1542,8 @@ function tableForecast(section, row){
 /* Previsão COM negociação: Valor Frete manual > Neg?=Sim (VlrKg×Peso) > tabela (+10% margem no valor previsto).
    Cargas negociadas (Valor Frete manual ou Neg? = Sim) NÃO recebem a margem. */
 function calcularFrete(section, row){
-  const frota = selecionarFrota(row.peso);
-  // Peso acima do suportado (> 17.000 kg) -> N/A (mesma regra do Python: tem prioridade)
+  const frota = row.frotaCalc || selecionarFrota(row.peso);
+  // Sem frota (peso > 17.000 kg) e sem tabela negociada -> N/A (mesma regra do Python)
   if(!frota) return {frota:'N/A', total:0};
   if(section !== 'frotas'){
     const vf = numVal(row.valorFrete);
@@ -3131,10 +3133,35 @@ function abrirEdicaoCarga(key){
   relEl('edc-dias').value = String(r.dias == null ? 1 : r.dias);
   relEl('edc-motorista').value = r.motorista || '';
   relEl('edc-transp').value = r.transportadora || '';
+  const selF = relEl('edc-frota');
+  const auto = selecionarFrota(r.peso);
+  selF.innerHTML = '<option value="">Auto pelo peso (' + esc(auto || 'N/A') + ')</option>' +
+    FLEET_TIERS.map(t=> '<option value="' + esc(t.name) + '">Tabela ' + esc(String(t.name).replace(/^Caminh[aã]o\s*/i, '')) + '</option>').join('');
+  selF.value = r.frotaCalc || '';
   relEl('edc-mask').hidden = false;
+  edcPreview();
   const f = relEl('edc-destino'); if(f) f.focus();
 }
 function closeEdc(){ const m = relEl('edc-mask'); if(m) m.hidden = true; EDC_KEY = null; }
+/* preview ao vivo do cálculo (valor do frete + média da rota) com o que está digitado na janela */
+function edcPreview(){
+  const it = relFindItem(EDC_KEY); const box = relEl('edc-calc'); if(!it || !box) return;
+  const tmp = Object.assign({}, it.row, {
+    destino: relEl('edc-destino').value, carga: relEl('edc-carga').value,
+    peso: (relEl('edc-peso').value === '') ? '' : ceil2(num(relEl('edc-peso').value)),
+    km: (relEl('edc-km').value === '') ? '' : Math.max(0, Math.floor(num(relEl('edc-km').value))),
+    dias: (relEl('edc-dias').value === '') ? 1 : Math.max(1, Math.round(numVal(relEl('edc-dias').value)) || 1),
+    frotaCalc: relEl('edc-frota').value || ''
+  });
+  const cf = calcularFrete(it.sec, tmp) || {};
+  const peso = numVal(tmp.peso), tot = numVal(cf.total);
+  const med = (tot > 0 && peso > 0) ? tot / peso : null;
+  const auto = selecionarFrota(tmp.peso);
+  box.innerHTML = '💰 Valor do frete: <b>' + fmtBRL(tot) + '</b> · Média da rota: <b>' + relFmtMedia(med) + '</b><br>' +
+    'Veículo p/ cálculo: <b>' + esc(cf.frota || '—') + '</b> ' +
+    (tmp.frotaCalc ? '(manual — tabela negociada)' : '(auto pelo peso: ' + esc(auto || 'N/A') + ')') +
+    ' · Regra: ' + esc(cf.modo || '—');
+}
 async function salvarEdicaoCarga(){
   const it = relFindItem(EDC_KEY);
   if(!it){ closeEdc(); return; }
@@ -3146,6 +3173,8 @@ async function salvarEdicaoCarga(){
   relSetField(it, 'dias', relEl('edc-dias').value);
   relSetField(it, 'motorista', relEl('edc-motorista').value);
   relSetField(it, 'transportadora', relEl('edc-transp').value);
+  const fv = String(relEl('edc-frota').value || '');
+  if(fv) it.row.frotaCalc = fv; else delete it.row.frotaCalc;
   it.calc = relCalc(it.sec, it.row, it.d);
   const d = it.d;
   await relPersistDate(d);
@@ -5482,6 +5511,8 @@ function bindStatic(){
   $('#edc-cancel').addEventListener('click', closeEdc);
   $('#edc-x').addEventListener('click', closeEdc);
   $('#edc-mask').addEventListener('mousedown', e=>{ if(e.target.id === 'edc-mask') closeEdc(); });
+  $('#edc-mask').addEventListener('input', edcPreview);
+  $('#edc-mask').addEventListener('change', edcPreview);
   for(const fid of ['fh-start','fh-end']){ const fe2 = relEl(fid); if(fe2) fe2.addEventListener('change', ()=> renderFechHist()); }
   const fhc = relEl('fh-clear'); if(fhc) fhc.addEventListener('click', ()=>{ const a2 = relEl('fh-start'), b2 = relEl('fh-end'); if(a2) a2.value = ''; if(b2) b2.value = ''; renderFechHist(); });
 
