@@ -307,6 +307,10 @@ body.print-big-font .custo-cell{font-size:15px}
 .rotas-head{grid-template-columns:1fr 90px 28px}
 .rotas-add{grid-template-columns:1fr 90px 34px}
 .transp-add{grid-template-columns:1fr 72px 96px 34px}
+.ret-list{max-height:264px;overflow:auto;border:1px solid var(--line);border-radius:8px;margin:10px 0 4px;padding:4px;background:#fff}
+.ret-list label{display:flex;gap:8px;align-items:center;font-size:12px;color:#334155;padding:3px 6px;border-bottom:1px solid var(--line);cursor:pointer}
+.ret-list label:last-child{border-bottom:0}
+.ret-list .empty{padding:10px;font-size:12px;color:#64748b;text-align:center}
 .rs-row-menu{position:fixed;z-index:9990;display:flex;flex-direction:column;gap:4px;background:#fff;border:1px solid var(--line);border-radius:8px;padding:6px;box-shadow:0 6px 18px rgba(0,0,0,.18);min-width:196px}
 .rs-row-menu button{border:1px solid var(--line);background:#f8fafc;border-radius:6px;padding:5px 8px;font-size:12px;cursor:pointer;text-align:left}
 .rs-row-menu button:hover{background:#eef2ff}
@@ -589,8 +593,8 @@ body.readonly .sec-actions{display:none}
 @media (max-width:760px){ .modal-fech{width:100vw;max-height:100vh;height:100vh;border-radius:0} #fech-mask{padding:0} }
 .st-badge.anal{background:#fef3c7;color:#92400e;border:1px solid #fde68a}
 .fech-conf{white-space:nowrap;text-align:center}
-#edc-mask{position:fixed;inset:0;z-index:470;background:rgba(15,23,42,.6);display:flex;align-items:center;justify-content:center;padding:16px}
-#edc-mask[hidden]{display:none}
+#edc-mask, #ret-mask{position:fixed;inset:0;z-index:470;background:rgba(15,23,42,.6);display:flex;align-items:center;justify-content:center;padding:16px}
+#edc-mask[hidden], #ret-mask[hidden]{display:none}
 .modal-edc{width:min(620px,94vw);max-height:92vh;overflow:auto}
 .edc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;margin:10px 0}
 .edc-grid label{display:flex;flex-direction:column;gap:3px;font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.3px}
@@ -1051,6 +1055,7 @@ body.readonly .sec-actions{display:none}
     <div class="rel-tools">
       <label class="chk"><input type="checkbox" id="rf-fechadas"> Exibir fechadas</label>
       <button class="btn" type="button" id="rf-fech-btn" title="Fechamento quinzenal de frete: agrupa por transportadora (Capital + Interior), marca as cargas como Fechado e gera o resumo do financeiro + o relatório de cada transportador">🔒 Fechamento</button>
+      <button class="btn" type="button" id="rf-ret-btn" title="Devolve cargas FECHADAS p/ PENDENTE ou EM ANÁLISE, por critérios: data em que foi fechada, transportador e ordem">↺ Retornar fechadas</button>
       <span class="rel-tools-hint" id="rel-fech-hint"></span>
     </div>
 
@@ -1081,6 +1086,26 @@ body.readonly .sec-actions{display:none}
   </div>
 </div>
 
+<div id="ret-mask" class="no-print" hidden>
+  <div class="modal modal-edc">
+    <div class="fech-head"><h3>↺ Retornar cargas fechadas</h3><button class="x" type="button" id="ret-x" title="Fechar sem retornar">✕</button></div>
+    <p class="hint">Critérios: <b>data em que foi fechada</b> (a lista só mostra datas que tiveram fechamento), <b>transportador</b> e <b>ordem</b>. Dá para combinar todos ou usar só alguns — marcando <b>só a data</b>, voltam <b>todas</b> as fechadas naquela data.</p>
+    <div class="edc-grid">
+      <label>Data do fechamento<select id="ret-data"></select></label>
+      <label>Transportador<select id="ret-transp"></select></label>
+      <label>Ordem (nº da carga)<input id="ret-ordem" placeholder="todas" maxlength="12"></label>
+      <label>Status de volta<select id="ret-st"><option value="pendente">Pendente</option><option value="analise">Em análise</option></select></label>
+    </div>
+    <div id="ret-list" class="ret-list"></div>
+    <div class="modal-actions">
+      <button class="btn" type="button" id="ret-all" title="Marca todas as listadas">Selecionar tudo</button>
+      <button class="btn" type="button" id="ret-none" title="Desmarca todas">Limpar</button>
+      <span style="flex:1"></span>
+      <button class="btn" type="button" id="ret-cancel">Cancelar</button>
+      <button class="btn primary" type="button" id="ret-ok" title="Devolve as cargas marcadas ao status escolhido">↺ Retornar selecionadas</button>
+    </div>
+  </div>
+</div>
 <div id="edc-mask" class="no-print" hidden>
   <div class="modal modal-edc">
     <div class="fech-head"><h3>✏️ Editar carga do mapa</h3><button class="x" type="button" id="edc-x" title="Fechar sem salvar">✕</button></div>
@@ -2770,7 +2795,7 @@ function relRowHtml(it){
     '<td class="w-transp">' + inp('transportadora', r.transportadora || '') + '</td>' +
     '<td>' + (relIsFech(r)
         ? '<span class="st-badge fech" title="Fechado para pagamento' + (r.fechId ? ' no fechamento ' + esc(r.fechId) : '') + '">Fechado</span>' +
-          (isAdmin() ? ' <button class="btn mini" type="button" data-rs-row="' + esc(it.key) + '" title="Devolver SÓ esta carga p/ PENDENTE ou EM ANÁLISE (tira do fechamento)">↺</button>' : '')
+          ' <button class="btn mini" type="button" data-rs-row="' + esc(it.key) + '" title="Devolver SÓ esta carga p/ PENDENTE ou EM ANÁLISE (tira do fechamento)">↺</button>'
         : relIsAnalise(r)
           ? '<span class="st-badge anal" title="Em análise — ainda dá p/ editar, incluir e excluir; marque ✔ (ok) ou ✘ (null) no painel de fechamento">Em análise</span>'
           : '<span class="st-badge pend" title="Aguardando fechamento de frete">Pendente</span>') + '</td>' +
@@ -4011,6 +4036,58 @@ function fechBaixarDeNovo(id){
   const f = FECHAMENTOS.find(x=> x.id === id); if(!f) return;
   fechXlsGeral(f);
   for(const g of f.grupos) fechXlsTransp(f, g);
+}
+/* ---- janela ↺ Retornar fechadas: critérios data de fechamento + transportador + ordem ---- */
+function retFechCargas(){
+  const out = [];
+  for(const f of FECHAMENTOS){
+    const dt = f.dataFech || (f.criadoEm ? String(f.criadoEm).slice(0, 10) : '');
+    for(const g of f.grupos) for(const c of g.cargas){
+      out.push({fid: f.id, dt: dt, periodo: fechPeriodoTxt(f), transp: g.transp, d: c.d, sec: c.sec, id: c.id,
+                ordem: String(c.ordem || ''), placa: c.placa || '', destino: c.destino || '', total: c.total});
+    }
+  }
+  return out;
+}
+function retRender(){
+  const all = retFechCargas();
+  const selD = relEl('ret-data'), selT = relEl('ret-transp'), ordIn = relEl('ret-ordem');
+  if(!selD || !selT || !ordIn) return;
+  const datas = [...new Set(all.map(x=> x.dt))].filter(Boolean).sort().reverse();  // só datas q tiveram fechamento
+  const keepD = selD.value;
+  selD.innerHTML = datas.map(d=> '<option value="' + esc(d) + '">' + fmtBR(d) + '</option>').join('') || '<option value="">— nenhum fechamento —</option>';
+  if(datas.indexOf(keepD) > -1) selD.value = keepD;
+  const inD = all.filter(x=> x.dt === selD.value);
+  const transps = [...new Set(inD.map(x=> x.transp))].sort((a,b)=> a.localeCompare(b, 'pt-BR'));
+  const keepT = selT.value;
+  selT.innerHTML = '<option value="">Todos</option>' + transps.map(t=> '<option value="' + esc(t) + '">' + esc(t) + '</option>').join('');
+  if(transps.indexOf(keepT) > -1) selT.value = keepT;
+  const ord = String(ordIn.value || '').trim().toLowerCase();
+  const list = inD.filter(x=> (!selT.value || x.transp === selT.value) && (!ord || x.ordem.toLowerCase().indexOf(ord) > -1));
+  const wrap = relEl('ret-list');
+  wrap.innerHTML = list.length ? list.map(x=>
+    '<label><input type="checkbox" data-k="' + esc(x.d + '|' + x.sec + '|' + x.id) + '" data-fid="' + esc(x.fid) + '" checked> ' +
+    'fechada em <b>' + fmtBR(x.dt) + '</b> · ' + esc(x.periodo) + ' · ' + esc(x.transp) + ' · ordem ' + esc(x.ordem || '—') + ' · ' +
+    fmtBR(x.d) + ' · ' + (x.sec === 'capital' ? 'Capital' : 'Interior') + ' · ' + esc(x.placa || '—') + ' · ' + esc(x.destino || '') + ' · ' + fmtBRL(x.total) +
+    '</label>').join('')
+    : '<div class="empty">Nenhuma carga fechada nos critérios escolhidos.</div>';
+  relEl('ret-ok').disabled = !list.length;
+}
+function openRet(){ if(!requireAdmin()) return; relEl('ret-mask').hidden = false; retRender(); }
+function closeRet(){ relEl('ret-mask').hidden = true; }
+async function retConfirm(){
+  if(!requireAdmin()) return;
+  const st = relEl('ret-st').value;
+  const cbs = Array.from(relEl('ret-list').querySelectorAll('input[type="checkbox"]:checked'));
+  if(!cbs.length){ toast('Marque ao menos uma carga para retornar', 'err'); return; }
+  const byF = new Map();
+  for(const cb of cbs){
+    const fid = cb.getAttribute('data-fid');
+    if(!byF.has(fid)) byF.set(fid, new Set());
+    byF.get(fid).add(cb.getAttribute('data-k'));
+  }
+  for(const [fid, keys] of byF){ await fechReopenSel(fid, st, keys); }
+  retRender();
 }
 /* menu do ↺ da linha FECHADA no relatório: devolve só aquela carga p/ PENDENTE / EM ANÁLISE */
 function fecharMenuReopenRow(){ const m = document.querySelector('.rs-row-menu'); if(m) m.remove(); }
@@ -5599,6 +5676,16 @@ function bindStatic(){
   $('#rx-x').addEventListener('click', closeReportXls);
   $('#rx-dl-filt').addEventListener('click', ()=> relDownload(true));
   $('#rx-dl-all').addEventListener('click', ()=> relDownload(false));
+  /* janela ↺ retornar fechadas (critérios: data do fechamento + transportador + ordem) */
+  $('#rf-ret-btn').addEventListener('click', openRet);
+  $('#ret-x').addEventListener('click', closeRet);
+  $('#ret-cancel').addEventListener('click', closeRet);
+  $('#ret-data').addEventListener('change', retRender);
+  $('#ret-transp').addEventListener('change', retRender);
+  $('#ret-ordem').addEventListener('input', retRender);
+  $('#ret-all').addEventListener('click', ()=>{ relEl('ret-list').querySelectorAll('input[type="checkbox"]').forEach(cb=>{ cb.checked = true; }); });
+  $('#ret-none').addEventListener('click', ()=>{ relEl('ret-list').querySelectorAll('input[type="checkbox"]').forEach(cb=>{ cb.checked = false; }); });
+  $('#ret-ok').addEventListener('click', retConfirm);
   /* painel de fechamento quinzenal */
   bindFechPanel();
   $('#fech-cancel').addEventListener('click', closeFech);
@@ -5803,6 +5890,7 @@ function bindStatic(){
   $('#edc-cancel').addEventListener('click', closeEdc);
   $('#edc-x').addEventListener('click', closeEdc);
   $('#edc-mask').addEventListener('mousedown', e=>{ if(e.target.id === 'edc-mask') closeEdc(); });
+  $('#ret-mask').addEventListener('mousedown', e=>{ if(e.target.id === 'ret-mask') closeRet(); });
   $('#edc-mask').addEventListener('input', edcPreview);
   $('#edc-mask').addEventListener('change', edcPreview);
   relEl('edc-frota').addEventListener('change', ()=>{
