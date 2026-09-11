@@ -586,6 +586,19 @@ body.readonly .sec-actions{display:none}
 .edc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;margin:10px 0}
 .edc-grid label{display:flex;flex-direction:column;gap:3px;font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.3px}
 .edc-grid input{border:1px solid var(--line);border-radius:6px;padding:6px 8px;font-size:12.5px;background:#fff;width:100%;min-width:0}
+.cmp-ctrl{display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin:8px 0 4px}
+.cmp-ctrl label{display:flex;flex-direction:column;gap:3px;font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.3px}
+.cmp-ctrl select{border:1px solid var(--line);border-radius:6px;padding:5px 7px;font-size:12px;background:#fff}
+.cmp-chips{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 8px}
+.cls-chip{border:1px solid var(--line);background:#fff;border-radius:999px;padding:4px 10px;font-size:11.5px;cursor:pointer}
+.cls-chip.on{outline:2px solid var(--acc,#2563eb);font-weight:700}
+.cls-badge{border-radius:999px;padding:2px 8px;font-size:10.5px;font-weight:700;white-space:nowrap}
+.cls-baixo{background:#dcfce7;color:#166534}
+.cls-bom{background:#dbeafe;color:#1d4ed8}
+.cls-moderado{background:#fef9c3;color:#854d0e}
+.cls-alto{background:#fee2e2;color:#991b1b}
+.cls-none{background:#f1f5f9;color:#64748b}
+.d-up{color:#dc2626;font-weight:700}.d-down{color:#15803d;font-weight:700}
 .fech-resumo{margin-top:8px}
 .res-sub td{background:#1f2937 !important;color:#fff;font-weight:700}
 .res-total td{background:#15803d !important;color:#fff;font-weight:800}
@@ -690,6 +703,7 @@ body.readonly .sec-actions{display:none}
     <div class="painel-tabs">
       <button class="tab active" data-tab="diaria">Acompanhamento dia a dia</button>
       <button class="tab" data-tab="periodo">Fechamento por período</button>
+      <button class="tab" data-tab="comparativo">📈 Comparativo de custo (rotas)</button>
     </div>
     <label class="frotas-cost-toggle" title="Custo estimado da Frota própria pela tabela Interior — informativo, não soma no Custo Geral (Capital+Interior)">
       <input type="checkbox" id="chk-frotas-cost" checked> Mostrar custo de Frotas (estimado)
@@ -703,6 +717,18 @@ body.readonly .sec-actions{display:none}
     <div id="dash-comparativo"></div>
     <h3>Acompanhamento dia a dia <small>(clique em um dia para abrir o mapa)</small></h3>
     <div id="dash-daily"></div>
+  </div>
+  <div id="tab-comparativo" class="tab-panel" hidden>
+    <h3>📈 Comparativo de custo por rota — <span id="cmp-per-label"></span></h3>
+    <div class="cmp-ctrl">
+      <label>Comparar por<select id="cmp-gran"><option value="week">Semanal</option><option value="month">Mensal</option><option value="year">Anual</option></select></label>
+      <label>Ano<select id="cmp-year"></select></label>
+      <label id="cmp-month-wrap">Mês<select id="cmp-month"></select></label>
+      <label id="cmp-week-wrap">Semana<select id="cmp-week"><option value="1">S1 · dias 1–7</option><option value="2">S2 · dias 8–14</option><option value="3">S3 · dias 15–21</option><option value="4">S4 · dia 22 ao fim do mês</option></select></label>
+    </div>
+    <p class="hint">Semanas ancoradas no mês: S1 começa no dia 1 · S2 no dia 8 · S3 no dia 15 · S4 no dia 22. Rotas ordenadas <b>do maior custo p/ o menor</b>. Classes de custo (Interior): até R$ 0,99/kg = Baixo · até R$ 1,10 = Bom · até R$ 1,20 = Moderado · acima = Alto. Capital aparece sem classe.</p>
+    <div id="cmp-chips" class="cmp-chips"></div>
+    <div id="cmp-out"></div>
   </div>
   <div id="tab-periodo" class="tab-panel" hidden>
     <div class="period-controls">
@@ -4310,18 +4336,139 @@ async function getSavedDates(){
   const keys = await Stor.list();
   return keys.filter(k=>k.startsWith('map:')).map(k=>k.slice(4)).filter(d=>/^\d{4}-\d{2}-\d{2}$/.test(d));
 }
+/* rotas (destino) de um dia c/ peso+custo p/ o comparativo — Capital e Interior */
+function routesFromData(data){
+  const map = new Map();
+  for(const sec of ['capital','interior']){
+    for(const r of ((data && data[sec]) || [])){
+      if(!r || typeof r !== 'object') continue;
+      const f = calcularFrete(sec, r) || {};
+      const peso = numVal(r.peso), tot = numVal(f.total);
+      if(peso <= 0 || tot <= 0) continue;
+      const nome = String(r.destino || '').trim() || '(sem rota)';
+      const k = sec + '|' + normKw(nome);
+      const e = map.get(k) || {nome: nome, sec: sec, peso: 0, total: 0, cargas: 0};
+      e.peso += peso; e.total += tot; e.cargas++;
+      map.set(k, e);
+    }
+  }
+  return Array.from(map.values());
+}
 async function loadDashboard(){
   const dates = await getSavedDates();
   const days = [];
   for(const d of dates){
-    if(d === currentMapDate){ days.push({date:d, m: metricsFromData(DATA)}); continue; }
+    if(d === currentMapDate){ days.push({date:d, m: metricsFromData(DATA), routes: routesFromData(DATA)}); continue; }
     const rec = await Stor.get('map:' + d);
-    if(rec && rec.data) days.push({date:d, m: metricsFromData(rec.data)});
+    if(rec && rec.data) days.push({date:d, m: metricsFromData(rec.data), routes: routesFromData(rec.data)});
   }
   days.sort((a,b)=> a.date.localeCompare(b.date));
   DASH.days = days;
   if(!DASH.period) DASH.period = periodFromPreset(DASH.preset, currentMapDate) || {start: dateAddDays(currentMapDate,-6), end: currentMapDate};
   renderDash();
+}
+/* ================= Comparativo de custo por rota (semanal/mensal/anual) ================= */
+let CMP = {gran:'week', year:0, month:1, week:1, cls:'all'};
+const CMP_MESES = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+function cmpPad(n){ return String(n).padStart(2, '0'); }
+/* semanas ancoradas no mês: S1=1–7, S2=8–14, S3=15–21, S4=22–fim */
+function cmpWeekRange(y, m, w){
+  const start = y + '-' + cmpPad(m) + '-' + cmpPad(1 + (w - 1) * 7);
+  const end = w < 4 ? y + '-' + cmpPad(m) + '-' + cmpPad(w * 7) : monthEnd(y, m);
+  return {start: start, end: end};
+}
+function cmpRange(){
+  if(CMP.gran === 'year') return {start: CMP.year + '-01-01', end: CMP.year + '-12-31'};
+  if(CMP.gran === 'month') return {start: CMP.year + '-' + cmpPad(CMP.month) + '-01', end: monthEnd(CMP.year, CMP.month)};
+  return cmpWeekRange(CMP.year, CMP.month, CMP.week);
+}
+function cmpPrevRange(){
+  if(CMP.gran === 'year') return {start: (CMP.year - 1) + '-01-01', end: (CMP.year - 1) + '-12-31'};
+  const py = CMP.month === 1 ? CMP.year - 1 : CMP.year, pm = CMP.month === 1 ? 12 : CMP.month - 1;
+  if(CMP.gran === 'month') return {start: py + '-' + cmpPad(pm) + '-01', end: monthEnd(py, pm)};
+  if(CMP.week > 1) return cmpWeekRange(CMP.year, CMP.month, CMP.week - 1);
+  return cmpWeekRange(py, pm, 4);
+}
+function cmpPeriodLabel(r){ return fmtBR(r.start) + ' a ' + fmtBR(r.end); }
+function cmpAgg(range){
+  const map = new Map();
+  for(const d of DASH.days){
+    if(!d.routes || d.date < range.start || d.date > range.end) continue;
+    for(const rt of d.routes){
+      const k = rt.sec + '|' + normKw(rt.nome);
+      const e = map.get(k) || {nome: rt.nome, sec: rt.sec, peso: 0, total: 0, cargas: 0};
+      e.peso += rt.peso; e.total += rt.total; e.cargas += rt.cargas;
+      map.set(k, e);
+    }
+  }
+  const list = Array.from(map.values());
+  for(const e of list) e.custo = e.peso > 0 ? e.total / e.peso : null;
+  return list;
+}
+/* classes de custo do Interior: ≤0,99 Baixo · ≤1,10 Bom · ≤1,20 Moderado · >1,20 Alto */
+function custoClasse(sec, custo){
+  if(sec !== 'interior' || custo == null) return '';
+  if(custo <= 0.99) return 'Baixo';
+  if(custo <= 1.10) return 'Bom';
+  if(custo <= 1.20) return 'Moderado';
+  return 'Alto';
+}
+function cmpReadControls(){
+  CMP.gran = (relEl('cmp-gran') || {}).value || 'week';
+  CMP.year = +((relEl('cmp-year') || {}).value || 0) || new Date().getFullYear();
+  CMP.month = +((relEl('cmp-month') || {}).value || 1);
+  CMP.week = +((relEl('cmp-week') || {}).value || 1);
+  const mw = relEl('cmp-month-wrap'), ww = relEl('cmp-week-wrap');
+  if(mw) mw.style.display = (CMP.gran === 'year') ? 'none' : '';
+  if(ww) ww.style.display = (CMP.gran === 'week') ? '' : 'none';
+}
+function renderComparativo(){
+  const out = relEl('cmp-out'); if(!out) return;
+  if(!CMP.year){ const t = new Date(); CMP.year = t.getFullYear(); CMP.month = t.getMonth() + 1; }
+  // popula ano/mês
+  const ys = new Set([CMP.year, +String(currentMapDate).slice(0, 4)]);
+  for(const d of DASH.days) ys.add(+String(d.date).slice(0, 4));
+  const ySel = relEl('cmp-year');
+  if(ySel){ ySel.innerHTML = Array.from(ys).sort((a, b)=> b - a).map(y=> '<option value="' + y + '">' + y + '</option>').join(''); ySel.value = String(CMP.year); }
+  const mSel = relEl('cmp-month');
+  if(mSel && !mSel.options.length){ mSel.innerHTML = CMP_MESES.map((n, i)=> '<option value="' + (i + 1) + '">' + cmpPad(i + 1) + ' · ' + n + '</option>').join(''); }
+  if(mSel) mSel.value = String(CMP.month);
+  (relEl('cmp-week') || {}).value = String(CMP.week);
+  cmpReadControls();
+  const r = cmpRange(), rp = cmpPrevRange();
+  const nomePer = CMP.gran === 'year' ? 'Ano ' + CMP.year
+    : CMP.gran === 'month' ? CMP_MESES[CMP.month - 1] + '/' + CMP.year
+    : 'Semana ' + CMP.week + ' de ' + CMP_MESES[CMP.month - 1] + '/' + CMP.year;
+  relEl('cmp-per-label').textContent = nomePer + ' · ' + cmpPeriodLabel(r) + '  ×  anterior (' + cmpPeriodLabel(rp) + ')';
+  const cur = cmpAgg(r), prev = cmpAgg(rp);
+  const pmap = new Map(prev.map(e=> [e.sec + '|' + normKw(e.nome), e]));
+  const counts = {all: cur.length, Baixo: 0, Bom: 0, Moderado: 0, Alto: 0};
+  for(const e of cur){ const c = custoClasse(e.sec, e.custo); if(c) counts[c]++; }
+  relEl('cmp-chips').innerHTML =
+    '<button type="button" class="cls-chip' + (CMP.cls === 'all' ? ' on' : '') + '" data-cls="all">Todas (' + counts.all + ')</button>' +
+    ['Baixo','Bom','Moderado','Alto'].map(c=> '<button type="button" class="cls-chip' + (CMP.cls === c ? ' on' : '') + '" data-cls="' + c + '">' + c + ' (' + counts[c] + ')</button>').join('');
+  let rows = cur.slice();
+  if(CMP.cls !== 'all') rows = rows.filter(e=> custoClasse(e.sec, e.custo) === CMP.cls);
+  rows.sort((a, b)=> (b.custo == null ? -1 : b.custo) - (a.custo == null ? -1 : a.custo));   // sempre do maior custo p/ o menor
+  if(!rows.length){ out.innerHTML = '<div class="empty">Nenhuma rota ' + (CMP.cls === 'all' ? '' : 'da classe ' + CMP.cls + ' ') + 'no período ' + cmpPeriodLabel(r) + '.</div>'; return; }
+  out.innerHTML = '<table class="fech-table fech-resumo"><thead><tr>' +
+    '<th>#</th><th>Rota</th><th>Tipo</th><th class="num">Cargas</th><th class="num">Peso (kg)</th><th class="num">Total (R$)</th>' +
+    '<th class="num">Custo (R$/kg)</th><th>Classe</th><th class="num">Período anterior</th><th class="num">Δ</th>' +
+    '</tr></thead><tbody>' + rows.map((e, i)=>{
+      const cl = custoClasse(e.sec, e.custo);
+      const pe = pmap.get(e.sec + '|' + normKw(e.nome));
+      let d = '<span class="cls-none">—</span>';
+      if(pe && pe.custo > 0 && e.custo != null){
+        const pct = (e.custo - pe.custo) / pe.custo * 100;
+        d = '<span class="' + (pct > 0 ? 'd-up' : pct < 0 ? 'd-down' : '') + '">' + (pct > 0 ? '↑ +' : pct < 0 ? '↓ ' : '') + pct.toLocaleString('pt-BR', {maximumFractionDigits:1}) + '%</span>';
+      }
+      return '<tr><td>' + (i + 1) + '</td><td><b>' + esc(e.nome) + '</b></td>' +
+        '<td><span class="rel-badge ' + (e.sec === 'capital' ? 'cap' : 'int') + '">' + (e.sec === 'capital' ? 'Capital' : 'Interior') + '</span></td>' +
+        '<td class="num">' + e.cargas + '</td><td class="num">' + fmtPeso2(e.peso) + '</td><td class="num">' + fmtBRL(e.total) + '</td>' +
+        '<td class="num"><b>' + relFmtMedia(e.custo) + '</b></td>' +
+        '<td>' + (cl ? '<span class="cls-badge cls-' + cl.toLowerCase() + '">' + cl + '</span>' : '<span class="cls-badge cls-none">—</span>') + '</td>' +
+        '<td class="num">' + (pe && pe.custo != null ? relFmtMedia(pe.custo) : '—') + '</td><td class="num">' + d + '</td></tr>';
+    }).join('') + '</tbody></table>';
 }
 function aggregateRange(start, end){
   const a = {cargas:0, peso:0, ent:0, capSem:0, intSem:0, capCom:0, intCom:0, capPeso:0, intPeso:0, frotasPeso:0, frotasCusto:0, frotasCargas:0, diasAtivos:0};
@@ -5636,11 +5783,21 @@ function bindStatic(){
     dashVisible = !painel.hidden;
     if(dashVisible) await loadDashboard();
   });
+  for(const cid of ['cmp-gran','cmp-year','cmp-month','cmp-week']){
+    const ce = relEl(cid); if(ce) ce.addEventListener('change', ()=>{ cmpReadControls(); renderComparativo(); });
+  }
+  const chipW = relEl('cmp-chips');
+  if(chipW) chipW.addEventListener('click', e=>{
+    const c = e.target.closest('[data-cls]'); if(!c) return;
+    CMP.cls = c.getAttribute('data-cls'); renderComparativo();
+  });
   $$('.painel-tabs .tab').forEach(b=> b.addEventListener('click', ()=>{
     $$('.painel-tabs .tab').forEach(x=> x.classList.remove('active'));
     b.classList.add('active');
     $('#tab-diaria').hidden = b.dataset.tab !== 'diaria';
     $('#tab-periodo').hidden = b.dataset.tab !== 'periodo';
+    $('#tab-comparativo').hidden = b.dataset.tab !== 'comparativo';
+    if(b.dataset.tab === 'comparativo') renderComparativo();
   }));
   const chkFrotasCost = $('#chk-frotas-cost');
   if(chkFrotasCost){
