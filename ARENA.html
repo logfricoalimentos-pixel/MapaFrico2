@@ -309,7 +309,9 @@ body.print-big-font .custo-cell{font-size:15px}
 .rotas-head{grid-template-columns:1fr 90px 28px}
 .rotas-add{grid-template-columns:1fr 90px 34px}
 .transp-add{grid-template-columns:1fr 72px 96px 34px}
-.res-actions{display:flex;justify-content:flex-end;margin:0 0 6px}
+.res-actions{display:flex;justify-content:flex-end;margin:0 0 8px}
+.res-actions #res-print{background:#dc2626;border-color:#b91c1c;color:#d1d5db;font-weight:700;font-size:14.5px;padding:9px 18px;border-radius:8px;box-shadow:0 2px 6px rgba(185,28,28,.35)}
+.res-actions #res-print:hover{background:#b91c1c;color:#e5e7eb}
 .ret-list{max-height:264px;overflow:auto;border:1px solid var(--line);border-radius:8px;margin:10px 0 4px;padding:4px;background:#fff}
 .ret-list label{display:flex;gap:8px;align-items:center;font-size:12px;color:#334155;padding:3px 6px;border-bottom:1px solid var(--line);cursor:pointer}
 .ret-list label:last-child{border-bottom:0}
@@ -580,9 +582,13 @@ body.readonly .sec-actions{display:none}
 .zap-link{color:#15803d;text-decoration:none;font-family:var(--mono);font-size:11.5px;white-space:nowrap}
 .zap-link:hover{text-decoration:underline}
 .fech-nozap{color:#cbd5e1}
-.fech-hist{margin-top:10px;border-top:1px dashed #cbd5e1;padding-top:8px}
-.fech-hist summary{cursor:pointer;font-size:12.5px;color:#334155;font-weight:600;user-select:none}
-.fech-hist-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px;color:#334155;padding:5px 2px;border-bottom:1px solid var(--line)}
+.fech-resumo-wrap{margin:12px 0 8px;border:1px solid #c7d2fe;border-radius:10px;background:#eef2ff;padding:4px 12px 12px}
+.fech-resumo-wrap summary{cursor:pointer;font-size:15px;line-height:1.7;padding:9px 6px;color:#312e81;font-weight:700;user-select:none}
+.fech-resumo-wrap[open] summary{border-bottom:1px solid #c7d2fe;margin-bottom:8px}
+.fech-hist{margin-top:12px;border:1px solid #fcd34d;border-radius:10px;background:#fffbeb;padding:4px 12px 12px}
+.fech-hist summary{cursor:pointer;font-size:15px;line-height:1.7;padding:9px 6px;color:#92400e;font-weight:700;user-select:none}
+.fech-hist[open] summary{border-bottom:1px solid #fcd34d;margin-bottom:6px}
+.fech-hist-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12.5px;line-height:1.8;color:#334155;padding:8px 4px;border-bottom:1px solid var(--line)}
 .fech-hist-row .grow{flex:1;min-width:160px}
 .fech-hist-row .mono{font-size:11.5px;color:var(--muted)}
 .fech-rs{flex-basis:100%;margin:6px 0 4px;padding:8px 10px;background:#f8fafc;border:1px solid var(--line);border-radius:8px}
@@ -3649,13 +3655,23 @@ function renderFechResumo(){
   }
 }
 /* 🖨 imprime o resumo agrupado (frame oculto p/ não levar o resto da tela) */
+function printResumoCss(){
+  return '*{-webkit-print-color-adjust:exact;print-color-adjust:exact}' +
+    'body{font-family:Arial,Helvetica,sans-serif;margin:12px;color:#0f172a}' +
+    'h3{margin:0 0 10px;font-size:15px;background:#0f172a;color:#fff;padding:8px 10px;border-radius:6px}' +
+    'table{border-collapse:collapse;width:100%;font-size:12px}' +
+    'th,td{border:1px solid #64748b;padding:6px 8px;text-align:left}' +
+    'td.num,th.num{text-align:right}' +
+    'thead th{background:#1e293b;color:#fff;font-weight:700}' +
+    'tbody tr:nth-child(odd) td{background:#f1f5f9}' +
+    'tbody tr.res-sub td,tbody tr.res-sub:nth-child(odd) td{background:#111827;color:#fff;font-weight:700}' +
+    'tbody tr.res-total td,tbody tr.res-total:nth-child(odd) td{background:#15803d;color:#fff;font-weight:800}' +
+    'td.mono{font-family:ui-monospace,Consolas,monospace}';
+}
 function printResumo(){
   const node = relEl('fech-resumo'); if(!node) return;
   const tbl = node.querySelector('table'); if(!tbl){ toast('Nada para imprimir ainda — marque cargas no período', 'err'); return; }
-  const css = 'body{font-family:Arial,Helvetica,sans-serif;margin:14px}table{border-collapse:collapse;width:100%;font-size:11px}' +
-    'th,td{border:1px solid #94a3b8;padding:4px 6px;text-align:left}td.num,th.num{text-align:right}' +
-    'thead th{background:#0f172a;color:#fff}.res-sub td{background:#111;color:#fff;font-weight:700}.res-total td{background:#15803d;color:#fff;font-weight:700}' +
-    'h3{margin:0 0 8px;font-size:14px}';
+  const css = printResumoCss();
   const head = '<html><head><meta charset="utf-8"><title>Resumo geral do fechamento</title><style>' + css + '</style></head><body>' +
     '<h3>RESUMO GERAL DO FECHAMENTO — ' + esc(fechPeriodoTxt(REL)) + ' · gerado em ' + new Date().toLocaleDateString('pt-BR') + '</h3>' +
     tbl.outerHTML + '</body></html>';
