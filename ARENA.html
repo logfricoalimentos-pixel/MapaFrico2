@@ -309,6 +309,7 @@ body.print-big-font .custo-cell{font-size:15px}
 .rotas-head{grid-template-columns:1fr 90px 28px}
 .rotas-add{grid-template-columns:1fr 90px 34px}
 .transp-add{grid-template-columns:1fr 72px 96px 34px}
+.fech-resumo tr.res-sub td{padding:2px 8px;line-height:1.25}
 .res-actions{display:flex;justify-content:flex-end;margin:0 0 8px}
 .res-actions #res-print{background:#dc2626;border-color:#b91c1c;color:#d1d5db;font-weight:700;font-size:14.5px;padding:9px 18px;border-radius:8px;box-shadow:0 2px 6px rgba(185,28,28,.35)}
 .res-actions #res-print:hover{background:#b91c1c;color:#e5e7eb}
@@ -3593,24 +3594,30 @@ function renderFechTable(){
    mesmas informações da planilha do financeiro, recalculado a cada marcação ---- */
 /* linhas do resumo geral AGRUPADO: 1 linha Capital + 1 Interior por transportadora,
    subtotal por transportadora e TOTAL GERAL (mesmo layout no painel e no Excel geral) */
-function fechResumoRows(grupos){
+function fechResumoRows(grupos, skipSingleSub){
   const rows = []; let tp = 0, ta = 0, tf = 0, tap = 0;
   for(const g of grupos){
     const cargas = g.cargas || [];
+    const secs = ['interior','capital'].filter(sec=> cargas.some(c=> c.sec === sec));
+    const multi = secs.length === 2;
+    const ab = numVal(g.abatimento) || 0;
     let gP = 0, gF = 0;
-    for(const sec of ['interior','capital']){
+    for(const sec of secs){
       const cs = cargas.filter(c=> c.sec === sec);
-      if(!cs.length) continue;
       const p = cs.reduce((a,c)=> a + (numVal(c.peso) || 0), 0);
       const f = cs.reduce((a,c)=> a + (numVal(c.total) || 0), 0);
       gP += p; gF += f;
+      // só UMA região e sem linha de subtotal: a própria linha assume abatimento/NF/Boleto e o "a pagar" líquido
+      const solo = !multi && !!skipSingleSub;
       rows.push({t:'reg', regiao: sec === 'capital' ? 'Capital' : 'Interior', transp: g.transp, codigo: String(g.codigo || ''),
-                 peso: p, abat: null, fat: f, pagar: f, custo: p > 0 ? f / p : null, nf: '', boleto: ''});
+                 peso: p, abat: solo ? ab : null, fat: f, pagar: solo ? Math.max(0, f - ab) : f,
+                 custo: p > 0 ? f / p : null, nf: solo ? (g.nf || '') : '', boleto: solo ? (g.boleto || '') : ''});
     }
-    const ab = numVal(g.abatimento) || 0;
     const pagar = Math.max(0, gF - ab);
-    rows.push({t:'sub', transp: g.transp, codigo: String(g.codigo || ''), peso: gP, abat: ab, fat: gF, pagar: pagar,
-               custo: gP > 0 ? gF / gP : null, nf: g.nf || '', boleto: g.boleto || ''});
+    if(multi || !skipSingleSub){
+      rows.push({t:'sub', transp: g.transp, codigo: String(g.codigo || ''), peso: gP, abat: ab, fat: gF, pagar: pagar,
+                 custo: gP > 0 ? gF / gP : null, nf: g.nf || '', boleto: g.boleto || ''});
+    }
     tp += gP; ta += ab; tf += gF; tap += pagar;
   }
   rows.push({t:'tot', peso: tp, abat: ta, fat: tf, pagar: tap, custo: tp > 0 ? tf / tp : null});
@@ -3625,7 +3632,7 @@ function renderFechResumo(){
     codigo: String(x.gs.s.codigo || '').trim() || TRANSP_CODES[x.g.key] || '',
     nf: x.gs.s.nf, boleto: x.gs.s.boleto, abatimento: numVal(x.gs.s.abat),
     cargas: x.gs.itens.map(it=> ({sec: it.sec, peso: it.calc.peso, total: it.calc.total}))}));
-  const rows = fechResumoRows(grupos);
+  const rows = fechResumoRows(grupos, true);
   let html = '<div class="res-actions"><button class="btn mini" type="button" id="res-print" title="Imprime o resumo geral agrupado (1 linha Capital + 1 Interior por transportadora, subtotais e TOTAL GERAL)">🖨 Imprimir</button></div>' +
     '<table class="fech-table fech-resumo"><thead><tr>' +
     '<th>Região</th><th>Transportadora</th><th>Código</th><th class="num">Peso transportado (kg)</th><th class="num">Abatimento (R$)</th>' +
@@ -3634,8 +3641,8 @@ function renderFechResumo(){
   for(const r of rows){
     if(r.t === 'reg'){
       html += '<tr><td>' + r.regiao + '</td><td>' + esc(r.transp) + '</td><td class="mono">' + esc(r.codigo) + '</td>' +
-        '<td class="num">' + fmtPeso2(r.peso) + '</td><td class="num"></td><td class="num">' + fmtBRL(r.fat) + '</td>' +
-        '<td class="num">' + fmtBRL(r.pagar) + '</td><td></td><td></td></tr>';
+        '<td class="num">' + fmtPeso2(r.peso) + '</td><td class="num">' + (r.abat ? fmtBRL(r.abat) : '') + '</td><td class="num">' + fmtBRL(r.fat) + '</td>' +
+        '<td class="num">' + fmtBRL(r.pagar) + '</td><td>' + esc(r.nf || '') + '</td><td>' + esc(r.boleto || '') + '</td></tr>';
     } else if(r.t === 'sub'){
       html += '<tr class="res-sub"><td></td><td>Subtotal — ' + esc(r.transp) + '</td><td class="mono">' + esc(r.codigo) + '</td>' +
         '<td class="num">' + fmtPeso2(r.peso) + '</td><td class="num">' + (r.abat ? fmtBRL(r.abat) : '') + '</td>' +
@@ -3664,7 +3671,7 @@ function printResumoCss(){
     'td.num,th.num{text-align:right}' +
     'thead th{background:#1e293b;color:#fff;font-weight:700}' +
     'tbody tr:nth-child(odd) td{background:#f1f5f9}' +
-    'tbody tr.res-sub td,tbody tr.res-sub:nth-child(odd) td{background:#111827;color:#fff;font-weight:700}' +
+    'tbody tr.res-sub td,tbody tr.res-sub:nth-child(odd) td{background:#111827;color:#fff;font-weight:700;padding:3px 8px;line-height:1.25}' +
     'tbody tr.res-total td,tbody tr.res-total:nth-child(odd) td{background:#15803d;color:#fff;font-weight:800}' +
     'td.mono{font-family:ui-monospace,Consolas,monospace}';
 }
