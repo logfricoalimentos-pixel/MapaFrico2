@@ -603,8 +603,8 @@ body.readonly .sec-actions{display:none}
 @media (max-width:760px){ .modal-fech{width:100vw;max-height:100vh;height:100vh;border-radius:0} #fech-mask{padding:0} }
 .st-badge.anal{background:#fef3c7;color:#92400e;border:1px solid #fde68a}
 .fech-conf{white-space:nowrap;text-align:center}
-#edc-mask, #ret-mask{position:fixed;inset:0;z-index:470;background:rgba(15,23,42,.6);display:flex;align-items:center;justify-content:center;padding:16px}
-#edc-mask[hidden], #ret-mask[hidden]{display:none}
+#edc-mask, #ret-mask, #plan-mask{position:fixed;inset:0;z-index:470;background:rgba(15,23,42,.6);display:flex;align-items:center;justify-content:center;padding:16px}
+#edc-mask[hidden], #ret-mask[hidden], #plan-mask[hidden]{display:none}
 .modal-edc{width:min(620px,94vw);max-height:92vh;overflow:auto}
 .edc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;margin:10px 0}
 .edc-grid label{display:flex;flex-direction:column;gap:3px;font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.3px}
@@ -1096,6 +1096,25 @@ body.readonly .sec-actions{display:none}
   </div>
 </div>
 
+<div id="plan-mask" class="no-print" hidden>
+  <div class="modal modal-edc">
+    <div class="fech-head"><h3>📊 Planejamento de Transporte — período</h3><button class="x" type="button" id="plan-x" title="Fechar sem gerar">✕</button></div>
+    <p class="hint">O planejamento <b>consolida as cargas do intervalo</b> escolhido (Capital × Interior × Total, com Veículos, Entregas e Peso em TON). Informe <b>sempre</b> o período: datas De/Até, ou semana, mês ou ano.</p>
+    <div class="edc-grid">
+      <label>Consolidar por<select id="plan-gran"><option value="range">Data inicial e final</option><option value="week">Semana</option><option value="month">Mês</option><option value="year">Ano</option></select></label>
+      <label id="plan-start-wrap">Data inicial<input type="date" id="plan-start"></label>
+      <label id="plan-end-wrap">Data final<input type="date" id="plan-end"></label>
+      <label id="plan-year-wrap">Ano<select id="plan-year"></select></label>
+      <label id="plan-month-wrap">Mês<select id="plan-month"></select></label>
+      <label id="plan-week-wrap">Semana<select id="plan-week"><option value="1">S1 · dias 1–7</option><option value="2">S2 · dias 8–14</option><option value="3">S3 · dias 15–21</option><option value="4">S4 · dias 22–fim</option></select></label>
+    </div>
+    <p class="hint" id="plan-per-label"></p>
+    <div class="modal-actions">
+      <button class="btn" type="button" id="plan-cancel">Cancelar</button>
+      <button class="btn primary" type="button" id="plan-ok">📊 Gerar planejamento</button>
+    </div>
+  </div>
+</div>
 <div id="ret-mask" class="no-print" hidden>
   <div class="modal modal-edc">
     <div class="fech-head"><h3>↺ Retornar cargas fechadas</h3><button class="x" type="button" id="ret-x" title="Fechar sem retornar">✕</button></div>
@@ -2507,37 +2526,99 @@ function dataUrlToBlob(dataUrl){
 
 /* ===== Relatório Planejamento de Transporte (Capital × Interior × Total) ===== */
 function planTon(v){ return v > 0 ? (v/1000).toLocaleString('pt-BR',{maximumFractionDigits:2}) : '0,00'; }
-function buildPlanPrint(){
-  const metaDate = 'Faturamento: <b>' + esc(fmtBR(currentMapDate)) + '</b>' +
-    (dtEntrega ? ' &nbsp;·&nbsp; Entrega: <b>' + esc(fmtBR(dtEntrega)) + '</b>' : '');
-  let html = '<div class="plan-head"><h1>Planejamento de Transporte</h1><div class="plan-date">' + metaDate + '</div></div>' +
+/* ---- período SEMPRE perguntado: De/Até, semana (ancorada no mês), mês ou ano ---- */
+function ensurePlanSelects(){
+  const cur = String(currentMapDate || hojeIso());
+  const cy = +cur.slice(0, 4);
+  const ys = relEl('plan-year');
+  if(ys && !ys.options.length){ for(let y = cy + 1; y >= cy - 3; y--) ys.appendChild(new Option(String(y), String(y))); }
+  if(ys) ys.value = String(cy);
+  const ms = relEl('plan-month');
+  if(ms && !ms.options.length){ for(let m = 1; m <= 12; m++) ms.appendChild(new Option(cmpPad(m) + ' · ' + new Date(2026, m - 1, 1).toLocaleDateString('pt-BR', {month:'long'}), String(m))); }
+  if(ms) ms.value = String(+cur.slice(5, 7));
+  const st = relEl('plan-start'), en = relEl('plan-end');
+  if(st && !st.value){ st.value = cur; en.value = cur; }
+}
+function planReadControls(){
+  const g = relEl('plan-gran').value;
+  relEl('plan-start-wrap').style.display = (g === 'range') ? '' : 'none';
+  relEl('plan-end-wrap').style.display = (g === 'range') ? '' : 'none';
+  relEl('plan-year-wrap').style.display = (g === 'range') ? 'none' : '';
+  relEl('plan-month-wrap').style.display = (g === 'week' || g === 'month') ? '' : 'none';
+  relEl('plan-week-wrap').style.display = (g === 'week') ? '' : 'none';
+  const y = +relEl('plan-year').value, mo = +relEl('plan-month').value, w = +relEl('plan-week').value;
+  let r;
+  if(g === 'range') r = {start: relEl('plan-start').value, end: relEl('plan-end').value};
+  else if(g === 'week') r = cmpWeekRange(y, mo, w);
+  else if(g === 'month') r = {start: y + '-' + cmpPad(mo) + '-01', end: monthEnd(y, mo)};
+  else r = {start: y + '-01-01', end: y + '-12-31'};
+  r.gran = g;
+  const mn = new Date(2026, mo - 1, 1).toLocaleDateString('pt-BR', {month:'long'});
+  r.label = (g === 'week') ? ('Semana ' + w + ' de ' + mn + '/' + y + ' · ' + fmtBR(r.start) + ' a ' + fmtBR(r.end))
+    : (g === 'month') ? ('Mês ' + cmpPad(mo) + '/' + y + ' · ' + fmtBR(r.start) + ' a ' + fmtBR(r.end))
+    : (g === 'year') ? ('Ano ' + y + ' · ' + fmtBR(r.start) + ' a ' + fmtBR(r.end))
+    : ((r.start && r.end) ? fmtBR(r.start) + ' a ' + fmtBR(r.end) : '—');
+  const lbl = relEl('plan-per-label');
+  if(lbl) lbl.innerHTML = (r.start && r.end && r.start <= r.end) ? ('Período: <b>' + esc(r.label) + '</b> (pela data de faturamento)') : 'Período inválido — verifique as datas';
+  return r;
+}
+function askPlanPeriod(){
+  return new Promise(res=>{
+    const mask = relEl('plan-mask');
+    const done = v=>{ mask.hidden = true; relEl('plan-ok').onclick = null; relEl('plan-cancel').onclick = null; relEl('plan-x').onclick = null; res(v); };
+    relEl('plan-ok').onclick = ()=>{ const r = planReadControls(); if(!r.start || !r.end || r.start > r.end){ toast('Período inválido — verifique as datas', 'err'); return; } done(r); };
+    relEl('plan-cancel').onclick = ()=> done(null);
+    relEl('plan-x').onclick = ()=> done(null);
+    ensurePlanSelects();
+    mask.hidden = false;
+    planReadControls();
+  });
+}
+/* consolida as cargas do intervalo: dias salvos no storage + o dia aberto no mapa */
+async function planAgg(start, end){
+  const saved = await getSavedDates();
+  const days = saved.filter(d=> d >= start && d <= end);
+  if(currentMapDate >= start && currentMapDate <= end && days.indexOf(currentMapDate) < 0) days.push(currentMapDate);
+  days.sort();
+  const agg = {cap:{v:0,e:0,p:0}, int:{v:0,e:0,p:0}, tot:{cargas:0,ent:0,peso:0}, frotas:0, days:0};
+  for(const d of days){
+    const rec = (d === currentMapDate) ? {data: DATA} : relNormalizeRec(await Stor.get('map:' + d));
+    if(!rec || !rec.data) continue;
+    agg.days++;
+    for(const sec of ['capital','interior']){
+      const rows = rec.data[sec] || []; const a = (sec === 'capital') ? agg.cap : agg.int;
+      a.v += rows.length;
+      a.e += rows.reduce((x,r)=> x + numVal(r.entregas), 0);
+      a.p += rows.reduce((x,r)=> x + numVal(r.peso), 0);
+    }
+    agg.frotas += (rec.data.frotas || []).length;
+    const m = metricsFromData(rec.data);
+    agg.tot.cargas += m.cargas; agg.tot.ent += m.ent; agg.tot.peso += m.peso;
+  }
+  return agg;
+}
+function buildPlanPrint(agg, metaHtml){
+  let html = '<div class="plan-head"><h1>Planejamento de Transporte</h1><div class="plan-date">' + metaHtml + '</div></div>' +
     '<div class="plan-wrap"><div class="plan-flag"></div>' +
     '<table class="plan-table"><colgroup><col style="width:26%"><col style="width:24%"><col style="width:24%"><col style="width:26%"></colgroup>' +
-    '<thead><tr><th>&nbsp;</th><th>Veículos</th><th>Entregas</th><th>Peso (TON)</th></tr></thead><tbody>';
-  for(const sec of ['capital','interior']){
-    const rows = DATA[sec];
-    const v = rows.length;
-    const e = rows.reduce((a,r)=> a + numVal(r.entregas), 0);
-    const p = rows.reduce((a,r)=> a + numVal(r.peso), 0);
-    html += '<tr><td class="plan-lbl">' + (sec==='capital' ? 'Capital' : 'Interior') + '</td><td>' + v + '</td><td>' + fmtInt(e) + '</td><td>' + planTon(p) + '</td></tr>';
-  }
-  // AUDITORIA: Total = mesma fonte de verdade do "Acompanhamento dia a dia" (metricsFromData),
-  // que inclui Frotas no total de cargas/peso/entregas (Frotas não tem custo, mas conta no total).
-  const m = metricsFromData(DATA);
-  html += '<tr class="plan-total"><td class="plan-lbl">Total</td><td>' + m.cargas + '</td><td>' + fmtInt(m.ent) + '</td><td>' + planTon(m.peso) + '</td></tr></tbody></table></div>';
-  if(DATA.frotas.length){
-    html += '<div class="plan-foot">* Total inclui Frotas (' + DATA.frotas.length + ' veículo(s), sem custo) — não aparece como linha própria.</div>';
+    '<thead><tr><th>&nbsp;</th><th>Veículos</th><th>Entregas</th><th>Peso (TON)</th></tr></thead><tbody>' +
+    '<tr><td class="plan-lbl">Capital</td><td>' + agg.cap.v + '</td><td>' + fmtInt(agg.cap.e) + '</td><td>' + planTon(agg.cap.p) + '</td></tr>' +
+    '<tr><td class="plan-lbl">Interior</td><td>' + agg.int.v + '</td><td>' + fmtInt(agg.int.e) + '</td><td>' + planTon(agg.int.p) + '</td></tr>';
+  // Total = mesma fonte de verdade do "Acompanhamento dia a dia" (metricsFromData), que inclui Frotas
+  html += '<tr class="plan-total"><td class="plan-lbl">Total</td><td>' + agg.tot.cargas + '</td><td>' + fmtInt(agg.tot.ent) + '</td><td>' + planTon(agg.tot.peso) + '</td></tr></tbody></table></div>';
+  if(agg.frotas){
+    html += '<div class="plan-foot">* Total inclui Frotas (' + agg.frotas + ' veículo(s), sem custo) — não aparece como linha própria.</div>';
   }
   return html;
 }
-async function genPlanPng(){
+async function genPlanPng(agg, metaHtml, name){
   const el = $('#plan-print');
   if(!el) throw new Error('#plan-print ausente');
-  el.innerHTML = buildPlanPrint();
+  el.innerHTML = buildPlanPrint(agg, metaHtml);
   try{
     const canvas = await html2canvas(el, {scale:2, backgroundColor:'#ffffff', useCORS:true, logging:false});
     const dataUrl = canvas.toDataURL('image/png');
-    return {blob: dataUrlToBlob(dataUrl), dataUrl, name: 'planejamento-transporte-' + currentMapDate + '.png', label: 'Planejamento de Transporte'};
+    return {blob: dataUrlToBlob(dataUrl), dataUrl, name: name, label: 'Planejamento de Transporte'};
   }finally{
     el.innerHTML = '';
   }
@@ -2545,6 +2626,11 @@ async function genPlanPng(){
 async function capturePlan(){
   if(!(SESSION && SESSION.level >= 2)){ toast('🔒 Seu nível de acesso não permite o mapa', 'err'); return; }
   if(typeof html2canvas === 'undefined'){ toast('❌ html2canvas não carregada (sem internet para o CDN?)', 'err'); return; }
+  const r = await askPlanPeriod();           // SEMPER pergunta o período antes de gerar
+  if(!r) return;
+  const agg = await planAgg(r.start, r.end);
+  if(!agg.days){ toast('Nenhuma carga salva no período ' + fmtBR(r.start) + ' a ' + fmtBR(r.end), 'err'); return; }
+  const metaHtml = '<b>' + esc(r.label) + '</b> &nbsp;·&nbsp; ' + agg.days + ' dia(s) com carga(s) &nbsp;·&nbsp; gerado em ' + new Date().toLocaleDateString('pt-BR');
   const choice = await choiceModal({
     title: '📊 Planejamento de Transporte',
     text: 'O que deseja fazer com a imagem do <b>relatório</b>?<br><span style="color:#64748b;font-size:12px">Abrir mostra a imagem numa nova guia (dá para ampliar/salvar pelo próprio navegador). Copiar coloca na área de transferência (Ctrl+V para colar direto no WhatsApp/e-mail). Baixar salva o arquivo .png no dispositivo.</span>'
@@ -2552,29 +2638,29 @@ async function capturePlan(){
   if(!choice) return; // cancelado
   setBusy(true);
   try{
-    const r = await genPlanPng();
+    const r2 = await genPlanPng(agg, metaHtml, 'planejamento-transporte-' + r.start + (r.end === r.start ? '' : '_a_' + r.end) + '.png');
     if(choice === 'open'){
-      const blobUrl = URL.createObjectURL(r.blob);
+      const blobUrl = URL.createObjectURL(r2.blob);
       const w = window.open(blobUrl, '_blank');
       if(!w){
-        downloadPng(r.dataUrl, r.name);
-        toast('⚠️ O navegador bloqueou a nova guia — baixei o arquivo (' + r.name + ')', 'warn');
+        downloadPng(r2.dataUrl, r2.name);
+        toast('⚠️ O navegador bloqueou a nova guia — baixei o arquivo (' + r2.name + ')', 'warn');
       }else{
-        toast('🔗 Imagem aberta em nova guia (' + r.name + ')', 'ok');
+        toast('🔗 Imagem aberta em nova guia (' + r2.name + ')', 'ok');
       }
     }else if(choice === 'copy'){
-      const ok = await copyPngToClipboard(r.blob);
+      const ok = await copyPngToClipboard(r2.blob);
       if(ok){
-        toast('📋 Imagem copiada (' + r.name + ') — use Ctrl+V para colar', 'ok');
+        toast('📋 Imagem copiada (' + r2.name + ') — use Ctrl+V para colar', 'ok');
       }else{
-        downloadPng(r.dataUrl, r.name);
-        toast('⚠️ Este navegador não permite copiar imagem — baixei o arquivo (' + r.name + ')', 'warn');
+        downloadPng(r2.dataUrl, r2.name);
+        toast('⚠️ Este navegador não permite copiar imagem — baixei o arquivo (' + r2.name + ')', 'warn');
       }
     }else{
-      downloadPng(r.dataUrl, r.name);
-      toast('📊 Relatório baixado (' + r.name + ')', 'ok');
+      downloadPng(r2.dataUrl, r2.name);
+      toast('📊 Relatório baixado (' + r2.name + ')', 'ok');
     }
-    audit('planejamento-exportado', choice === 'open' ? 'aberto' : choice === 'copy' ? 'copiado' : 'baixado');
+    audit('planejamento-exportado', (choice === 'open' ? 'aberto' : choice === 'copy' ? 'copiado' : 'baixado') + ' · ' + r.label);
   }catch(err){
     console.error(err);
     toast('Erro ao gerar relatório', 'err');
@@ -5734,6 +5820,11 @@ function bindStatic(){
   $('#btn-pdf').addEventListener('click', printMap);
   $('#btn-etiq').addEventListener('click', printEtiquetas);
   $('#btn-plan').addEventListener('click', capturePlan);
+  ['plan-gran','plan-start','plan-end','plan-year','plan-month','plan-week'].forEach(id=>{
+    const elx = relEl(id); if(!elx) return;
+    elx.addEventListener('change', ()=> planReadControls());
+    elx.addEventListener('input', ()=> planReadControls());
+  });
   bindDropdown('dd-mapa', 'btn-mapa-toggle', 'dd-mapa-menu');
   bindDropdown('dd-excel', 'btn-xls-toggle', 'dd-excel-menu');
   $('#btn-xls-map').addEventListener('click', xlsMapCompleto);
