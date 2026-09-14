@@ -542,6 +542,15 @@ body.readonly .sec-actions{display:none}
   .rel-filters label{flex:1 1 44%}
   .rel-filters input,.rel-filters select{min-width:0;width:100%}
 }
+/* ===== KM real da portaria (importação de planilha) ===== */
+.kmport-badge{display:inline-block;margin-left:4px;padding:0 5px;border:1px solid #0a5c3c;border-radius:3px;font-size:10px;font-weight:800;letter-spacing:.6px;color:#032015;background:linear-gradient(160deg,#d7ffe9 0%,#6fe0a8 25%,#0f8a58 50%,#0a5c3c 62%,#4ed69a 85%,#eafff4 100%);text-shadow:0 1px 0 rgba(255,255,255,.4);vertical-align:middle;cursor:help}
+#kp-mask .kp-tbl{width:100%;border-collapse:collapse;font-size:12px;margin:6px 0}
+#kp-mask .kp-tbl th{background:#1e293b;color:#fff;padding:4px 8px;text-align:left}
+#kp-mask .kp-tbl td{padding:3px 8px;border-bottom:1px solid #e2e8f0}
+#kp-mask .kp-tbl td.num{text-align:right}
+#kp-mask .kp-scroll{max-height:280px;overflow:auto;border:1px solid #cbd5e1;border-radius:6px}
+#kp-mask .kp-nf{max-height:120px;overflow:auto;background:#fef2f2;border:1px solid #fecaca;border-radius:6px;padding:6px 8px;font-size:12px;margin:4px 0}
+
 /* ===== Status de pagamento (Pendente/Fechado) + painel de Fechamento quinzenal ===== */
 .rel-tools{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:8px 0 0}
 .rel-tools .chk{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:#334155;cursor:pointer;user-select:none}
@@ -603,7 +612,7 @@ body.readonly .sec-actions{display:none}
 @media (max-width:760px){ .modal-fech{width:100vw;max-height:100vh;height:100vh;border-radius:0} #fech-mask{padding:0} }
 .st-badge.anal{background:#fef3c7;color:#92400e;border:1px solid #fde68a}
 .fech-conf{white-space:nowrap;text-align:center}
-#edc-mask, #ret-mask, #plan-mask{position:fixed;inset:0;z-index:470;background:rgba(15,23,42,.6);display:flex;align-items:center;justify-content:center;padding:16px}
+#edc-mask, #ret-mask, #plan-mask, #kp-mask{position:fixed;inset:0;z-index:470;background:rgba(15,23,42,.6);display:flex;align-items:center;justify-content:center;padding:16px}
 #edc-mask[hidden], #ret-mask[hidden], #plan-mask[hidden]{display:none}
 .modal-edc{width:min(620px,94vw);max-height:92vh;overflow:auto}
 .edc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;margin:10px 0}
@@ -689,6 +698,7 @@ body.readonly .sec-actions{display:none}
   </div>
   <div class="row">
     <button class="btn primary" id="btn-import">📥 Importar planilha</button>
+    <button class="btn" id="btn-kmport" title="Importa o KM REAL (coluna KM Rodado) da planilha da portaria: atualiza o KM das ordens encontradas no mapa (ignora KM vazio, 0 ou negativo) e marca cada ordem ajustada com a sigla KM em verde metálico">📥 KM Portaria</button>
     <span class="sep"></span>
     <button class="btn" id="btn-backup">💾 Backup</button>
     <button class="btn" id="btn-restore">📂 Restaurar</button>
@@ -1205,6 +1215,7 @@ body.readonly .sec-actions{display:none}
 <div id="busy" class="no-print">⏳ Gerando…</div>
 
 <input type="file" id="file-import" accept=".xls,.xlsx,.csv" hidden class="no-print">
+<input type="file" id="file-kmport" accept=".xls,.xlsx,.csv" hidden class="no-print">
 <input type="file" id="file-restore" accept=".json" hidden class="no-print">
 
 <!-- AUDITORIA: SRI (Subresource Integrity) — o navegador rejeita o script se o CDN servir bytes diferentes -->
@@ -1828,7 +1839,7 @@ function cellHtml(sec, r, c, x){
     case 'destino':
       return '<td><input type="text" data-field="destino" value="'+esc(r.destino)+'" placeholder="destino"></td>';
     case 'carga':
-      return '<td><input type="text" class="mono" data-field="carga" value="'+esc(r.carga)+'" placeholder="nº"></td>';
+      return '<td><input type="text" class="mono" data-field="carga" value="'+esc(r.carga)+'" placeholder="nº">' + ((sec==='capital' && r.kmPortaria) ? kmPortBadge(r) : '') + '</td>';
     case 'peso':
       // formato BR completo: 1301.04 -> "1.301,04" (o texto bruto em edição é restaurado no restoreFocus)
       return '<td class="num"'+dc+'><input type="text" inputmode="decimal" class="peso-inp mono" data-field="peso" value="'+esc(fmtPeso2(r.peso))+'" placeholder="0,00"></td>';
@@ -1881,7 +1892,7 @@ function cellHtml(sec, r, c, x){
       const selTabela = '<select data-field="tabela" title="tipo de tabela"><option value="agregado"'+(tipoSel==='agregado'?' selected':'')+'>Agregado</option><option value="freelancer"'+(tipoSel==='freelancer'?' selected':'')+'>Freelancer</option></select>';
       const diasKm = (sec === 'interior' || sec === 'frotas')
         ? '<input type="text" inputmode="numeric" class="numin" data-field="dias" title="dias" value="'+esc(r.dias===''?1:r.dias)+'">' +
-          '<input type="text" inputmode="decimal" class="numin" data-field="km" title="km da rota (Km Rota já vem +12%)" value="'+esc(r.km)+'" placeholder="km">'
+          '<input type="text" inputmode="decimal" class="numin" data-field="km" title="km da rota (Km Rota já vem +12%)" value="'+esc(r.km)+'" placeholder="km">' + ((r.kmPortaria && sec!=='capital') ? kmPortBadge(r) : '')
         : '';
       const modoLabel = modo ? '<div class="frete-modo" title="Capital: valor fixo (sem km/pernoite)">'+esc(modo)+'</div>' : '';
       return '<td class="frete-cell"'+dc+'>' +
@@ -2669,6 +2680,145 @@ async function capturePlan(){
   }
 }
 
+/* ================= KM real da portaria (importação de planilha) ================= */
+/* Planilha da portaria: coluna "Carga" = nº da ORDEM no mapa; coluna "KM Rodado" = km real.
+   Regra: só atualiza o KM da ordem quando o KM da planilha NÃO é vazio, 0 ou negativo.
+   Cada ordem ajustada ganha a sigla KM em verde metálico (row.kmPortaria). */
+function kmPortBadge(r){
+  return ' <span class="kmport-badge" title="KM real importado da planilha da portaria (' + esc(String(r.kmPortaria)) + ' km)">KM</span>';
+}
+function kpNormHdr(s){
+  return String(s==null?'':s).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'');
+}
+/* rows = matriz (header:1) -> {map: ordem->km, stats} */
+function portariaRowsToMap(rows){
+  let hi=-1, iC=-1, iK=-1;
+  for(let i=0;i<Math.min(rows.length,10);i++){
+    const r=rows[i]||[]; let c=-1,k=-1;
+    for(let j=0;j<r.length;j++){ const h=kpNormHdr(r[j]); if(h==='carga'&&c<0)c=j; if(h==='kmrodado'&&k<0)k=j; }
+    if(c>-1&&k>-1){ hi=i; iC=c; iK=k; break; }
+  }
+  const stats={rowsRead:0, valid:0, invalid:0, dup:0, header:hi};
+  const map=new Map();
+  if(hi<0) return {map, stats};
+  for(let i=hi+1;i<rows.length;i++){
+    const r=rows[i]||[]; const c=String(r[iC]==null?'':r[iC]).trim(); if(!c) continue;
+    stats.rowsRead++;
+    const k=numVal(String(r[iK]==null?'':r[iK]).trim());
+    if(!isFinite(k)||k<=0){ stats.invalid++; continue; }   // vazio / 0 / negativo: ignora
+    const km=Math.max(0, Math.floor(k));
+    if(map.has(c)) stats.dup++;
+    map.set(c, km); stats.valid++;
+  }
+  return {map, stats};
+}
+async function portariaParseFile(file){
+  const buf=await file.arrayBuffer();
+  const wb=XLSX.read(buf, {type:'array'});
+  const ws=wb.Sheets[wb.SheetNames[0]];
+  const rows=XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
+  return portariaRowsToMap(rows);
+}
+/* varre UM dia (rec já normalizado) -> changes [{d,sec,id,ordem,kmOld,kmNew,totOld,totNew,fech,same}] */
+function kmPortScanRec(rec, d, map){
+  const out=[];
+  if(!rec||!rec.data) return out;
+  for(const sec of SECTIONS){
+    for(const r of (rec.data[sec]||[])){
+      const key=String(r.carga||'').trim(); if(!key||!map.has(key)) continue;
+      const kmNew=map.get(key);
+      const old=calcularFrete(sec, r)||{};
+      const nw=calcularFrete(sec, Object.assign({}, r, {km:kmNew}))||{};
+      out.push({d:d, sec:sec, id:r.id, ordem:key, kmOld:(r.km===''||r.km==null?'':numVal(r.km)), kmNew:kmNew,
+                totOld:numVal(old.total), totNew:numVal(nw.total), fech:relIsFech(r), same:numVal(r.km)===kmNew});
+    }
+  }
+  return out;
+}
+async function kmPortScan(map){
+  let idx=await Stor.get('map-dates-index');
+  if(!Array.isArray(idx)||!idx.length) idx=(await Stor.list()).filter(k=>/^map:\d{4}-\d{2}-\d{2}$/.test(k)).map(k=>k.slice(4));
+  const changes=[]; const found=new Set();
+  for(const d of idx){
+    const rec=relNormalizeRec(await Stor.get('map:'+d));
+    for(const ch of kmPortScanRec(rec, d, map)){ changes.push(ch); found.add(ch.ordem); }
+  }
+  const notFound=[...map.keys()].filter(k=>!found.has(k));
+  return {changes:changes, notFound:notFound, days:idx.length};
+}
+let KP_STATE=null;   // {map, stats, scan, fileName}
+function kpRowHtml(ch){
+  return '<tr><td>' + fmtBR(ch.d) + '</td>' +
+    '<td>' + (ch.sec==='capital'?'Capital':ch.sec==='interior'?'Interior':'Frotas') + '</td>' +
+    '<td class="mono">' + esc(ch.ordem) + '</td>' +
+    '<td class="num">' + (ch.kmOld===''?'—':fmtNum(ch.kmOld)) + ' → <b>' + fmtNum(ch.kmNew) + '</b></td>' +
+    '<td class="num">' + fmtBRL(ch.totOld) + ' → <b>' + fmtBRL(ch.totNew) + '</b></td>' +
+    '<td>' + (ch.fech?'<span class="st-badge fech">Fechado</span>':(ch.same?'<span class="st-badge pend">KM já igual</span>':'<span class="st-badge anal">atualiza</span>')) + '</td></tr>';
+}
+function kpClose(){ const m=$('#kp-mask'); if(m) m.remove(); }
+function kpOpenPreview(){
+  const st=KP_STATE; if(!st) return;
+  kpClose();
+  const mask=document.createElement('div'); mask.id='kp-mask'; mask.className='no-print';
+  const listAll=st.scan.changes;
+  const nFech=listAll.filter(c=>c.fech).length;
+  mask.innerHTML =
+    '<div class="modal modal-edc" style="max-width:900px">' +
+      '<div class="fech-head"><h3>📥 KM Portaria — ' + esc(st.fileName) + '</h3><button class="x" type="button" id="kp-x" title="Cancelar">✕</button></div>' +
+      '<p class="hint">A planilha tem <b>' + st.stats.valid + '</b> ordem(ns) com KM válido (>0) · <b>' + st.stats.invalid + '</b> linha(s) ignorada(s) por KM vazio/0/negativo' + (st.stats.dup? ' · <b>'+st.stats.dup+'</b> ordem(ns) repetida(s) (vale a última)': '') + '. No mapa, <b>' + listAll.length + '</b> carga(s) casam com a planilha em ' + st.scan.days + ' dia(s) verificado(s); <b>' + st.scan.notFound.length + '</b> ordem(ns) da planilha não existem no mapa. O KM só é aplicado onde a planilha traz KM > 0; cada ordem ajustada ganha a sigla <b>KM</b> em verde metálico.</p>' +
+      '<label style="display:flex;gap:6px;align-items:center;margin:4px 0"><input type="checkbox" id="kp-inc-fech" checked> incluir cargas FECHADAS (' + nFech + ') — o Total delas é recalculado com o KM real</label>' +
+      '<div class="kp-scroll"><table class="kp-tbl"><thead><tr><th>Data</th><th>Tipo</th><th>Ordem</th><th class="num">KM atual → real</th><th class="num">Total previsto → novo</th><th>Situação</th></tr></thead><tbody>' +
+      (listAll.length? listAll.map(kpRowHtml).join('') : '<tr><td colspan="6">Nenhuma carga do mapa casa com a planilha.</td></tr>') +
+      '</tbody></table></div>' +
+      (st.scan.notFound.length? '<p class="hint" style="margin:6px 0 2px"><b>Ordens da planilha que NÃO estão no mapa</b> (' + st.scan.notFound.length + '):</p><div class="kp-nf mono">' + esc(st.scan.notFound.join(', ')) + '</div>' : '') +
+      '<div class="modal-actions"><button class="btn" type="button" id="kp-cancel">Cancelar</button>' +
+      '<button class="btn primary" type="button" id="kp-ok"' + (listAll.length? '':' disabled') + '>✅ Aplicar KM real</button></div>' +
+    '</div>';
+  document.body.appendChild(mask);
+  $('#kp-x').addEventListener('click', kpClose);
+  $('#kp-cancel').addEventListener('click', kpClose);
+  $('#kp-inc-fech').addEventListener('change', ()=>{ /* refiltragem visual: a lista completa fica na prévia; o filtro vale na aplicação */ });
+  $('#kp-ok').addEventListener('click', ()=> kpApply());
+}
+async function kpApply(force){
+  const st=KP_STATE; if(!st) return;
+  const incFech=(typeof force==='boolean')? force : (($('#kp-inc-fech')||{}).checked !== false);
+  const list=st.scan.changes.filter(ch=> incFech||!ch.fech);
+  if(!list.length){ toast('Nada para aplicar.', 'warn'); return; }
+  clearTimeout(saveTimer);                                   // protege edição pendente do dia aberto
+  if(currentMapDate) await saveMapForDate(currentMapDate);
+  const byD={};
+  for(const ch of list){ (byD[ch.d]=byD[ch.d]||[]).push(ch); }
+  let n=0;
+  for(const d of Object.keys(byD)){
+    const rec=relNormalizeRec(await Stor.get('map:'+d)); if(!rec||!rec.data) continue;
+    for(const ch of byD[d]){
+      // procura em TODAS as seções: uma carga pode ter sido movida (ex.: placa fixa -> Frotas)
+      // entre o scan (prévia) e a gravação
+      let row=null;
+      for(const s2 of SECTIONS){ row=(rec.data[s2]||[]).find(r=>r.id===ch.id); if(row) break; }
+      if(!row) continue;
+      row.km=ch.kmNew; row.kmPortaria=ch.kmNew; n++;
+    }
+    await Stor.set('map:'+d, rec);
+  }
+  if(currentMapDate){ await loadMapForDate(currentMapDate); }
+  renderAll();
+  audit('km-portaria', st.fileName + ': ' + n + ' carga(s) com KM real · ' + st.scan.notFound.length + ' ordem(ns) da planilha não encontrada(s)');
+  kpClose();
+  toast('✅ KM real aplicado em ' + n + ' carga(s)' + (incFech? '' : ' (fechadas de fora)') + ' · sigla KM verde = ajustada', 'ok');
+}
+function kmPortStart(file){
+  portariaParseFile(file).then(async (parsed)=>{
+    if(parsed.stats.header<0){ toast('❌ Planilha sem as colunas "Carga" e "KM Rodado"', 'err'); return; }
+    if(!parsed.map.size){ toast('❌ Nenhum KM válido (>0) na planilha', 'err'); return; }
+    toast('⏳ Cruzando ' + parsed.map.size + ' ordem(ns) da planilha com o mapa…', 'warn');
+    const scan=await kmPortScan(parsed.map);
+    KP_STATE={map:parsed.map, stats:parsed.stats, scan:scan, fileName:file.name};
+    kpOpenPreview();
+  }).catch(err=>{ console.error(err); toast('❌ Falha ao ler a planilha: ' + err.message, 'err'); });
+}
+
 /* ================= Exportação Excel (SheetJS) ================= */
 /* Mapa do dia em Excel — MESMO formato do print (seções, colunas, totais e resumo; SEM valores) */
 function xlsMapCompleto(){
@@ -2883,7 +3033,7 @@ function relRowHtml(it){
     '<td class="w-dest">' + inp('destino', r.destino || '') + '</td>' +
     '<td class="w-ordem">' + inp('carga', r.carga || '') + '</td>' +
     '<td class="num">' + inp('peso', pesoTxt, 'numin') + '</td>' +
-    '<td class="num">' + inp('km', kmTxt, 'numin') + '</td>' +
+    '<td class="num">' + inp('km', kmTxt, 'numin') + (r.kmPortaria ? kmPortBadge(r) : '') + '</td>' +
     '<td class="num">' + inp('dias', String(c.diarias), 'numin') + '</td>' +
     '<td class="num" data-c="total" title="' + esc(c.modo) + (c.frota ? ' · ' + esc(c.frota) : '') + '">' + fmtBRL(c.total) + '</td>' +
     '<td class="num" data-c="media">' + relFmtMedia(c.media) + '</td>' +
@@ -3612,7 +3762,7 @@ function fechDetRow(g){
       '<td>' + esc(it.row.destino || '') + '</td>' +
       '<td>' + esc(it.row.carga || '') + '</td>' +
       '<td class="num">' + fmtPeso2(it.calc.peso) + '</td>' +
-      '<td class="num">' + (it.calc.km ? fmtNum(it.calc.km) : '') + '</td>' +
+      '<td class="num">' + (it.calc.km ? fmtNum(it.calc.km) : '') + (it.row.kmPortaria ? kmPortBadge(it.row) : '') + '</td>' +
       '<td class="num">' + fmtBRL(it.calc.total) + '</td>' +
       '<td>' + esc(it.row.motorista || '') + '</td>' +
       '<td class="fech-conf">' + (it.row.stFech === 'fechado'
@@ -5068,7 +5218,7 @@ let SESSION = null;             // {id, key, name, level, at, access_token, refr
 let AUDIT = [];                 // [{ts, user, action, detail, ok}] — máx. 200
 const loginFails = {};          // usuário (maiúsculo) -> {n, until} — throttle local nesta aba
 /* Botões da topbar -> nível mínimo para exibir (botões de edição = só admin) */
-const TOPBAR_BTN_MIN = {'btn-import':4,'btn-backup':4,'btn-restore':4,'btn-mapa-toggle':2,'btn-shot-full':2,'btn-shot-nopv':2,'btn-pdf':2,'btn-etiq':2,'btn-plan':2,'btn-xls-toggle':2,'btn-xls-map':2,'btn-xls-per':4,'btn-ff':4,'btn-reclass':4,'btn-clear':4,'btn-settings':4,'btn-dash':3};
+const TOPBAR_BTN_MIN = {'btn-import':4,'btn-kmport':4,'btn-backup':4,'btn-restore':4,'btn-mapa-toggle':2,'btn-shot-full':2,'btn-shot-nopv':2,'btn-pdf':2,'btn-etiq':2,'btn-plan':2,'btn-xls-toggle':2,'btn-xls-map':2,'btn-xls-per':4,'btn-ff':4,'btn-reclass':4,'btn-clear':4,'btn-settings':4,'btn-dash':3};
 
 function normUser(s){ return String(s==null?'':s).trim().toUpperCase(); }
 function validUsername(s){
@@ -5802,6 +5952,8 @@ function bindStatic(){
   });
 
   /* topbar */
+  $('#btn-kmport').addEventListener('click', ()=> $('#file-kmport').click());
+  $('#file-kmport').addEventListener('change', e=>{ const f=e.target.files[0]; e.target.value=''; if(f) kmPortStart(f); });
   $('#btn-import').addEventListener('click', ()=> $('#file-import').click());
   $('#file-import').addEventListener('change', async e=>{
     const f = e.target.files[0];
