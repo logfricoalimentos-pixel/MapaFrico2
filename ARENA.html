@@ -2719,32 +2719,39 @@ async function portariaParseFile(file){
   const rows=XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
   return portariaRowsToMap(rows);
 }
-/* varre UM dia (rec já normalizado) -> changes [{d,sec,id,ordem,kmOld,kmNew,totOld,totNew,fech,same}] */
+/* carga negociada (Valor Frete manual ou Neg?=Sim): o valor NÃO depende do KM */
+function kpIsNeg(r){ return numVal(r.valorFrete) > 0 || isNegSim(r); }
+/* varre UM dia (rec já normalizado) -> {changes:[{d,sec,id,ordem,kmOld,kmNew,totOld,totNew,neg,same}], fechSkipped, fechOrdens}
+   REGRAS: carga FECHADA não é alterada; negociada atualiza só o KM (o valor negociado permanece) */
 function kmPortScanRec(rec, d, map){
-  const out=[];
-  if(!rec||!rec.data) return out;
+  const changes=[]; let fechSkipped=0; const fechOrdens=[];
+  if(!rec||!rec.data) return {changes:changes, fechSkipped:0, fechOrdens:fechOrdens};
   for(const sec of SECTIONS){
     for(const r of (rec.data[sec]||[])){
       const key=String(r.carga||'').trim(); if(!key||!map.has(key)) continue;
+      if(relIsFech(r)){ fechSkipped++; fechOrdens.push(key); continue; }   // só não fechadas
       const kmNew=map.get(key);
       const old=calcularFrete(sec, r)||{};
       const nw=calcularFrete(sec, Object.assign({}, r, {km:kmNew}))||{};
-      out.push({d:d, sec:sec, id:r.id, ordem:key, kmOld:(r.km===''||r.km==null?'':numVal(r.km)), kmNew:kmNew,
-                totOld:numVal(old.total), totNew:numVal(nw.total), fech:relIsFech(r), same:numVal(r.km)===kmNew});
+      changes.push({d:d, sec:sec, id:r.id, ordem:key, kmOld:(r.km===''||r.km==null?'':numVal(r.km)), kmNew:kmNew,
+                totOld:numVal(old.total), totNew:numVal(nw.total), neg:kpIsNeg(r), same:numVal(r.km)===kmNew});
     }
   }
-  return out;
+  return {changes:changes, fechSkipped:fechSkipped, fechOrdens:fechOrdens};
 }
 async function kmPortScan(map){
   let idx=await Stor.get('map-dates-index');
   if(!Array.isArray(idx)||!idx.length) idx=(await Stor.list()).filter(k=>/^map:\d{4}-\d{2}-\d{2}$/.test(k)).map(k=>k.slice(4));
-  const changes=[]; const found=new Set();
+  const changes=[]; const skipped=[]; const found=new Set(); let fechSkipped=0;
   for(const d of idx){
     const rec=relNormalizeRec(await Stor.get('map:'+d));
-    for(const ch of kmPortScanRec(rec, d, map)){ changes.push(ch); found.add(ch.ordem); }
+    const rs=kmPortScanRec(rec, d, map);
+    for(const ch of rs.changes){ changes.push(ch); found.add(ch.ordem); }
+    for(const ord of rs.fechOrdens){ skipped.push({d:d, ordem:ord}); found.add(ord); }
+    fechSkipped+=rs.fechSkipped;
   }
   const notFound=[...map.keys()].filter(k=>!found.has(k));
-  return {changes:changes, notFound:notFound, days:idx.length};
+  return {changes:changes, skipped:skipped, fechSkipped:fechSkipped, notFound:notFound, days:idx.length};
 }
 let KP_STATE=null;   // {map, stats, scan, fileName}
 function kpRowHtml(ch){
@@ -2753,7 +2760,7 @@ function kpRowHtml(ch){
     '<td class="mono">' + esc(ch.ordem) + '</td>' +
     '<td class="num">' + (ch.kmOld===''?'—':fmtNum(ch.kmOld)) + ' → <b>' + fmtNum(ch.kmNew) + '</b></td>' +
     '<td class="num">' + fmtBRL(ch.totOld) + ' → <b>' + fmtBRL(ch.totNew) + '</b></td>' +
-    '<td>' + (ch.fech?'<span class="st-badge fech">Fechado</span>':(ch.same?'<span class="st-badge pend">KM já igual</span>':'<span class="st-badge anal">atualiza</span>')) + '</td></tr>';
+    '<td>' + (ch.neg?'<span class="st-badge fech" title="negociada (Neg?=Sim ou Valor Frete manual): o KM atualiza, o valor negociado permanece" style="background:#fef3c7;color:#92400e">negociada · valor mantido</span>':(ch.same?'<span class="st-badge pend">KM já igual</span>':'<span class="st-badge anal">atualiza</span>')) + '</td></tr>';
 }
 function kpClose(){ const m=$('#kp-mask'); if(m) m.remove(); }
 function kpOpenPreview(){
@@ -2761,12 +2768,11 @@ function kpOpenPreview(){
   kpClose();
   const mask=document.createElement('div'); mask.id='kp-mask'; mask.className='no-print';
   const listAll=st.scan.changes;
-  const nFech=listAll.filter(c=>c.fech).length;
+  const nNeg=listAll.filter(c=>c.neg).length;
   mask.innerHTML =
     '<div class="modal modal-edc" style="max-width:900px">' +
       '<div class="fech-head"><h3>📥 KM Portaria — ' + esc(st.fileName) + '</h3><button class="x" type="button" id="kp-x" title="Cancelar">✕</button></div>' +
-      '<p class="hint">A planilha tem <b>' + st.stats.valid + '</b> ordem(ns) com KM válido (>0) · <b>' + st.stats.invalid + '</b> linha(s) ignorada(s) por KM vazio/0/negativo' + (st.stats.dup? ' · <b>'+st.stats.dup+'</b> ordem(ns) repetida(s) (vale a última)': '') + '. No mapa, <b>' + listAll.length + '</b> carga(s) casam com a planilha em ' + st.scan.days + ' dia(s) verificado(s); <b>' + st.scan.notFound.length + '</b> ordem(ns) da planilha não existem no mapa. O KM só é aplicado onde a planilha traz KM > 0; cada ordem ajustada ganha a sigla <b>KM</b> em verde metálico.</p>' +
-      '<label style="display:flex;gap:6px;align-items:center;margin:4px 0"><input type="checkbox" id="kp-inc-fech" checked> incluir cargas FECHADAS (' + nFech + ') — o Total delas é recalculado com o KM real</label>' +
+      '<p class="hint">A planilha tem <b>' + st.stats.valid + '</b> ordem(ns) com KM válido (>0) · <b>' + st.stats.invalid + '</b> linha(s) ignorada(s) por KM vazio/0/negativo' + (st.stats.dup? ' · <b>'+st.stats.dup+'</b> ordem(ns) repetida(s) (vale a última)': '') + '. No mapa, <b>' + listAll.length + '</b> carga(s) <b>não fechadas</b> casam com a planilha em ' + st.scan.days + ' dia(s) verificado(s); <b>' + st.scan.notFound.length + '</b> ordem(ns) da planilha não existem no mapa. <b>Regras:</b> carga <b>FECHADA não é alterada</b>' + (st.scan.fechSkipped? ' (' + st.scan.fechSkipped + ' fechada(s) com ordem na planilha ficaram de fora)': '') + '; carga <b>negociada</b> (Neg?=Sim ou Valor Frete manual) atualiza <b>só o KM</b> — o valor negociado permanece' + (nNeg? ' (' + nNeg + ' negociada(s))': '') + '. Cada ordem ajustada ganha a sigla <b>KM</b> em verde metálico.</p>' +
       '<div class="kp-scroll"><table class="kp-tbl"><thead><tr><th>Data</th><th>Tipo</th><th>Ordem</th><th class="num">KM atual → real</th><th class="num">Total previsto → novo</th><th>Situação</th></tr></thead><tbody>' +
       (listAll.length? listAll.map(kpRowHtml).join('') : '<tr><td colspan="6">Nenhuma carga do mapa casa com a planilha.</td></tr>') +
       '</tbody></table></div>' +
@@ -2777,13 +2783,13 @@ function kpOpenPreview(){
   document.body.appendChild(mask);
   $('#kp-x').addEventListener('click', kpClose);
   $('#kp-cancel').addEventListener('click', kpClose);
-  $('#kp-inc-fech').addEventListener('change', ()=>{ /* refiltragem visual: a lista completa fica na prévia; o filtro vale na aplicação */ });
   $('#kp-ok').addEventListener('click', ()=> kpApply());
 }
-async function kpApply(force){
+async function kpApply(){
   const st=KP_STATE; if(!st) return;
-  const incFech=(typeof force==='boolean')? force : (($('#kp-inc-fech')||{}).checked !== false);
-  const list=st.scan.changes.filter(ch=> incFech||!ch.fech);
+  // REGRAS: o scan já deixa FECHADAS de fora; negociadas entram só p/ atualizar o KM
+  // (o valor negociado não depende do KM no calcularFrete — permanece intacto)
+  const list=st.scan.changes;
   if(!list.length){ toast('Nada para aplicar.', 'warn'); return; }
   clearTimeout(saveTimer);                                   // protege edição pendente do dia aberto
   if(currentMapDate) await saveMapForDate(currentMapDate);
@@ -2806,7 +2812,7 @@ async function kpApply(force){
   renderAll();
   audit('km-portaria', st.fileName + ': ' + n + ' carga(s) com KM real · ' + st.scan.notFound.length + ' ordem(ns) da planilha não encontrada(s)');
   kpClose();
-  toast('✅ KM real aplicado em ' + n + ' carga(s)' + (incFech? '' : ' (fechadas de fora)') + ' · sigla KM verde = ajustada', 'ok');
+  toast('✅ KM real aplicado em ' + n + ' carga(s) não fechada(s)' + (st.scan.fechSkipped? ' · ' + st.scan.fechSkipped + ' fechada(s) intocada(s)' : '') + ' · sigla KM verde = ajustada', 'ok');
 }
 function kmPortStart(file){
   portariaParseFile(file).then(async (parsed)=>{
