@@ -550,6 +550,20 @@ body.readonly .sec-actions{display:none}
 #kp-mask .kp-tbl td.num{text-align:right}
 #kp-mask .kp-scroll{max-height:280px;overflow:auto;border:1px solid #cbd5e1;border-radius:6px}
 #kp-mask .kp-nf{max-height:120px;overflow:auto;background:#fef2f2;border:1px solid #fecaca;border-radius:6px;padding:6px 8px;font-size:12px;margin:4px 0}
+#ft-mask .ft-modal{max-width:min(1120px, 96vw);width:100%}
+#ft-mask .ft-chips{margin:2px 0 6px}
+.ft-chip{display:inline-block;margin:0 6px 4px 0;padding:2px 10px;border-radius:999px;background:#e0e7ff;color:#3730a3;font-size:12px;font-weight:600}
+.ft-chip b{font-size:13px}
+#ft-mask .ft-scroll{max-height:46vh;min-height:180px;overflow:auto;border:1px solid #cbd5e1;border-radius:8px}
+#ft-mask .ft-tbl{width:100%;border-collapse:collapse;font-size:13px}
+#ft-mask .ft-tbl th{position:sticky;top:0;z-index:1;background:#1e293b;color:#fff;padding:7px 10px;text-align:left;white-space:nowrap;font-size:12px}
+#ft-mask .ft-tbl td{padding:6px 10px;border-bottom:1px solid #e2e8f0;vertical-align:top}
+#ft-mask .ft-tbl tbody tr:nth-child(even) td{background:#f8fafc}
+#ft-mask .ft-tbl td.num{text-align:right;white-space:nowrap}
+#ft-mask .ft-creds{display:grid;grid-template-columns:1fr 1fr auto;gap:12px;align-items:end;background:#f1f5f9;border:1px solid #cbd5e1;border-radius:8px;padding:10px 12px;margin-top:10px}
+#ft-mask .ft-creds label{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:#334155}
+#ft-mask .ft-creds input[type=text],#ft-mask .ft-creds input[type=password]{padding:8px 10px;border:1px solid #94a3b8;border-radius:6px;font-size:14px;background:#fff}
+#ft-mask .ft-save{flex-direction:row!important;align-items:center;gap:6px;font-size:13px;padding-bottom:9px;white-space:nowrap}
 
 /* ===== Status de pagamento (Pendente/Fechado) + painel de Fechamento quinzenal ===== */
 .rel-tools{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:8px 0 0}
@@ -2752,27 +2766,33 @@ function ftClose(){ const m=$('#ft-mask'); if(m) m.remove(); }
 function ftOpenConfirm(){
   ftClose();
   const rows = buildFtRows(currentMapDate);
-  const porSec = {};
-  for(const sec of SECTIONS) porSec[sec] = rows.filter(r=> (DATA[sec]||[]).some(x=> String(x.placa||'').toUpperCase().replace(/[^A-Z0-9]/g,'') === r.placa)).length;
+  const cnt = {frotas:0, capital:0, interior:0};
+  for(const sec of SECTIONS){
+    const placas = new Set((DATA[sec]||[]).map(r=> String(r.placa||'').toUpperCase().replace(/[^A-Z0-9]/g,'')).filter(Boolean));
+    cnt[sec] = rows.filter(r=> placas.has(r.placa)).length;
+  }
   FT_STATE = {rows: rows};
   const mask=document.createElement('div'); mask.id='ft-mask'; mask.className='no-print';
+  const chip = (lbl,n)=> '<span class="ft-chip">' + lbl + ' <b>' + n + '</b></span>';
   mask.innerHTML =
-    '<div class="modal modal-edc" style="max-width:760px">' +
+    '<div class="modal modal-edc ft-modal">' +
       '<div class="fech-head"><h3>📤 FricoTrack — enviar faturamento de ' + fmtBR(currentMapDate) + '</h3><button class="x" type="button" id="ft-x" title="Cancelar">✕</button></div>' +
-      '<p class="hint">Envia <b>' + rows.length + '</b> veículo(s) do dia aberto (Frotas ' + porSec.frotas + ' · Capital ' + porSec.capital + ' · Interior ' + porSec.interior + ') para a lista de <b>esperados</b> da portaria no FricoTrack, com placa, rota/destino, ordem, peso, entregas, motorista, transportador e tipo de veículo. <b>Como no site:</b> o envio substitui a lista desta data lá (reenviar corrige). Sem planilha e sem bot.</p>' +
-      '<div class="kp-scroll" style="max-height:220px"><table class="kp-tbl"><thead><tr><th>Placa</th><th>Destino</th><th>Ordem</th><th class="num">Peso</th><th class="num">Entregas</th><th>Motorista</th><th>Transportador</th><th>Veículo</th></tr></thead><tbody>' +
-      (rows.length? rows.map(r=> '<tr><td class="mono">' + esc(r.placa) + '</td><td>' + esc(r.destino || '') + '</td><td class="mono">' + esc(r.carga_id || '') + '</td><td class="num">' + (r.peso? fmtNum(r.peso):'') + '</td><td class="num">' + (r.qtd_entregas || '') + '</td><td>' + esc(r.motorista || '') + '</td><td>' + esc(r.transportadora || '') + '</td><td>' + esc(r.tipo_veiculo || '') + '</td></tr>').join('') : '<tr><td colspan="8">Nenhuma carga com placa no dia aberto.</td></tr>') +
+      '<p class="ft-chips">' + chip('Frotas', cnt.frotas) + chip('Capital', cnt.capital) + chip('Interior', cnt.interior) + chip('Total de veículos', rows.length) + '</p>' +
+      '<p class="hint">Envia os veículos do dia aberto para a lista de <b>esperados</b> da portaria no FricoTrack, com placa, rota/destino, ordem, peso, entregas, motorista, transportador/ajudantes e tipo de veículo. <b>Como no site:</b> o envio substitui a lista desta data lá — reenviar corrige. Sem planilha e sem bot.</p>' +
+      '<div class="ft-scroll"><table class="ft-tbl"><thead><tr><th>Placa</th><th>Destino / Rota</th><th>Ordem</th><th class="num">Peso (kg)</th><th class="num">Entregas</th><th>Motorista</th><th>Transportador / Ajudantes</th><th>Veículo</th></tr></thead><tbody>' +
+      (rows.length? rows.map(r=> '<tr><td class="mono"><b>' + esc(r.placa) + '</b></td><td>' + esc(r.destino || '—') + '</td><td class="mono">' + esc(r.carga_id || '—') + '</td><td class="num">' + (r.peso? fmtPeso2(r.peso):'—') + '</td><td class="num">' + (r.qtd_entregas || '—') + '</td><td>' + esc(r.motorista || '—') + '</td><td>' + esc(r.transportadora || r.ajudantes || '—') + '</td><td>' + esc(r.tipo_veiculo || '—') + '</td></tr>').join('') : '<tr><td colspan="8">Nenhuma carga com placa no dia aberto.</td></tr>') +
       '</tbody></table></div>' +
-      '<div class="edc-grid" style="margin-top:8px">' +
-        '<label>Usuário FricoTrack (e-mail)<input type="text" id="ft-user" autocomplete="username" placeholder="logistica@frico.ind.br"></label>' +
-        '<label>Senha<input type="password" id="ft-pass" autocomplete="current-password"></label>' +
+      '<div class="ft-creds">' +
+        '<label>Usuário FricoTrack (e-mail)<input type="text" id="ft-user" autocomplete="username" placeholder="seu@email.com"></label>' +
+        '<label>Senha<input type="password" id="ft-pass" autocomplete="current-password" placeholder="••••••••"></label>' +
+        '<label class="ft-save"><input type="checkbox" id="ft-save" checked> 💾 Salvar senha</label>' +
       '</div>' +
-      '<p class="hint" id="ft-cred-hint" style="margin:2px 0">Usado só para este envio + fica salvo nas configurações do mapa (como no seu .py).</p>' +
+      '<p class="hint" id="ft-cred-hint" style="margin:4px 2px">Com <b>Salvar senha</b> marcado, usuário e senha ficam guardados nas configurações do mapa (como no seu .py) e preenchidos sozinhos no próximo envio.</p>' +
       '<div class="modal-actions"><button class="btn" type="button" id="ft-cancel">Cancelar</button>' +
       '<button class="btn primary" type="button" id="ft-ok"' + (rows.length? '':' disabled') + '>📤 Enviar p/ FricoTrack</button></div>' +
     '</div>';
   document.body.appendChild(mask);
-  (async ()=>{ try{ const c = await Stor.get('fricotrack-cred'); if(c && c.u){ $('#ft-user').value = c.u; $('#ft-pass').value = c.p || ''; $('#ft-cred-hint').textContent = 'Credencial lembrada das configurações do mapa.'; } }catch(e){} })();
+  (async ()=>{ try{ const c = await Stor.get('fricotrack-cred'); if(c && c.u){ $('#ft-user').value = c.u; $('#ft-pass').value = c.p || ''; $('#ft-save').checked = true; $('#ft-cred-hint').innerHTML = '✅ Credencial salva nas configurações do mapa — preenchida automaticamente neste envio.'; } }catch(e){} })();
   $('#ft-x').addEventListener('click', ftClose);
   $('#ft-cancel').addEventListener('click', ftClose);
   $('#ft-ok').addEventListener('click', ftDoSend);
@@ -2785,7 +2805,8 @@ async function ftDoSend(){
     if(!u || !p) throw new Error('informe usuário e senha do FricoTrack');
     const sess = await ftLogin(u, p);
     const n = await ftSendDay(currentMapDate, FT_STATE.rows, sess.token, sess.userId);
-    try{ await Stor.set('fricotrack-cred', {u: u, p: p}); }catch(e){}
+    if(($('#ft-save')||{}).checked !== false){ try{ await Stor.set('fricotrack-cred', {u: u, p: p}); }catch(e){} }
+    else { try{ await Stor.del('fricotrack-cred'); }catch(e){} }
     audit('fricotrack-envio', currentMapDate + ': ' + n + ' veículo(s) esperados');
     ftClose();
     toast('✅ FricoTrack: ' + n + ' veículo(s) de ' + fmtBR(currentMapDate) + ' na lista de esperados', 'ok');
