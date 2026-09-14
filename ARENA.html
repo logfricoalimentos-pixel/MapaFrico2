@@ -799,8 +799,8 @@ body.readonly .sec-actions{display:none}
       <summary>📋 Metodologia &amp; auditoria dos indicadores</summary>
       <h4>Metodologia</h4>
       <ul>
-        <li><b>Sem negociação</b> = previsão 100% pela tabela: Capital = valor fixo (TB_NOVA/Bônus ou DIARIA/Normal); Interior = (dias × diária) + (km × valor/km) + ((dias−1) × pernoite) × 1,1. Sobre esse valor aplicado <b>+10% de margem</b> (cargas não negociadas).</li>
-        <li><b>Com negociação</b> = previsão após as negociações: se <b>Valor Frete (R$)</b> estiver preenchido, ele vale; se <b>Neg? = Sim</b>, Vlr Kg × Peso; senão, a tabela <b>+10%</b>. <b>Cargas negociadas não recebem a margem de 10%</b> (o valor fechado é o que vale).</li>
+        <li><b>Sem negociação</b> = previsão 100% pela tabela: Capital = valor fixo (TB_NOVA/Bônus ou DIARIA/Normal); Interior = (dias × diária) + (km × valor/km) + ((dias−1) × pernoite) × 1,1. Sobre esse valor aplicada a <b>margem configurada</b> (padrão +10%; 0 = sem margem) — cargas não negociadas.</li>
+        <li><b>Com negociação</b> = previsão após as negociações: se <b>Valor Frete (R$)</b> estiver preenchido, ele vale; se <b>Neg? = Sim</b>, Vlr Kg × Peso; senão, a tabela <b>+ margem configurada</b>. <b>Cargas negociadas não recebem margem</b> (o valor fechado é definitivo).</li>
         <li><b>Economia da negociação</b> = Sem − Com. Se negativo, a negociação encareceu (exibido em vermelho como "Acréscimo").</li>
         <li><b>Frotas</b> = <b>sem custo</b> (peso conta no peso total, mas não gera custo).</li>
         <li><b>Custo/kg</b> = custo (com negociação) ÷ peso, calculado por <b>Capital</b>, por <b>Interior</b> e no <b>Total</b> (trava de divisão por zero).</li>
@@ -825,7 +825,7 @@ body.readonly .sec-actions{display:none}
         <li><b>Motorista limitado a 20 caracteres</b> em Frotas, Capital e Interior (campo, digitação, importação e dados já salvos).</li>
         <li><b>📥 Excel Mapa</b>: exporta o mapa do dia em .xlsx no MESMO formato do print (seções FROTAS/CAPITAL/INTERIOR, colunas, totais e resumo — sem valores).</li>
         <li><b>📥 Excel Período</b> (admin): exporta TODAS as cargas de Capital e Interior de um período (com Vlr Kg, Neg?, Previsão, Custo/kg e Valor Frete) + aba Resumo por dia. Frotas não entra.</li>
-        <li><b>+10% no valor previsto</b> de cargas não negociadas (margem sobre a tabela) — negociadas (Valor Frete manual ou Neg? = Sim) mantêm o valor fechado.</li>
+        <li><b>Margem configurável (padrão +10%)</b> no valor previsto de cargas não negociadas — em Configurações dá p/ poner 0 ou qualquer X%; negociadas (Valor Frete manual ou Neg? = Sim) mantêm o valor fechado.</li>
         <li><b>Custo Geral</b> e <b>Peso / Custo por kg</b> de Capital e Interior em <b>evidência</b> (KPIs em destaque).</li>
         <li><b>Gráfico de evolução do custo</b> com granularidade <b>Diário / Mensal / Anual</b> (Capital × Interior empilhado), com tooltip (custo, peso e custo/kg).</li>
         <li>Comparativo visual Sem vs Com negociação (barras proporcionais).</li>
@@ -896,6 +896,13 @@ body.readonly .sec-actions{display:none}
 <!-- ============ CONFIGURAÇÕES ============ -->
 <aside id="settings" class="no-print">
   <h2>⚙️ Configurações <button class="close-x" id="btn-close-settings" title="Fechar">✕</button></h2>
+
+  <section>
+    <h3>💯 Margem sobre frete não negociado</h3>
+    <p class="hint">Percentual <b>temporário</b> somado à previsão pela tabela nas cargas <b>não negociadas</b> (Capital = valor fixo; Interior = diárias + km + pernoite). <b>Negociadas</b> (Valor Frete manual ou Neg?=Sim) <b>não recebem margem</b> — o valor fechado é definitivo. Use <b>0</b> para não pagar percentual, ou troque por qualquer X%. Vale p/ o mapa inteiro (relatórios, comparativo, fechamento).</p>
+    <label class="lbl">Margem (%)<input id="margem-frete" type="number" step="0.5" min="0" max="100" style="max-width:120px"></label>
+    <button class="btn" id="btn-save-margem">Salvar margem</button>
+  </section>
 
   <section>
     <h3>Placas fixas em Frotas</h3>
@@ -1179,7 +1186,7 @@ body.readonly .sec-actions{display:none}
       <label>Valor Frete manual (R$)<input id="edc-valorfrete" inputmode="decimal" placeholder="0,00"></label>
     </div>
     <div class="hint edc-calc" id="edc-calc" style="border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:#f8fafc;font-size:12px;line-height:1.5"></div>
-    <p class="hint">💾 Salvar grava no mapa do dia da carga e refaz o cálculo (Total/Média); destino/nº da carga reaplicam as diárias do cadastro de rotas; o veículo escolhido vale só p/ esta carga (tabela negociada, ex.: pagar 3/4 num toco). Prioridade do cálculo: Valor Frete manual &gt; Neg?=Sim (Vlr/kg × peso) &gt; tabela do veículo +10%. <b>Trocar o veículo limpa Neg?/Vlr/kg/Valor manual e recalcula pela tabela escolhida</b> (mesmo que o peso seja de outra faixa); depois dá p/ renegociar por cima, se quiser.</p>
+    <p class="hint">💾 Salvar grava no mapa do dia da carga e refaz o cálculo (Total/Média); destino/nº da carga reaplicam as diárias do cadastro de rotas; o veículo escolhido vale só p/ esta carga (tabela negociada, ex.: pagar 3/4 num toco). Prioridade do cálculo: Valor Frete manual &gt; Neg?=Sim (Vlr/kg × peso) &gt; tabela do veículo + margem configurada. <b>Trocar o veículo limpa Neg?/Vlr/kg/Valor manual e recalcula pela tabela escolhida</b> (mesmo que o peso seja de outra faixa); depois dá p/ renegociar por cima, se quiser.</p>
     <div class="modal-actions">
       <button class="btn" type="button" id="edc-cancel">Cancelar</button>
       <button class="btn primary" type="button" id="edc-save">💾 Salvar no mapa</button>
@@ -1401,7 +1408,10 @@ const PRICE_TABLE = {
 function normalizarTipo(t){ return (t === 'normal' || t === 'freelancer') ? 'freelancer' : 'agregado'; }
 
 const KM_MARGIN = 1.12; // margem de erro +12% sobre "Km Rota"
-const FRETE_MARGIN_NONNEG = 1.10; // +10% no valor previsto para cargas NÃO negociadas (negociadas não levam margem)
+let MARGEM_FRETE = 10;   // % de margem sobre a previsão de cargas NÃO negociadas (0 = não pagar %); configurável em Configurações
+function margemPct(){ return Math.max(0, Math.min(100, Number(MARGEM_FRETE) || 0)); }
+function margemMult(){ return 1 + margemPct() / 100; }
+function margemTxt(){ const p = margemPct(); return p ? ' +' + p + '%' : ''; }
 const SAVE_DEBOUNCE_MS = 700;
 const SECTIONS = ['frotas','capital','interior'];
 
@@ -1649,7 +1659,7 @@ function selecionarFrota(peso){
 function isNegSim(row){ return String(row.neg||'').trim().toLowerCase() === 'sim'; }
 /* Previsão 100% pela tabela de preços (sem nenhuma negociação) — base do comparativo e da auditoria.
    Capital = valor fixo (diária) · Interior/Frotas = (dias × diária) + (km × vlr/km) + ((dias−1) × pernoite) × 1.1
-   Atenção: valor BRUTO da tabela — a margem +10% (FRETE_MARGIN_NONNEG) é aplicada por calcularFrete()
+   Atenção: valor BRUTO da tabela — a margem % configurada (MARGEM_FRETE) é aplicada só por calcularFrete()
    e metricsFromData() para cargas não negociadas. */
 function tableForecast(section, row){
   const frota = row.frotaCalc || selecionarFrota(row.peso);   // frotaCalc = tabela negociada p/ esta carga
@@ -1661,7 +1671,7 @@ function tableForecast(section, row){
   if(grupo === 'capital') return {frota, total: preco.diaria};
   const dias = Math.max(1, Number(row.dias) || 1);
   const km = Number(row.km) || 0;
-  const total = (dias*preco.diaria + preco.km*km + (dias-1)*preco.pernoite) * 1.1;
+  const total = dias*preco.diaria + preco.km*km + (dias-1)*preco.pernoite;   // BRUTO: a margem % é aplicada só por calcularFrete()
   return {frota, total};
 }
 /* Previsão COM negociação: Valor Frete manual > Neg?=Sim (VlrKg×Peso) > tabela (+10% margem no valor previsto).
@@ -1675,13 +1685,13 @@ function calcularFrete(section, row){
     if(vf > 0) return {frota, total: vf, modo:'Valor Frete (manual)'};
     if(isNegSim(row)) return {frota, total: numVal(row.valorKg) * numVal(row.peso), modo:'Vlr Kg × Peso'};
   }
-  // Não negociado: valor previsto = tabela + 10% de margem (FRETE_MARGIN_NONNEG)
+  // Não negociado: valor previsto = tabela + margem % configurada (MARGEM_FRETE; 0 = sem margem)
   const tf = tableForecast(section, row);
   const tabelaTipo = normalizarTipo(row.tabela);
-  const total = tf.total * FRETE_MARGIN_NONNEG;
+  const total = tf.total * margemMult();
   const modo = section === 'capital'
-    ? (tabelaTipo === 'agregado' ? 'TB_NOVA (valor fixo) +10%' : 'DIARIA (valor fixo) +10%')
-    : 'Tabela +10%';
+    ? (tabelaTipo === 'agregado' ? 'TB_NOVA (valor fixo)' + margemTxt() : 'DIARIA (valor fixo)' + margemTxt())
+    : 'Tabela' + margemTxt();
   return {frota, total, modo};
 }
 
@@ -2252,10 +2262,11 @@ async function switchToDate(dateStr){
   if(dashVisible) loadDashboard();
 }
 async function loadSettings(){
-  const [reg, ff, ck, ik, hc, av, rd, tc, fc, tz, wa] = await Promise.all([
+  const [reg, ff, ck, ik, hc, av, rd, tc, fc, tz, wa, mg] = await Promise.all([
     Stor.get('fleet-registry'), Stor.get('fixed-frotas'), Stor.get('capital-keywords'),
     Stor.get('interior-keywords'), Stor.get('hidden-cols'), Stor.get('availability'),
-    Stor.get('routes-days'), Stor.get('transp-codes'), Stor.get('fechamentos'), Stor.get('transp-zap'), Stor.get('wa-auto')
+    Stor.get('routes-days'), Stor.get('transp-codes'), Stor.get('fechamentos'), Stor.get('transp-zap'), Stor.get('wa-auto'),
+    Stor.get('margem-frete')
   ]);
   // pré-cadastro padrão de transportadoras sempre mesclado; o salvo pelo usuário tem prioridade
   REGISTRY = Object.assign({}, DEFAULT_REGISTRY);
@@ -2291,6 +2302,8 @@ async function loadSettings(){
   }
   // envio automático via API WhatsApp (Evolution/UltraMsg)
   WA_AUTO = Object.assign({prov:'evolution', base:'', key:'', inst:'', tpl:''}, (wa && typeof wa === 'object') ? wa : {});
+  // margem % sobre não negociadas (padrão 10; 0 = sem margem)
+  MARGEM_FRETE = (mg == null || mg === '') ? 10 : Math.max(0, Math.min(100, Number(mg) || 0));
   // histórico de fechamentos quinzenais
   FECHAMENTOS = Array.isArray(fc) ? fc : [];
 }
@@ -4934,7 +4947,7 @@ function metricsFromData(data){
       m.frotasCusto += calcularFrete('frotas', r).total; // estimado (tabela Interior) — indicador separado
       return;
     }
-    const sem = tableForecast(sec, r).total * FRETE_MARGIN_NONNEG; // sem negociação = tabela +10% (mesma regra do valor previsto)
+    const sem = tableForecast(sec, r).total * margemMult(); // sem negociação = tabela +10% (mesma regra do valor previsto)
     const com = calcularFrete(sec, r).total;
     if(sec === 'capital'){ m.capSem += sem; m.capCom += com; m.capPeso += numVal(r.peso); }
     else { m.intSem += sem; m.intCom += com; m.intPeso += numVal(r.peso); }
@@ -5805,6 +5818,7 @@ async function deleteHistoryDay(dateStr){
 
 /* ================= UI: configurações ================= */
 function fillSettingsUI(){
+  const mf = $('#margem-frete'); if(mf) mf.value = MARGEM_FRETE;
   $('#fixed-frotas').value = FIXED_FROTAS.join(', ');
   $('#kw-capital').value = CAPITAL_KEYWORDS.join(', ');
   $('#kw-interior').value = INTERIOR_KEYWORDS.join(', ');
@@ -6196,6 +6210,14 @@ function bindStatic(){
 
   /* configurações */
   $('#btn-save-fixed').addEventListener('click', ()=>{
+  $('#btn-save-margem').addEventListener('click', async ()=>{
+    const v = Math.max(0, Math.min(100, Number(($('#margem-frete')||{}).value) || 0));
+    MARGEM_FRETE = v;
+    try{ await Stor.set('margem-frete', v); }catch(e){}
+    fillSettingsUI(); renderAll();
+    audit('margem-frete', v + '%');
+    toast(v ? '✅ Margem salva: +' + v + '% sobre não negociadas' : '✅ Margem salva: sem percentual (0%)', 'ok');
+  });
     if(!requireAdmin()) return;
     FIXED_FROTAS = $('#fixed-frotas').value.split(/[,;\n]/).map(s=> s.trim()).filter(Boolean);
     saveSettings();
