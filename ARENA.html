@@ -612,7 +612,7 @@ body.readonly .sec-actions{display:none}
 @media (max-width:760px){ .modal-fech{width:100vw;max-height:100vh;height:100vh;border-radius:0} #fech-mask{padding:0} }
 .st-badge.anal{background:#fef3c7;color:#92400e;border:1px solid #fde68a}
 .fech-conf{white-space:nowrap;text-align:center}
-#edc-mask, #ret-mask, #plan-mask, #kp-mask{position:fixed;inset:0;z-index:470;background:rgba(15,23,42,.6);display:flex;align-items:center;justify-content:center;padding:16px}
+#edc-mask, #ret-mask, #plan-mask, #kp-mask, #ft-mask{position:fixed;inset:0;z-index:470;background:rgba(15,23,42,.6);display:flex;align-items:center;justify-content:center;padding:16px}
 #edc-mask[hidden], #ret-mask[hidden], #plan-mask[hidden]{display:none}
 .modal-edc{width:min(620px,94vw);max-height:92vh;overflow:auto}
 .edc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;margin:10px 0}
@@ -699,6 +699,7 @@ body.readonly .sec-actions{display:none}
   <div class="row">
     <button class="btn primary" id="btn-import">📥 Importar planilha</button>
     <button class="btn" id="btn-kmport" title="Importa o KM REAL (coluna KM Rodado) da planilha da portaria: atualiza o KM das ordens encontradas no mapa (ignora KM vazio, 0 ou negativo) e marca cada ordem ajustada com a sigla KM em verde metálico">📥 KM Portaria</button>
+    <button class="btn" id="btn-ftrack" title="Envia o faturamento do dia aberto direto p/ o FricoTrack (lista de veículos esperados da portaria) — substitui a lista daquela data no site, igual ao import de planilha">📤 FricoTrack</button>
     <span class="sep"></span>
     <button class="btn" id="btn-backup">💾 Backup</button>
     <button class="btn" id="btn-restore">📂 Restaurar</button>
@@ -2677,6 +2678,121 @@ async function capturePlan(){
     toast('Erro ao gerar relatório', 'err');
   }finally{
     setBusy(false);
+  }
+}
+
+/* ================= Envio direto p/ FricoTrack (veículos esperados) ================= */
+/* Reproduz o import de planilha do próprio FricoTrack (página Portaria — Varejo/carga própria),
+   mas sem planilha e sem bot: login na API Supabase deles + delete/insert em veiculos_esperados
+   com o MESMO payload do site. Regra do site: o envio SUBSTITUI a lista da data (delete por
+   data_referencia + por carga_id não conferida) — reenviar é seguro/idempotente. */
+const FT_SUPA = 'https://zwawfxpcsefcltxtdgnd.supabase.co';
+const FT_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp3YXdmeHBjc2VmY2x0eHRkZ25kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxOTQwNjMsImV4cCI6MjA4ODc3MDA2M30.4_AdUZ73h8Q-MOI0nMOHyTLm_-arZczK-ascAB9RkyU';
+const FT_GRUPO = 'PRÓPRIA';   // grupoEsperado da página carga-propria no site
+function ftHeaders(tok){
+  return {'apikey': FT_ANON, 'Authorization': 'Bearer ' + (tok || FT_ANON), 'Content-Type': 'application/json'};
+}
+async function ftLogin(user, pass){
+  const res = await fetch(FT_SUPA + '/auth/v1/token?grant_type=password', {
+    method: 'POST', headers: {'apikey': FT_ANON, 'Content-Type': 'application/json'},
+    body: JSON.stringify({email: user, password: pass})
+  });
+  const data = await res.json().catch(()=> ({}));
+  if(!res.ok || !data.access_token) throw new Error((data && (data.error_description || data.msg || data.error)) || 'login FricoTrack falhou (' + res.status + ')');
+  return {token: data.access_token, userId: (data.user && data.user.id) || null};
+}
+/* linhas do dia aberto -> payload veiculos_esperados (mesmos campos do site) */
+function buildFtRows(dateIso){
+  const rows = [];
+  for(const sec of SECTIONS){
+    for(const r of (DATA[sec] || [])){
+      const placa = String(r.placa || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+      if(!placa) continue;
+      const aj = sec === 'frotas' ? [r.ajudantes, r.ajudante2].filter(x=> x && String(x).trim()).join(' / ') : '';
+      rows.push({
+        data_referencia: dateIso,
+        grupo: FT_GRUPO,
+        placa: placa,
+        destino: String(r.destino || '').trim() || null,
+        carga_id: String(r.carga || '').trim() || null,
+        peso: numVal(r.peso) > 0 ? numVal(r.peso) : null,
+        qtd_entregas: numVal(r.entregas) > 0 ? Math.round(numVal(r.entregas)) : null,
+        motorista: String(r.motorista || '').trim() || null,
+        transportadora: String(r.transportadora || '').trim() || null,
+        ajudantes: aj || null,
+        tipo_veiculo: r.frotaCalc || selecionarFrota(r.peso) || null,
+        criado_por: null   // preenchido no envio com o id do usuário logado no FricoTrack
+      });
+    }
+  }
+  return rows;
+}
+async function ftSendDay(dateIso, rows, token, userId){
+  const datas = [...new Set(rows.map(r=> r.data_referencia))];
+  for(const d of datas){
+    const r1 = await fetch(FT_SUPA + '/rest/v1/veiculos_esperados?data_referencia=eq.' + encodeURIComponent(d), {method:'DELETE', headers: ftHeaders(token)});
+    if(!r1.ok) throw new Error('delete dia ' + d + ': ' + r1.status);
+  }
+  const ids = [...new Set(rows.map(r=> r.carga_id).filter(c=> c))];
+  if(ids.length){
+    const q = '?carga_id=in.(' + ids.map(x=> encodeURIComponent('"' + x + '"')).join(',') + ')&walk_in=eq.false&conferido=eq.false&status_autorizacao=neq.recusado';
+    const r2 = await fetch(FT_SUPA + '/rest/v1/veiculos_esperados' + q, {method:'DELETE', headers: ftHeaders(token)});
+    if(!r2.ok) throw new Error('delete cargas: ' + r2.status);
+  }
+  const payload = rows.map(r=> Object.assign({}, r, {criado_por: userId}));
+  const r3 = await fetch(FT_SUPA + '/rest/v1/veiculos_esperados', {method:'POST', headers: ftHeaders(token), body: JSON.stringify(payload)});
+  if(!r3.ok){
+    const e = await r3.json().catch(()=> ({}));
+    throw new Error((e && (e.message || e.details || e.hint)) || ('insert ' + r3.status));
+  }
+  return rows.length;
+}
+let FT_STATE = null;
+function ftClose(){ const m=$('#ft-mask'); if(m) m.remove(); }
+function ftOpenConfirm(){
+  ftClose();
+  const rows = buildFtRows(currentMapDate);
+  const porSec = {};
+  for(const sec of SECTIONS) porSec[sec] = rows.filter(r=> (DATA[sec]||[]).some(x=> String(x.placa||'').toUpperCase().replace(/[^A-Z0-9]/g,'') === r.placa)).length;
+  FT_STATE = {rows: rows};
+  const mask=document.createElement('div'); mask.id='ft-mask'; mask.className='no-print';
+  mask.innerHTML =
+    '<div class="modal modal-edc" style="max-width:760px">' +
+      '<div class="fech-head"><h3>📤 FricoTrack — enviar faturamento de ' + fmtBR(currentMapDate) + '</h3><button class="x" type="button" id="ft-x" title="Cancelar">✕</button></div>' +
+      '<p class="hint">Envia <b>' + rows.length + '</b> veículo(s) do dia aberto (Frotas ' + porSec.frotas + ' · Capital ' + porSec.capital + ' · Interior ' + porSec.interior + ') para a lista de <b>esperados</b> da portaria no FricoTrack, com placa, rota/destino, ordem, peso, entregas, motorista, transportador e tipo de veículo. <b>Como no site:</b> o envio substitui a lista desta data lá (reenviar corrige). Sem planilha e sem bot.</p>' +
+      '<div class="kp-scroll" style="max-height:220px"><table class="kp-tbl"><thead><tr><th>Placa</th><th>Destino</th><th>Ordem</th><th class="num">Peso</th><th class="num">Entregas</th><th>Motorista</th><th>Transportador</th><th>Veículo</th></tr></thead><tbody>' +
+      (rows.length? rows.map(r=> '<tr><td class="mono">' + esc(r.placa) + '</td><td>' + esc(r.destino || '') + '</td><td class="mono">' + esc(r.carga_id || '') + '</td><td class="num">' + (r.peso? fmtNum(r.peso):'') + '</td><td class="num">' + (r.qtd_entregas || '') + '</td><td>' + esc(r.motorista || '') + '</td><td>' + esc(r.transportadora || '') + '</td><td>' + esc(r.tipo_veiculo || '') + '</td></tr>').join('') : '<tr><td colspan="8">Nenhuma carga com placa no dia aberto.</td></tr>') +
+      '</tbody></table></div>' +
+      '<div class="edc-grid" style="margin-top:8px">' +
+        '<label>Usuário FricoTrack (e-mail)<input type="text" id="ft-user" autocomplete="username" placeholder="logistica@frico.ind.br"></label>' +
+        '<label>Senha<input type="password" id="ft-pass" autocomplete="current-password"></label>' +
+      '</div>' +
+      '<p class="hint" id="ft-cred-hint" style="margin:2px 0">Usado só para este envio + fica salvo nas configurações do mapa (como no seu .py).</p>' +
+      '<div class="modal-actions"><button class="btn" type="button" id="ft-cancel">Cancelar</button>' +
+      '<button class="btn primary" type="button" id="ft-ok"' + (rows.length? '':' disabled') + '>📤 Enviar p/ FricoTrack</button></div>' +
+    '</div>';
+  document.body.appendChild(mask);
+  (async ()=>{ try{ const c = await Stor.get('fricotrack-cred'); if(c && c.u){ $('#ft-user').value = c.u; $('#ft-pass').value = c.p || ''; $('#ft-cred-hint').textContent = 'Credencial lembrada das configurações do mapa.'; } }catch(e){} })();
+  $('#ft-x').addEventListener('click', ftClose);
+  $('#ft-cancel').addEventListener('click', ftClose);
+  $('#ft-ok').addEventListener('click', ftDoSend);
+}
+async function ftDoSend(){
+  const btn=$('#ft-ok'); if(btn){ btn.disabled = true; btn.textContent = '⏳ Enviando…'; }
+  try{
+    const u = String(($('#ft-user')||{}).value || '').trim();
+    const p = String(($('#ft-pass')||{}).value || '');
+    if(!u || !p) throw new Error('informe usuário e senha do FricoTrack');
+    const sess = await ftLogin(u, p);
+    const n = await ftSendDay(currentMapDate, FT_STATE.rows, sess.token, sess.userId);
+    try{ await Stor.set('fricotrack-cred', {u: u, p: p}); }catch(e){}
+    audit('fricotrack-envio', currentMapDate + ': ' + n + ' veículo(s) esperados');
+    ftClose();
+    toast('✅ FricoTrack: ' + n + ' veículo(s) de ' + fmtBR(currentMapDate) + ' na lista de esperados', 'ok');
+  }catch(err){
+    console.error(err);
+    if(btn){ btn.disabled = false; btn.textContent = '📤 Enviar p/ FricoTrack'; }
+    toast('❌ FricoTrack: ' + err.message, 'err');
   }
 }
 
@@ -5224,7 +5340,7 @@ let SESSION = null;             // {id, key, name, level, at, access_token, refr
 let AUDIT = [];                 // [{ts, user, action, detail, ok}] — máx. 200
 const loginFails = {};          // usuário (maiúsculo) -> {n, until} — throttle local nesta aba
 /* Botões da topbar -> nível mínimo para exibir (botões de edição = só admin) */
-const TOPBAR_BTN_MIN = {'btn-import':4,'btn-kmport':4,'btn-backup':4,'btn-restore':4,'btn-mapa-toggle':2,'btn-shot-full':2,'btn-shot-nopv':2,'btn-pdf':2,'btn-etiq':2,'btn-plan':2,'btn-xls-toggle':2,'btn-xls-map':2,'btn-xls-per':4,'btn-ff':4,'btn-reclass':4,'btn-clear':4,'btn-settings':4,'btn-dash':3};
+const TOPBAR_BTN_MIN = {'btn-import':4,'btn-kmport':4,'btn-ftrack':4,'btn-backup':4,'btn-restore':4,'btn-mapa-toggle':2,'btn-shot-full':2,'btn-shot-nopv':2,'btn-pdf':2,'btn-etiq':2,'btn-plan':2,'btn-xls-toggle':2,'btn-xls-map':2,'btn-xls-per':4,'btn-ff':4,'btn-reclass':4,'btn-clear':4,'btn-settings':4,'btn-dash':3};
 
 function normUser(s){ return String(s==null?'':s).trim().toUpperCase(); }
 function validUsername(s){
@@ -5958,6 +6074,7 @@ function bindStatic(){
   });
 
   /* topbar */
+  $('#btn-ftrack').addEventListener('click', ()=> ftOpenConfirm());
   $('#btn-kmport').addEventListener('click', ()=> $('#file-kmport').click());
   $('#file-kmport').addEventListener('change', e=>{ const f=e.target.files[0]; e.target.value=''; if(f) kmPortStart(f); });
   $('#btn-import').addEventListener('click', ()=> $('#file-import').click());
