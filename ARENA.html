@@ -674,6 +674,36 @@ body.readonly .sec-actions{display:none}
   .table-scroll{overflow:visible}
   .sec-actions{display:none}
 }
+
+/* ===== Visual do mapa (modelo 09/2026): banner, faixas de seção, tabelas e cards ===== */
+#capture-root .doc-head{background:linear-gradient(120deg,#0d54a8 0%,#1268c9 55%,#0d54a8 100%);border-bottom:0;border-radius:12px;padding:12px 18px;margin-bottom:14px;align-items:center;gap:16px;print-color-adjust:exact;-webkit-print-color-adjust:exact}
+.mh-title{display:flex;align-items:center;gap:12px}
+.mh-title .ic{width:38px;height:38px;color:#fff}
+.mh-title h1{color:#fff;font-size:22px;letter-spacing:1px;margin:0}
+.mh-item{display:flex;align-items:center;gap:9px;border-left:1px solid rgba(255,255,255,.35);padding-left:16px}
+.mh-item .ic{width:26px;height:26px;color:#bcd9f7}
+.mh-item span{display:block;font-size:10.5px;color:#bcd9f7;font-weight:600;letter-spacing:.3px}
+.mh-item b{color:#fff;font-size:14.5px}
+.section .sec-head{border-radius:10px;padding:8px 14px;margin-bottom:8px;print-color-adjust:exact;-webkit-print-color-adjust:exact}
+.section[data-sec="frotas"] .sec-head{background:linear-gradient(120deg,#1976d2,#2196f3)}
+.section[data-sec="capital"] .sec-head{background:linear-gradient(120deg,#6d3fd4,#8b5cf6)}
+.section[data-sec="interior"] .sec-head{background:linear-gradient(120deg,#ef6c00,#fb8c00)}
+.sec-head h2{background:transparent !important;padding:0;font-size:16.5px;display:flex;align-items:center;gap:9px}
+.sec-head h2 .ic{width:23px;height:23px;color:#fff}
+.sec-count{background:rgba(255,255,255,.28);color:#fff;font-weight:700;padding:2px 12px;border-radius:999px;font-size:12px}
+.sec-head .btn{background:rgba(255,255,255,.16);color:#fff;border:1px solid rgba(255,255,255,.55)}
+.sec-head .btn:hover{background:rgba(255,255,255,.3)}
+.map-table{table-layout:fixed}
+.map-table th{background:#1259a7;color:#fff;font-weight:700;border:1px solid #0d4a8c;font-size:11.8px;padding:6px 8px;print-color-adjust:exact;-webkit-print-color-adjust:exact}
+.map-table td{border:1px solid #b9d7f2;color:#0b3d78;font-weight:600;overflow:hidden}
+.map-table tbody tr:nth-child(even) td{background:#e8f2fd}
+.map-table input,.map-table select{color:#0b3d78;font-weight:600}
+.map-table tfoot td{background:#cfe4fa;font-weight:800;color:#0b3d78;print-color-adjust:exact;-webkit-print-color-adjust:exact}
+#summary{border-top:0}
+.sum-card{background:#fff;border:1px solid #cfdff0;border-radius:12px;padding:10px 16px;display:flex;align-items:center;gap:12px;box-shadow:0 1px 4px rgba(13,60,120,.10)}
+.sum-card .ic{width:40px;height:40px;padding:8px;box-sizing:border-box;background:linear-gradient(160deg,#2f8be0,#0d54a8);border-radius:10px;color:#fff;flex:none}
+.sum-card > div{display:flex;flex-direction:column}
+.sum-v{color:#0b3d78}
 </style>
 </head>
 <body>
@@ -850,7 +880,7 @@ body.readonly .sec-actions{display:none}
 
   <div class="section" data-sec="frotas">
     <div class="sec-head">
-      <h2>🚛 FROTAS</h2><span class="sec-count" id="count-frotas"></span>
+      <h2><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18H9"/><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.62l-3.48-4.35A1 1 0 0 0 17.52 8H14"/><circle cx="17" cy="18" r="2"/><circle cx="7" cy="18" r="2"/></svg> FROTAS</h2><span class="sec-count" id="count-frotas"></span>
       <div class="sec-actions">
         <button class="btn mini" data-add="frotas">＋ Linha</button>
         <button class="btn mini" data-merge="frotas" title="Mescla as linhas marcadas com ✓ (placas podem ser diferentes)">⇄ Mesclar</button>
@@ -861,7 +891,7 @@ body.readonly .sec-actions{display:none}
 
   <div class="section" data-sec="capital">
     <div class="sec-head">
-      <h2>🏙 CAPITAL</h2><span class="sec-count" id="count-capital"></span>
+      <h2><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4M10 10h4M10 14h4M10 18h4"/></svg> CAPITAL</h2><span class="sec-count" id="count-capital"></span>
       <div class="sec-actions">
         <button class="btn mini" data-add="capital">＋ Linha</button>
         <button class="btn mini" data-merge="capital" title="Mescla as linhas marcadas com ✓ (placas podem ser diferentes)">⇄ Mesclar</button>
@@ -872,7 +902,7 @@ body.readonly .sec-actions{display:none}
 
   <div class="section" data-sec="interior">
     <div class="sec-head">
-      <h2>🛣 INTERIOR</h2><span class="sec-count" id="count-interior"></span>
+      <h2><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/><path d="M9 22V12h6v10"/></svg> INTERIOR</h2><span class="sec-count" id="count-interior"></span>
       <div class="sec-actions">
         <button class="btn mini" data-add="interior">＋ Linha</button>
         <button class="btn mini" data-merge="interior" title="Mescla as linhas marcadas com ✓ (placas podem ser diferentes)">⇄ Mesclar</button>
@@ -2027,11 +2057,11 @@ function renderFooter(){
     for(const r of DATA[sec]){ const f = calcularFrete(sec, r); if(f.total > 0){ ft += f.total; fp += numVal(r.peso); } }
   }
   $('#summary').innerHTML =
-    '<div class="sum-card"><span class="sum-k">Cargas</span><span class="sum-v">'+n+'</span></div>' +
-    '<div class="sum-card" data-col="peso"><span class="sum-k">Peso total</span><span class="sum-v">'+fmtPeso2(peso)+' kg</span></div>' +
-    '<div class="sum-card" data-col="entregas"><span class="sum-k">Entregas</span><span class="sum-v">'+fmtNum(ent)+'</span></div>' +
-    '<div class="sum-card" data-col="frete"><span class="sum-k">Previsão frete Cap.+Int.</span><span class="sum-v">'+fmtBRL(ft)+'</span></div>' +
-    '<div class="sum-card" data-col="custoMedio"><span class="sum-k">Custo médio Cap.+Int.</span><span class="sum-v">'+(fp>0? 'R$ '+(ft/fp).toLocaleString('pt-BR',{minimumFractionDigits:2, maximumFractionDigits:2})+'/kg' : '—')+'</span></div>';
+    '<div class="sum-card">' + MIC.box + '<div><span class="sum-k">Cargas</span><span class="sum-v">'+n+'</span></div></div>' +
+    '<div class="sum-card" data-col="peso">' + MIC.weight + '<div><span class="sum-k">Peso total</span><span class="sum-v">'+fmtPeso2(peso)+' kg</span></div></div>' +
+    '<div class="sum-card" data-col="entregas">' + MIC.pkg + '<div><span class="sum-k">Entregas</span><span class="sum-v">'+fmtNum(ent)+'</span></div></div>' +
+    '<div class="sum-card" data-col="frete">' + MIC.truck + '<div><span class="sum-k">Previsão frete Cap.+Int.</span><span class="sum-v">'+fmtBRL(ft)+'</span></div></div>' +
+    '<div class="sum-card" data-col="custoMedio">' + MIC.weight + '<div><span class="sum-k">Custo médio Cap.+Int.</span><span class="sum-v">'+(fp>0? 'R$ '+(ft/fp).toLocaleString('pt-BR',{minimumFractionDigits:2, maximumFractionDigits:2})+'/kg' : '—')+'</span></div></div>';
 }
 
 function allPlates(){
@@ -2052,12 +2082,24 @@ function renderChips(){
   }).join('') || '<div class="empty">Sem placas cadastradas ainda.</div>';
 }
 
+/* ícones SVG (renderizam igual em qualquer navegador/captura — sem fonte de emoji) */
+const MIC = {
+  truck: '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18H9"/><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.62l-3.48-4.35A1 1 0 0 0 17.52 8H14"/><circle cx="17" cy="18" r="2"/><circle cx="7" cy="18" r="2"/></svg>',
+  cal: '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>',
+  clock: '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>',
+  box: '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5M12 22V12"/></svg>',
+  weight: '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="3"/><path d="M6.5 8a2 2 0 0 0-1.9 1.46L2.1 18.4A2 2 0 0 0 4 21h16a2 2 0 0 0 1.9-2.6l-2.5-8.94A2 2 0 0 0 17.5 8Z"/></svg>',
+  pkg: '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="M3.3 7 12 12l8.7-5"/><path d="m7.5 4.27 9 5.15"/></svg>',
+  build: '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4M10 10h4M10 14h4M10 18h4"/></svg>',
+  home: '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/><path d="M9 22V12h6v10"/></svg>'
+};
 function updateDocHeader(){
   const now = new Date();
   $('#doc-head').innerHTML =
-    '<h1>MAPA DE CARREGAMENTO</h1>' +
-    '<div class="doc-meta">Faturamento: <b>'+fmtBR(currentMapDate)+'</b> &nbsp;·&nbsp; Entrega: <b>'+(fmtBR(dtEntrega)||'—')+'</b>' +
-    ' &nbsp;·&nbsp; Gerado em '+now.toLocaleDateString('pt-BR')+' '+now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})+'</div>';
+    '<div class="mh-title">' + MIC.truck + '<h1>MAPA DE CARREGAMENTO</h1></div>' +
+    '<div class="mh-item">' + MIC.cal + '<div><span>Faturamento:</span><b>' + fmtBR(currentMapDate) + '</b></div></div>' +
+    '<div class="mh-item">' + MIC.pkg + '<div><span>Entrega:</span><b>' + (fmtBR(dtEntrega) || '—') + '</b></div></div>' +
+    '<div class="mh-item">' + MIC.clock + '<div><span>Gerado em:</span><b>' + now.toLocaleDateString('pt-BR') + ' ' + now.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}) + '</b></div></div>';
 }
 
 function applyHiddenCols(){
@@ -2101,43 +2143,63 @@ function cellWidthOf(td){
   const t = (td.textContent || '').replace(/\s+/g,' ').trim();
   return measureText(t, fontOf(td));
 }
-function autosizeTable(table){
+function measureCols(table){
   const ths = Array.from(table.querySelectorAll('thead th'));
-  let cg = table.querySelector('colgroup');
-  if(!cg){ cg = document.createElement('colgroup'); table.insertBefore(cg, table.tHead); }
-  while(cg.children.length < ths.length) cg.appendChild(document.createElement('col'));
-  while(cg.children.length > ths.length) cg.removeChild(cg.lastChild);
   const trs = Array.from(table.querySelectorAll('tbody tr')).filter(tr=> !tr.classList.contains('empty-row'));
-  const capRoot = document.getElementById('capture-root');
-  const capturing = !!(capRoot && capRoot.classList && capRoot.classList.contains('capturing'));
-  ths.forEach((th, i)=>{
-    const col = cg.children[i];
-    col.dataset.col = th.dataset.col || '';
-    if(th.dataset.icon === '1'){ col.style.width = ''; return; }
-    let w = measureText((th.textContent||'').trim(), fontOf(th));
-    for(const tr of trs){
-      const td = tr.children[i];
-      if(td) w = Math.max(w, cellWidthOf(td));
-    }
-    const full = th.dataset.full === '1';   // ajusta ao texto completo (sem limite prático)
-    const flex = th.dataset.flex === '1';
-    // respiro: padding + bordas + letter-spacing dos campos mono (0,5px por caractere) —
-    // colunas "full" (ex.: Nº Carga "10682000/10680000") ganham respiro maior p/ nunca cortar o texto
-    w += (full ? 40 : 30);
-    const min = (full || flex) ? 90 : 52;
-    // na captura (A4 paisagem) colunas largas têm teto p/ o documento caber na folha
-    const max = full ? (capturing ? 340 : 100000) : (flex ? (capturing ? 300 : 420) : 150);
-    w = Math.max(min, Math.min(max, Math.ceil(w)));
-    col.style.width = w + 'px';
+  return ths.map((th, i)=>{
+    const label = (th.textContent || '').trim();
+    const icon = th.dataset.icon === '1';
+    let w = icon ? 0 : measureText(label, fontOf(th));
+    for(const tr of trs){ const td = tr.children[i]; if(td) w = Math.max(w, cellWidthOf(td)); }
+    return {label: label, icon: icon, w: w, full: th.dataset.full === '1', flex: th.dataset.flex === '1'};
   });
 }
+/* Larguras UNIFICADAS: colunas com o MESMO nome (Placa, Destino, Nº Carga, Peso (kg)…)
+   recebem a mesma largura nas 3 tabelas (Frotas/Capital/Interior) — a maior necessária
+   entre elas, medida pelo conteúdo real (canvas). */
 function autosizeAllTables(){
-  for(const sec of SECTIONS){
-    const t = document.getElementById('table-' + sec);
-    if(t) autosizeTable(t);
-  }
+  const tables = SECTIONS.map(sec=> document.getElementById('table-' + sec)).filter(Boolean);
+  if(!tables.length) return;
+  const measured = tables.map(measureCols);
+  const glob = {};
+  for(const cols of measured) for(const c of cols) if(!c.icon) glob[c.label] = Math.max(glob[c.label] || 0, c.w);
+  const capRoot = document.getElementById('capture-root');
+  const capturing = !!(capRoot && capRoot.classList && capRoot.classList.contains('capturing'));
+  tables.forEach((table, ti)=>{
+    let cg = table.querySelector('colgroup');
+    if(!cg){ cg = document.createElement('colgroup'); table.insertBefore(cg, table.tHead); }
+    while(cg.children.length < measured[ti].length) cg.appendChild(document.createElement('col'));
+    while(cg.children.length > measured[ti].length) cg.removeChild(cg.lastChild);
+    const widths = measured[ti].map(c=>{
+      if(c.icon) return Math.max(30, Math.ceil(c.w) + 12);
+      let w = glob[c.label];
+      w += (c.full ? 40 : 30);   // respiro p/ padding, bordas e letter-spacing
+      const min = (c.full || c.flex) ? 90 : 52;
+      const max = c.full ? (capturing ? 340 : 100000) : (c.flex ? (capturing ? 300 : 420) : 150);
+      return Math.max(min, Math.min(max, Math.ceil(w)));
+    });
+    /* Preenche a largura disponível: a sobra vai SÓ p/ colunas sem nome
+       (checkbox/tipo/excluir) — assim as colunas nomeadas permanecem
+       idênticas nas 3 tabelas e o table-layout:fixed não redistribui nada,
+       porque a largura da tabela = soma exata das colunas. */
+    const wrap = table.parentElement;
+    const avail = wrap ? wrap.clientWidth : 0;
+    let sum = widths.reduce((a,b)=>a+b,0);
+    if(avail > sum){
+      const iconIdx = [];
+      measured[ti].forEach((c,i)=>{ if(c.icon) iconIdx.push(i); });
+      if(iconIdx.length){
+        const extra = avail - sum;
+        const weights = iconIdx.map(i=> measured[ti][i].w > 40 ? 0.5 : 0.25);
+        const wt = weights.reduce((a,b)=>a+b,0);
+        iconIdx.forEach((ci,k)=>{ widths[ci] += Math.floor(extra * weights[k] / wt); });
+        sum = widths.reduce((a,b)=>a+b,0);
+      }
+    }
+    widths.forEach((w,i)=>{ cg.children[i].style.width = w + 'px'; });
+    table.style.width = sum + 'px';
+  });
 }
-
 /* ---- Foco (preserva a digitação após re-render) ---- */
 /* campos em que o usuário digita texto livre (exibido formatado/numérico ao sair do campo) */
 const RAW_TEXT_FIELDS = ['peso','valorKg','valorFrete','km','dias','entregas','custoKg','pctFrete'];
