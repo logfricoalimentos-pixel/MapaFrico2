@@ -2764,7 +2764,7 @@ async function genCapPng(hidePV){
   try{
     const canvas = await html2canvas(el, {scale:2, backgroundColor:'#ffffff', useCORS:true, logging:false});
     return {blob: dataUrlToBlob(canvas.toDataURL('image/png')), dataUrl: canvas.toDataURL('image/png'),
-            name: 'mapa-' + currentMapDate + (hidePV? '-carregamento' : '-completo') + '.png',
+            name: 'mapa-' + currentMapDate + (hidePV? '-carregamento' : '-completo') + '-v' + APP_V + '.png',
             label: hidePV ? 'Mapa Carregamento' : 'Mapa Completo'};
   }finally{
     el.innerHTML = '';
@@ -6808,7 +6808,7 @@ async function init(){
 /* AUTO-CHECK DE VERSAO: avisa (somente quando roda em github.io) se a aba estiver com
    copia antiga em cache — compara o selo APP_V local com o do arquivo publicado no repo.
    Falha de rede/offline = silencioso; nunca bloqueia o uso. */
-const APP_V = '2026-09-16c';
+const APP_V = '2026-09-16d';
 (function(){
   try{
     if(typeof fetch !== 'function' || !location.hostname.endsWith('github.io')) return;
