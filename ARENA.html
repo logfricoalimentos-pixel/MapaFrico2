@@ -6805,6 +6805,25 @@ async function init(){
     if(el) el.textContent = 'Erro ao iniciar o aplicativo. Recarregue a página (F5).';
   }
 }
+/* AUTO-CHECK DE VERSAO: avisa (somente quando roda em github.io) se a aba estiver com
+   copia antiga em cache — compara o selo APP_V local com o do arquivo publicado no repo.
+   Falha de rede/offline = silencioso; nunca bloqueia o uso. */
+const APP_V = '2026-09-16c';
+(function(){
+  try{
+    if(typeof fetch !== 'function' || !location.hostname.endsWith('github.io')) return;
+    fetch('https://raw.githubusercontent.com/logfricoalimentos-pixel/MapaFrico2/main/ARENA.html?ts=' + Date.now(), {cache:'no-store'})
+      .then(function(r){ return r.ok ? r.text() : ''; })
+      .then(function(t){
+        var m = t && t.match(/const APP_V = '([^']+)'/);
+        if(!m || m[1] === APP_V) return;
+        var d = document.createElement('div');
+        d.innerHTML = '⚠️ Este navegador está com a <b>página antiga em cache</b> (na aba: ' + APP_V + '; publicada no site: ' + m[1] + '). Pressione <b>Ctrl+F5</b> ou abra <b>ARENA.html?v=' + m[1] + '</b> para carregar a versão atual.';
+        d.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;background:#b45309;color:#fff;font:600 13px/1.5 system-ui,-apple-system,sans-serif;padding:9px 14px;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,.3)';
+        (document.body || document.documentElement).appendChild(d);
+      }).catch(function(){});
+  }catch(e){}
+})();
 init();
 </script>
 <script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a3155eb099f82d34',t:'MTc4Nzc3Mzg3Mg=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
