@@ -264,8 +264,6 @@ body.print-big-font .custo-cell{font-size:15px}
 .plan-head h1{font-size:22px;font-weight:800;font-style:italic;color:#111;margin:0}
 .plan-date{font-size:13.5px;font-weight:700;color:#1d4ed8;margin-top:4px}
 .plan-wrap{position:relative}
-/* "selo" decorativo: triângulo preto acima do canto superior esquerdo da tabela */
-.plan-flag{position:absolute;top:-13px;left:0;width:0;height:0;border-left:118px solid #161616;border-bottom:13px solid transparent}
 .plan-table{width:100%;border-collapse:collapse;table-layout:fixed;border:1.5px solid #161616}
 .plan-table th{background:#161616;color:#fff;font-size:14px;font-weight:700;padding:8px 10px;text-align:center;border:1px solid #161616}
 .plan-table td{font-size:14.5px;font-weight:600;padding:7px 10px;text-align:center;background:#fff;color:#111;border-bottom:1.5px dotted #f5b800}
@@ -2838,7 +2836,7 @@ async function planAgg(start, end){
   const days = saved.filter(d=> d >= start && d <= end);
   if(currentMapDate >= start && currentMapDate <= end && days.indexOf(currentMapDate) < 0) days.push(currentMapDate);
   days.sort();
-  const agg = {cap:{v:0,e:0,p:0}, int:{v:0,e:0,p:0}, tot:{cargas:0,ent:0,peso:0}, frotas:0, days:0};
+  const agg = {cap:{v:0,e:0,p:0}, int:{v:0,e:0,p:0}, tot:{cargas:0,ent:0,peso:0}, frotas:0, days:0, entMin:'', entMax:''};
   for(const d of days){
     const rec = (d === currentMapDate) ? {data: DATA} : relNormalizeRec(await Stor.get('map:' + d));
     if(!rec || !rec.data) continue;
@@ -2850,6 +2848,8 @@ async function planAgg(start, end){
       a.p += rows.reduce((x,r)=> x + numVal(r.peso), 0);
     }
     agg.frotas += (rec.data.frotas || []).length;
+    const entD = (d === currentMapDate) ? (dtEntrega || '') : (rec.dtEntrega || '');
+    if(entD){ if(!agg.entMin || entD < agg.entMin) agg.entMin = entD; if(!agg.entMax || entD > agg.entMax) agg.entMax = entD; }
     const m = metricsFromData(rec.data);
     agg.tot.cargas += m.cargas; agg.tot.ent += m.ent; agg.tot.peso += m.peso;
   }
@@ -2857,7 +2857,7 @@ async function planAgg(start, end){
 }
 function buildPlanPrint(agg, metaHtml){
   let html = '<div class="plan-head"><h1>Planejamento de Transporte</h1><div class="plan-date">' + metaHtml + '</div></div>' +
-    '<div class="plan-wrap"><div class="plan-flag"></div>' +
+    '<div class="plan-wrap">' +
     '<table class="plan-table"><colgroup><col style="width:26%"><col style="width:24%"><col style="width:24%"><col style="width:26%"></colgroup>' +
     '<thead><tr><th>&nbsp;</th><th>Veículos</th><th>Entregas</th><th>Peso (TON)</th></tr></thead><tbody>' +
     '<tr><td class="plan-lbl">Capital</td><td>' + agg.cap.v + '</td><td>' + fmtInt(agg.cap.e) + '</td><td>' + planTon(agg.cap.p) + '</td></tr>' +
@@ -2881,6 +2881,12 @@ async function genPlanPng(agg, metaHtml, name){
     el.innerHTML = '';
   }
 }
+/* linha de datas do Planejamento: Data de Faturamento e Data de Entrega do período */
+function planMetaHtml(r, agg){
+  const fatLbl = fmtBR(r.start) + (r.end !== r.start ? ' a ' + fmtBR(r.end) : '');
+  const entLbl = (agg && agg.entMin) ? (fmtBR(agg.entMin) + (agg.entMax !== agg.entMin ? ' a ' + fmtBR(agg.entMax) : '')) : '—';
+  return 'Faturamento: <b>' + esc(fatLbl) + '</b> &nbsp;·&nbsp; Entrega: <b>' + esc(entLbl) + '</b>';
+}
 async function capturePlan(){
   if(!(SESSION && SESSION.level >= 2)){ toast('🔒 Seu nível de acesso não permite o mapa', 'err'); return; }
   if(typeof html2canvas === 'undefined'){ toast('❌ html2canvas não carregada (sem internet para o CDN?)', 'err'); return; }
@@ -2888,7 +2894,7 @@ async function capturePlan(){
   if(!r) return;
   const agg = await planAgg(r.start, r.end);
   if(!agg.days){ toast('Nenhuma carga salva no período ' + fmtBR(r.start) + ' a ' + fmtBR(r.end), 'err'); return; }
-  const metaHtml = '<b>' + esc(r.label) + '</b> &nbsp;·&nbsp; ' + agg.days + ' dia(s) com carga(s) &nbsp;·&nbsp; gerado em ' + new Date().toLocaleDateString('pt-BR');
+  const metaHtml = planMetaHtml(r, agg);
   const choice = await choiceModal({
     title: '📊 Planejamento de Transporte',
     text: 'O que deseja fazer com a imagem do <b>relatório</b>?<br><span style="color:#64748b;font-size:12px">Abrir mostra a imagem numa nova guia (dá para ampliar/salvar pelo próprio navegador). Copiar coloca na área de transferência (Ctrl+V para colar direto no WhatsApp/e-mail). Baixar salva o arquivo .png no dispositivo.</span>'
