@@ -725,6 +725,11 @@ body.readonly .sec-actions{display:none}
 .map-table th{padding:4px 8px}
 .map-table input,.map-table select{padding:1px 6px}
 .map-table td.icon{padding:1px 2px}
+/* Neg? empilhado: tipo de tabela em cima, Sim/Não embaixo */
+.neg-stack{display:flex;flex-direction:column;gap:2px;align-items:stretch}
+.neg-stack select{width:auto;min-width:0;font-size:11px;padding:1px 4px}
+/* custo médio (R$/kg) sob o campo de Valor Frete */
+.vf-custo{font-size:11px;color:#0b3d78;font-weight:700;white-space:nowrap;margin-top:1px}
 #summary{border-top:0}
 .sum-card{background:#fff;border:1px solid #cfdff0;border-radius:12px;padding:10px 16px;display:flex;align-items:center;gap:12px;box-shadow:0 1px 4px rgba(13,60,120,.10)}
 .sum-card .ic{width:40px;height:40px;padding:8px;box-sizing:border-box;background:linear-gradient(160deg,#2f8be0,#0d54a8);border-radius:10px;color:#fff;flex:none}
@@ -1889,7 +1894,7 @@ function sectionCols(sec){
     cols.push({key:'valorkg', label:'Vlr Kg', dataCol:'valorkg', num:true});
     cols.push({key:'neg',     label:'Neg?', dataCol:'neg', center:true});
     cols.push({key:'frete',    label:'Previsão de frete', dataCol:'frete', flex:true});
-    cols.push({key:'custoMedio', label:'Custo Médio', dataCol:'custoMedio', num:true});
+    // Custo Médio não é mais coluna: o valor aparece empilhado sob o Valor Frete (R$)
     cols.push({key:'valorFrete', label:'Valor Frete (R$)', dataCol:'valorfrete', num:true});
   }
   return cols;
@@ -1903,6 +1908,10 @@ function moneyCell(field, value, dc, placeholder, extra){
       '<button type="button" class="money-arrow" data-money="up" data-target="'+field+'" title="aumentar 0,01">▲</button>' +
       '<button type="button" class="money-arrow" data-money="down" data-target="'+field+'" title="diminuir 0,01">▼</button>' +
     '</span></div></td>';
+}
+function tabelaSelHtml(r){
+  const t = normalizarTipo(r.tabela);
+  return '<select data-field="tabela" title="tipo de tabela"><option value="agregado"'+(t==='agregado'?' selected':'')+'>Agregado</option><option value="freelancer"'+(t==='freelancer'?' selected':'')+'>Freelancer</option></select>';
 }
 function cellHtml(sec, r, c, x){
   const dc = c.dataCol ? ' data-col="' + c.dataCol + '"' : '';
@@ -1942,11 +1951,14 @@ function cellHtml(sec, r, c, x){
     case 'valorkg':
       return moneyCell('valorKg', r.valorKg, dc, '0,00');
     case 'neg':
-      return '<td class="center"'+dc+'><select data-field="neg">' +
+      // Neg? agrupa os 2 controles da linha: tipo de tabela (Agregado/Freelancer)
+      // na parte SUPERIOR e Sim/Não logo abaixo — libera a célula de Previsão.
+      return '<td class="center"'+dc+'><div class="neg-stack">' + tabelaSelHtml(r) +
+        '<select data-field="neg">' +
         '<option value=""'+(r.neg===undefined||r.neg===''?' selected':'')+'>—</option>' +
         '<option value="Sim"'+(r.neg==='Sim'?' selected':'')+'>Sim</option>' +
         '<option value="Não"'+(r.neg==='Não'?' selected':'')+'>Não</option>' +
-        '</select></td>';
+        '</select></div></td>';
     case 'custoKg':
       return '<td class="num"><input type="text" inputmode="decimal" class="numin" data-field="custoKg" value="'+esc(r.custoKg)+'"></td>';
     case 'pctFrete':
@@ -1969,15 +1981,17 @@ function cellHtml(sec, r, c, x){
           '<div class="frete-modo" title="fórmula usada">'+esc(modo)+'</div>' +
         '</td>';
       }
-      const tipoSel = normalizarTipo(r.tabela);
-      const selTabela = '<select data-field="tabela" title="tipo de tabela"><option value="agregado"'+(tipoSel==='agregado'?' selected':'')+'>Agregado</option><option value="freelancer"'+(tipoSel==='freelancer'?' selected':'')+'>Freelancer</option></select>';
+      // o select Agregado/Freelancer fica na coluna Neg? (Capital/Interior);
+      // Frotas não tem Neg? — mantém o select aqui na célula de custo estimado
+      const selTabela = (sec === 'frotas') ? tabelaSelHtml(r) : '';
       const diasKm = (sec === 'interior' || sec === 'frotas')
         ? '<input type="text" inputmode="numeric" class="numin" data-field="dias" title="dias" value="'+esc(r.dias===''?1:r.dias)+'">' +
           '<input type="text" inputmode="decimal" class="numin" data-field="km" title="km da rota (Km Rota já vem +12%)" value="'+esc(r.km)+'" placeholder="km">' + ((r.kmPortaria && sec!=='capital') ? kmPortBadge(r) : '')
         : '';
       const modoLabel = modo ? '<div class="frete-modo" title="Capital: valor fixo (sem km/pernoite)">'+esc(modo)+'</div>' : '';
+      const mini = selTabela + diasKm;
       return '<td class="frete-cell"'+dc+'>' +
-        '<div class="frete-mini">'+selTabela+diasKm+'</div>' +
+        (mini ? '<div class="frete-mini">'+mini+'</div>' : '') +
         '<div class="frete-val">'+(x.frete? fmtBRL(val) : '—') + frotaBadge +
         '</div>'+modoLabel+'</td>';
     }
@@ -1987,8 +2001,10 @@ function cellHtml(sec, r, c, x){
         '</td>';
     case 'valorFrete':
       // AUDITORIA: o td precisava de data-col="valorfrete" (igual ao th) — sem ele a coluna
-      // não era ocultada nas capturas nem na visão nível 2 (a coluna fantasma "0,00")
-      return moneyCell('valorFrete', r.valorFrete, dc, '0,00', ' title="Se Neg? = Sim e este valor estiver preenchido, ele vira a Previsão de frete"');
+      // não era ocultada nas capturas nem na visão nível 2 (a coluna fantasma "0,00").
+      // Custo médio (R$/kg) empilhado sob o campo, no lugar da antiga coluna própria.
+      return moneyCell('valorFrete', r.valorFrete, dc, '0,00', ' title="Se Neg? = Sim e este valor estiver preenchido, ele vira a Previsão de frete"')
+        .replace('</td>', '<div class="vf-custo" data-col="custoMedio">' + (x.custo != null ? 'R$ ' + x.custo.toLocaleString('pt-BR',{minimumFractionDigits:2, maximumFractionDigits:2}) + '/kg' : '') + '</div></td>');
   }
   return '<td></td>';
 }
@@ -2011,7 +2027,7 @@ function tfootHtml(sec, cols){
   for(const r of rows){ const f = calcularFrete(sec, r); if(f && f.total > 0){ freteTotal += f.total; hasFrete = true; } }
   const cells = cols.map(c=>{
     if(c.key==='sel' || c.key==='move' || c.key==='destino' || c.key==='carga' || c.key==='motorista' ||
-       c.key==='transp' || c.key==='valorkg' || c.key==='neg' || c.key==='custoKg' || c.key==='pctFrete' || c.key==='valorFrete')
+       c.key==='transp' || c.key==='valorkg' || c.key==='neg' || c.key==='custoKg' || c.key==='pctFrete')
       return '<td></td>';
     if(c.key==='placa') return '<td class="total-label">Totais ('+n+')</td>';
     if(c.key==='peso') return '<td class="num" data-col="peso">'+(n? fmtPeso2(peso)+' kg':'')+'</td>';
@@ -2020,6 +2036,11 @@ function tfootHtml(sec, cols){
     if(c.key==='custoMedio'){
       const cm = (hasFrete && peso > 0) ? freteTotal / peso : null;
       return '<td class="num custo-cell" data-col="custoMedio">' + (cm != null ? 'R$ '+cm.toLocaleString('pt-BR',{minimumFractionDigits:2, maximumFractionDigits:2})+'/kg' : '') + '</td>';
+    }
+    if(c.key==='valorFrete'){
+      // total do custo médio (Cap/Int) empilhado sob o campo, como nas linhas
+      const cm = (hasFrete && peso > 0) ? freteTotal / peso : null;
+      return '<td class="num vf-cell" data-col="valorfrete"><div class="vf-custo" data-col="custoMedio">' + (cm != null ? 'R$ '+cm.toLocaleString('pt-BR',{minimumFractionDigits:2, maximumFractionDigits:2})+'/kg' : '') + '</div></td>';
     }
     return '<td></td>';
   });
@@ -2160,21 +2181,31 @@ function inputText(inp){
   }
   return inp.value || inp.placeholder || '';
 }
-function cellWidthOf(td){
+function cellWidthOf(td){ return cellMeasure(td).w; }
+/* Mede o conteúdo mais largo da célula e devolve {w, len, ls} — len/ls do trecho
+   vencedor permitem compensar letter-spacing (inputs mono) e a seta dos selects,
+   para que a largura final seja a MÍNIMA que exibe o texto inteiro. */
+function cellMeasure(td){
   const inputs = td.querySelectorAll('input, select, button');
   if(inputs.length){
     if(td.classList.contains('icon')){
-      // célula de controles (select mover + 🗑 / checkbox): soma os controles
+      // célula de controles (select mover + lixeira / checkbox): soma os controles
       let w = 0;
       inputs.forEach(el=>{ w += measureText(inputText(el), fontOf(el)) + (el.tagName === 'SELECT' ? 30 : (el.tagName === 'BUTTON' ? 26 : 16)); });
-      return w + 2;
+      return {w: w + 2, len: 0, ls: 0};
     }
-    let w = 0;
-    inputs.forEach(inp=>{ w = Math.max(w, measureText(inputText(inp), fontOf(inp))); });
-    return w;
+    let best = {w: -1, len: 0, ls: 0};
+    inputs.forEach(inp=>{
+      const t = inputText(inp);
+      let w = measureText(t, fontOf(inp));
+      if(inp.tagName === 'SELECT') w += 16; // seta nativa do select
+      const ls = parseFloat(getComputedStyle(inp).letterSpacing) || 0;
+      if(w > best.w) best = {w: w, len: t.length, ls: ls};
+    });
+    return best;
   }
   const t = (td.textContent || '').replace(/\s+/g,' ').trim();
-  return measureText(t, fontOf(td));
+  return {w: measureText(t, fontOf(td)), len: t.length, ls: parseFloat(getComputedStyle(td).letterSpacing) || 0};
 }
 function measureCols(table){
   const ths = Array.from(table.querySelectorAll('thead th'));
@@ -2182,9 +2213,9 @@ function measureCols(table){
   return ths.map((th, i)=>{
     const label = (th.textContent || '').trim();
     const icon = th.dataset.icon === '1';
-    let w = icon ? 0 : measureText(label, fontOf(th));
-    for(const tr of trs){ const td = tr.children[i]; if(td) w = Math.max(w, cellWidthOf(td)); }
-    return {label: label, icon: icon, w: w, full: th.dataset.full === '1', flex: th.dataset.flex === '1'};
+    let best = {w: icon ? 0 : measureText(label, fontOf(th)), len: label.length, ls: parseFloat(getComputedStyle(th).letterSpacing) || 0};
+    for(const tr of trs){ const td = tr.children[i]; if(td){ const m = cellMeasure(td); if(m.w > best.w) best = m; } }
+    return {label: label, icon: icon, w: best.w, len: best.len, ls: best.ls, full: th.dataset.full === '1', flex: th.dataset.flex === '1'};
   });
 }
 /* Larguras UNIFICADAS: colunas com o MESMO nome (Placa, Destino, Nº Carga, Peso (kg)…)
@@ -2195,7 +2226,7 @@ function autosizeAllTables(){
   if(!tables.length) return;
   const measured = tables.map(measureCols);
   const glob = {};
-  for(const cols of measured) for(const c of cols) if(!c.icon) glob[c.label] = Math.max(glob[c.label] || 0, c.w);
+  for(const cols of measured) for(const c of cols) if(!c.icon && (!glob[c.label] || c.w > glob[c.label].w)) glob[c.label] = c;
   const capRoot = document.getElementById('capture-root');
   const capturing = !!(capRoot && capRoot.classList && capRoot.classList.contains('capturing'));
   tables.forEach((table, ti)=>{
@@ -2205,8 +2236,10 @@ function autosizeAllTables(){
     while(cg.children.length > measured[ti].length) cg.removeChild(cg.lastChild);
     const widths = measured[ti].map(c=>{
       if(c.icon) return Math.max(30, Math.ceil(c.w) + 12);
-      let w = glob[c.label];
-      w += (c.full ? 40 : 30);   // respiro p/ padding, bordas e letter-spacing
+      const g = glob[c.label];
+      // largura MÍNIMA que exibe o texto: conteúdo + paddings/bordas (20px)
+      // + letter-spacing do trecho medido + 4px de segurança
+      let w = g.w + 20 + Math.ceil(g.ls * g.len) + 4;
       const min = (c.full || c.flex) ? 90 : 52;
       const max = c.full ? (capturing ? 340 : 100000) : (c.flex ? (capturing ? 300 : 420) : 150);
       return Math.max(min, Math.min(max, Math.ceil(w)));
