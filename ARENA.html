@@ -232,7 +232,15 @@ body.print-big-font .custo-cell{font-size:15px}
 .cap-table td.cap-num{text-align:right;font-family:var(--mono);font-weight:600}
 .cap-tot td{background:#e2e8f0;font-weight:700;font-size:14.5px;border:1.5px solid #94a3b8}
 .cap-empty{color:#475569;text-align:center;font-size:14.5px;padding:12px}
-.cap-summary{display:flex;gap:10px;margin-top:14px;border-top:2px solid #0f172a;padding-top:12px;flex-wrap:wrap}
+.cap-summary{display:flex;gap:12px;flex-wrap:wrap;margin-top:16px}
+/* Captura no modelo novo: tipografia legível no A4 (documento estático) */
+#cap-print .map-table td{font-size:15px;padding:5px 9px;white-space:nowrap}
+#cap-print .map-table th{font-size:13.5px;padding:6px 9px}
+#cap-print .map-table tfoot td{font-size:14.5px;padding:6px 9px}
+#cap-print .section{margin-top:14px}
+#cap-print .sec-head{margin-bottom:8px}
+#cap-print .sum-k{font-size:12px}
+#cap-print .sum-v{font-size:18px}
 .cap-card{background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:8px 14px}
 .cap-k{display:block;font-size:12px;color:#475569;text-transform:uppercase;letter-spacing:.4px}
 .cap-v{font-size:18px;font-weight:700;font-family:var(--mono)}
@@ -676,7 +684,7 @@ body.readonly .sec-actions{display:none}
 }
 
 /* ===== Visual do mapa (modelo 09/2026): banner, faixas de seção, tabelas e cards ===== */
-#capture-root .doc-head{background:linear-gradient(120deg,#0d54a8 0%,#1268c9 55%,#0d54a8 100%);border-bottom:0;border-radius:12px;padding:12px 18px;margin-bottom:14px;align-items:center;gap:16px;print-color-adjust:exact;-webkit-print-color-adjust:exact}
+#capture-root .doc-head,#cap-print .doc-head{background:linear-gradient(120deg,#0d54a8 0%,#1268c9 55%,#0d54a8 100%);border-bottom:0;border-radius:12px;padding:12px 18px;margin-bottom:14px;align-items:center;gap:16px;print-color-adjust:exact;-webkit-print-color-adjust:exact}
 .mh-title{display:flex;align-items:center;gap:12px}
 .mh-title .ic{width:38px;height:38px;color:#fff}
 .mh-title h1{color:#fff;font-size:22px;letter-spacing:1px;margin:0}
@@ -769,8 +777,8 @@ body.readonly .sec-actions{display:none}
     <div class="btn-dd" id="dd-mapa">
       <button class="btn" id="btn-mapa-toggle" type="button" aria-haspopup="true" aria-expanded="false" title="Gerar imagem do mapa">📷 Mapa ▾</button>
       <div class="btn-dd-menu" id="dd-mapa-menu" hidden>
-        <button class="btn-dd-item" id="btn-shot-full" type="button" title="Documento A4 paisagem · inclui Peso e Entregas · sem valores/negociação">📷 Mapa completo</button>
-        <button class="btn-dd-item" id="btn-shot-nopv" type="button" title="Documento A4 paisagem · sem Peso/Entregas · sem valores/negociação">📷 Mapa Carregamento</button>
+        <button class="btn-dd-item" id="btn-shot-full" type="button" title="Documento A4 paisagem no modelo novo · todas as colunas (Peso e Entregas inclusos) · sem valores/negociação">📷 Mapa completo</button>
+        <button class="btn-dd-item" id="btn-shot-nopv" type="button" title="Documento A4 paisagem no modelo novo · mesmas colunas do completo · sem valores/negociação">📷 Mapa Carregamento</button>
       </div>
     </div>
     <button class="btn" id="btn-pdf">🖨 PDF</button>
@@ -866,7 +874,7 @@ body.readonly .sec-actions{display:none}
       </ul>
       <h4>Pontos de melhoria incluídos nesta versão (auditoria)</h4>
       <ul>
-        <li><b>Capturas 📷 em layout dedicado A4 paisagem</b> (colunas medidas pelo conteúdo — <b>nada de texto cortado</b>) e <b>sem nenhuma informação de valor/negociação</b>: "Mapa Completo" inclui Peso e Entregas; "Mapa Carregamento" remove Peso e Entregas. As colunas Vlr Kg, Neg?, Previsão, Custo Médio e Valor Frete nunca aparecem nas imagens, nem os cards de Previsão/Custo médio do resumo.</li>
+        <li><b>Capturas 📷 em layout dedicado A4 paisagem</b> (colunas medidas pelo conteúdo, <b>larguras iguais nas 3 tabelas</b> — <b>nada de texto cortado ou oculto</b>): os dois prints mostram Placa, Destino, Nº Carga, Peso, T.Entrega, Motorista e Ajud./Transportador, mais os cards Cargas/Peso total/Entregas, no <b>modelo visual novo</b> (banner azul, faixas de seção, zebrado e cards com ícone). As colunas Vlr Kg, Neg?, Previsão, Custo Médio e Valor Frete nunca aparecem nas imagens.</li>
         <li><b>📊 Planejamento de Transporte</b>: relatório Capital × Interior × Total com Veículos (cargas), Entregas e Peso em TON (kg ÷ 1000, 2 casas, sem zeros finais) — Frotas não entra.</li>
         <li><b>📷 Mapa completo / Mapa Carregamento / 📊 Planejamento</b>: geram a imagem e perguntam se você quer abrir em nova guia, copiar (Ctrl+V no WhatsApp/e-mail) ou baixar o .png.</li>
         <li><b>🚀 Envio automático</b>: guia passo a passo que encadeia os 5 envios (todos os grupos) — o app copia cada imagem e avança (botão ou Enter), você só cola (Ctrl+V) e envia (Enter) na conversa indicada.</li>
@@ -2562,7 +2570,6 @@ const CAP_COLS_FULL = [
   {key:'motorista', label:'Motorista'},
   {key:'transp',    label:'Transportador'}
 ];
-const CAP_COLS_SEM = CAP_COLS_FULL.filter(c=> c.key !== 'peso' && c.key !== 'entregas');
 function capCellText(sec, r, c){
   switch(c.key){
     case 'placa':     return r.placa || '—';
@@ -2578,48 +2585,55 @@ function capCellText(sec, r, c){
   return '';
 }
 function capFontFor(c){ return '600 15px ' + (c.mono ? ETQ_MONO : ETQ_SANS); }
+/* Documento estático no MODELO NOVO (banner azul, faixas de seção, zebrado, cards com ícone).
+   Mesmas colunas nos 2 prints (Placa…Transportador/Ajud. + totais) — nenhum valor de
+   frete/custo entra nesta imagem (regra mantida). Larguras UNIFICADAS entre as 3 tabelas:
+   a mesma coluna tem a mesma largura em Frotas, Capital e Interior (maior conteúdo real). */
 function buildCapPrint(hidePV){
-  const cols = hidePV ? CAP_COLS_SEM : CAP_COLS_FULL;
+  const cols = CAP_COLS_FULL;
   const now = new Date();
-  let html = '<div class="cap-doc-head"><h1>MAPA DE CARREGAMENTO</h1>' +
-    '<div class="cap-doc-meta">Faturamento: <b>' + esc(fmtBR(currentMapDate)) + '</b> &nbsp;·&nbsp; Entrega: <b>' + esc(fmtBR(dtEntrega) || '—') + '</b>' +
-    ' &nbsp;·&nbsp; Gerado em ' + now.toLocaleDateString('pt-BR') + ' ' + now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) + '</div></div>';
+  // 1) largura global por coluna (máximo entre as 3 seções) — nada de texto cortado
+  const widths = cols.map(c=>{
+    let w = measureText(c.label, '700 13.5px ' + ETQ_SANS);
+    for(const sec of SECTIONS) for(const r of DATA[sec]){
+      const t = capCellText(sec, r, c);
+      if(t && t !== '—') w = Math.max(w, measureText(t, capFontFor(c)));
+    }
+    w = Math.max(w, measureText('Totais (00)', capFontFor(c)));
+    return Math.max(60, Math.ceil(w) + 28);
+  });
+  const colgroup = '<colgroup>' + cols.map((c,i)=> '<col style="width:' + widths[i] + 'px">').join('') + '</colgroup>';
+  // 2) banner no modelo novo (mesmo markup do cabeçalho vivo)
+  let html = '<div class="doc-head"><div class="mh-title">' + MIC.truck + '<h1>MAPA DE CARREGAMENTO</h1></div>' +
+    '<div class="mh-item">' + MIC.cal + '<div><span>Faturamento:</span><b>' + esc(fmtBR(currentMapDate)) + '</b></div></div>' +
+    '<div class="mh-item">' + MIC.pkg + '<div><span>Entrega:</span><b>' + (esc(fmtBR(dtEntrega)) || '—') + '</b></div></div>' +
+    '<div class="mh-item">' + MIC.clock + '<div><span>Gerado em:</span><b>' + now.toLocaleDateString('pt-BR') + ' ' + now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) + '</b></div></div></div>';
   if(POOL.length){
     html += '<div class="cap-pool"><b>🆕 Destinos novos (POOL):</b> ' + POOL.map(p=> esc(p.placa||'—') + ' · ' + esc(p.destino||'sem destino') + ' · ' + (fmtPeso2(p.peso)||'0,00') + ' kg').join(' &nbsp;|&nbsp; ') + '</div>';
   }
+  const secIcon = {frotas: MIC.truck, capital: MIC.build, interior: MIC.home};
   for(const sec of SECTIONS){
     const rows = DATA[sec];
-    const title = sec==='frotas' ? '🚛 FROTAS' : sec==='capital' ? '🏙 CAPITAL' : '🛣 INTERIOR';
-    // largura por coluna = maior conteúdo real + respiro (nada de texto cortado)
-    const widths = cols.map(c=>{
-      let w = measureText(c.label, '700 13.5px ' + ETQ_SANS);
-      for(const r of rows){
-        const t = capCellText(sec, r, c);
-        if(t && t !== '—') w = Math.max(w, measureText(t, capFontFor(c)));
-      }
-      return Math.max(60, Math.ceil(w) + 28);
-    });
+    const title = sec==='frotas' ? 'FROTAS' : sec==='capital' ? 'CAPITAL' : 'INTERIOR';
     const ths = cols.map((c,i)=> '<th class="'+(c.num?'cap-num':'')+'" style="width:'+widths[i]+'px">' + (c.key==='transp' && sec==='frotas' ? 'Ajud.' : c.label) + '</th>').join('');
     const trs = rows.length ? rows.map(r=> '<tr>' + cols.map(c=> '<td class="'+((c.mono?'cap-mono':'')+(c.num?' cap-num':''))+'">'+esc(capCellText(sec,r,c))+'</td>').join('') + '</tr>').join('')
       : '<tr><td colspan="'+cols.length+'" class="cap-empty">Nenhuma carga.</td></tr>';
     const pesoTot = rows.reduce((a,r)=> a+numVal(r.peso), 0);
     const entTot  = rows.reduce((a,r)=> a+numVal(r.entregas), 0);
-    const tot = '<tr class="cap-tot"><td>Totais ('+rows.length+')</td>' + cols.slice(1).map(c=>
+    const tot = '<tr><td class="total-label">Totais ('+rows.length+')</td>' + cols.slice(1).map(c=>
       '<td class="'+(c.num?'cap-num':'')+'">'+ (c.key==='peso' && pesoTot>0 ? fmtPeso2(pesoTot)+' kg' : c.key==='entregas' && entTot>0 ? fmtNum(entTot) : '') +'</td>'
     ).join('') + '</tr>';
-    html += '<div class="cap-sec cap-sec-'+sec+'"><div class="cap-sec-head"><span class="cap-badge">'+title+'</span><span class="cap-count">'+rows.length+' carga(s)</span></div>' +
-      '<table class="cap-table"><colgroup>'+cols.map((c,i)=>'<col style="width:'+widths[i]+'px">').join('')+'</colgroup>' +
+    html += '<div class="section" data-sec="'+sec+'"><div class="sec-head"><h2>' + secIcon[sec] + ' ' + title + '</h2><span class="sec-count">' + rows.length + ' carga(s)</span></div>' +
+      '<table class="map-table">' + colgroup +
       '<thead><tr>'+ths+'</tr></thead><tbody>'+trs+'</tbody><tfoot>'+tot+'</tfoot></table></div>';
   }
   // resumo — somente contagens (NUNCA valores de frete/custo neste documento)
   const all = [...DATA.frotas, ...DATA.capital, ...DATA.interior];
   const pesoAll = all.reduce((a,r)=>a+numVal(r.peso),0);
   const entAll  = all.reduce((a,r)=>a+numVal(r.entregas),0);
-  let cards = '<div class="cap-card"><span class="cap-k">Cargas</span><span class="cap-v">'+all.length+'</span></div>';
-  if(!hidePV){
-    cards += '<div class="cap-card"><span class="cap-k">Peso total</span><span class="cap-v">'+(pesoAll>0?fmtPeso2(pesoAll)+' kg':'—')+'</span></div>' +
-             '<div class="cap-card"><span class="cap-k">Entregas</span><span class="cap-v">'+(entAll>0?fmtNum(entAll):'—')+'</span></div>';
-  }
+  const cards = '<div class="sum-card">' + MIC.box + '<div><span class="sum-k">Cargas</span><span class="sum-v">'+all.length+'</span></div></div>' +
+    '<div class="sum-card">' + MIC.weight + '<div><span class="sum-k">Peso total</span><span class="sum-v">'+(pesoAll>0?fmtPeso2(pesoAll)+' kg':'—')+'</span></div></div>' +
+    '<div class="sum-card">' + MIC.pkg + '<div><span class="sum-k">Entregas</span><span class="sum-v">'+(entAll>0?fmtNum(entAll):'—')+'</span></div></div>';
   html += '<div class="cap-summary">'+cards+'</div>';
   return html;
 }
