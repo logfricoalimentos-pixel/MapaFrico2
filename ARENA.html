@@ -728,8 +728,12 @@ body.readonly .sec-actions{display:none}
 /* Neg? empilhado: tipo de tabela em cima, Sim/Não embaixo */
 .neg-stack{display:flex;flex-direction:column;gap:2px;align-items:stretch}
 .neg-stack select{width:auto;min-width:0;font-size:11px;padding:1px 4px}
-/* custo médio (R$/kg) sob o campo de Valor Frete */
+/* custo médio (R$/kg) sob o valor de previsão */
 .vf-custo{font-size:11px;color:#0b3d78;font-weight:700;white-space:nowrap;margin-top:1px}
+/* valor negociado digitado dentro da Previsão de frete (Neg? = Sim) */
+.frete-neg{display:flex;gap:4px;align-items:center;justify-content:flex-end;flex-wrap:wrap}
+.frete-neg .money-inp{width:104px;flex:none}
+.frete-hint{font-size:10.5px;color:#64748b;white-space:nowrap}
 #summary{border-top:0}
 .sum-card{background:#fff;border:1px solid #cfdff0;border-radius:12px;padding:10px 16px;display:flex;align-items:center;gap:12px;box-shadow:0 1px 4px rgba(13,60,120,.10)}
 .sum-card .ic{width:40px;height:40px;padding:8px;box-sizing:border-box;background:linear-gradient(160deg,#2f8be0,#0d54a8);border-radius:10px;color:#fff;flex:none}
@@ -1473,6 +1477,7 @@ let MARGEM_FRETE = 10;   // % de margem sobre a previsão de cargas NÃO negocia
 function margemPct(){ return Math.max(0, Math.min(100, Number(MARGEM_FRETE) || 0)); }
 function margemMult(){ return 1 + margemPct() / 100; }
 function margemTxt(){ const p = margemPct(); return p ? ' +' + p + '%' : ''; }
+function margemBadge(){ const p = margemPct(); return p ? '+' + p + '%' : ''; }
 const SAVE_DEBOUNCE_MS = 700;
 const SECTIONS = ['frotas','capital','interior'];
 
@@ -1742,18 +1747,27 @@ function calcularFrete(section, row){
   // Sem frota (peso > 17.000 kg) e sem tabela negociada -> N/A (mesma regra do Python)
   if(!frota) return {frota:'N/A', total:0};
   if(section !== 'frotas'){
+    // Neg?=Sim → o valor digitado na Previsão é o negociado (definitivo, sem margem).
+    // Neg?=Não ou em branco → calcula automaticamente pela tabela (+margem).
     const vf = numVal(row.valorFrete);
-    if(vf > 0) return {frota, total: vf, modo:'Valor Frete (manual)'};
-    if(isNegSim(row)) return {frota, total: numVal(row.valorKg) * numVal(row.peso), modo:'Vlr Kg × Peso'};
+    if(isNegSim(row) && vf > 0) return {frota, total: vf, modo:'VLR Neg', modoCell:'VLR Neg'};
+    if(isNegSim(row)){
+      const kgp = numVal(row.valorKg) * numVal(row.peso);
+      if(kgp > 0) return {frota, total: kgp, modo:'Vlr Kg × Peso', modoCell:'Vlr Kg × Peso'};
+    }
   }
   // Não negociado: valor previsto = tabela + margem % configurada (MARGEM_FRETE; 0 = sem margem)
   const tf = tableForecast(section, row);
   const tabelaTipo = normalizarTipo(row.tabela);
   const total = tf.total * margemMult();
-  const modo = section === 'capital'
-    ? (tabelaTipo === 'agregado' ? 'TB_NOVA (valor fixo)' + margemTxt() : 'DIARIA (valor fixo)' + margemTxt())
-    : 'Tabela' + margemTxt();
-  return {frota, total, modo};
+  const badge = margemBadge();
+  const base = section === 'capital'
+    ? (tabelaTipo === 'agregado' ? 'TB_NOVA (valor fixo)' : 'DIARIA (valor fixo)')
+    : 'Tabela';
+  const modo = base + margemTxt();
+  // na célula: "Tabela +10%" vira só "+10%"; Capital mantém a base + percentual
+  const modoCell = section === 'capital' ? modo : badge;
+  return {frota, total, modo, modoCell};
 }
 
 /* ================= Linhas: build / registry / merge / enforce ================= */
@@ -1894,20 +1908,23 @@ function sectionCols(sec){
     cols.push({key:'valorkg', label:'Vlr Kg', dataCol:'valorkg', num:true});
     cols.push({key:'neg',     label:'Neg?', dataCol:'neg', center:true});
     cols.push({key:'frete',    label:'Previsão de frete', dataCol:'frete', flex:true});
-    // Custo Médio não é mais coluna: o valor aparece empilhado sob o Valor Frete (R$)
-    cols.push({key:'valorFrete', label:'Valor Frete (R$)', dataCol:'valorfrete', num:true});
+    // Valor Frete (R$) não é mais coluna: com Neg?=Sim o valor negociado é digitado
+    // na própria Previsão de frete; o custo médio (R$/kg) fica sob a previsão.
   }
   return cols;
 }
 
 /* célula de dinheiro: digitação BR esquerda->direita + setas que ajustam a última casa (±0,01) */
-function moneyCell(field, value, dc, placeholder, extra){
-  return '<td class="num"'+dc+'><div class="money-inp">' +
+function moneyInner(field, value, placeholder, extra){
+  return '<div class="money-inp">' +
     '<input type="text" inputmode="decimal" data-field="'+field+'" value="'+esc(fmtMoney2(value))+'" placeholder="'+placeholder+'"'+(extra||'')+'>' +
     '<span class="money-arrows">' +
       '<button type="button" class="money-arrow" data-money="up" data-target="'+field+'" title="aumentar 0,01">▲</button>' +
       '<button type="button" class="money-arrow" data-money="down" data-target="'+field+'" title="diminuir 0,01">▼</button>' +
-    '</span></div></td>';
+    '</span></div>';
+}
+function moneyCell(field, value, dc, placeholder, extra){
+  return '<td class="num"'+dc+'>' + moneyInner(field, value, placeholder, extra) + '</td>';
 }
 function tabelaSelHtml(r){
   const t = normalizarTipo(r.tabela);
@@ -1965,8 +1982,13 @@ function cellHtml(sec, r, c, x){
       return '<td class="num"><input type="text" inputmode="decimal" class="numin" data-field="pctFrete" value="'+esc(r.pctFrete)+'"></td>';
     case 'frete': {
       const val = x.frete ? x.frete.total : 0;
-      const frotaBadge = x.frete? ' <span class="badge" title="tipo do veículo">'+esc(x.frete.frota)+'</span>' : '';
+      // tipo do veículo só com o tipo: "Caminhão HR" → "HR"
+      const frotaBadge = x.frete? ' <span class="badge" title="tipo do veículo">'+esc(String(x.frete.frota).replace(/^Caminhão\s+/,''))+'</span>' : '';
       const modo = x.frete ? x.frete.modo : '';
+      const modoCell = x.frete ? (x.frete.modoCell || '') : '';
+      const custoDiv = (sec !== 'frotas')
+        ? '<div class="vf-custo" data-col="custoMedio">' + (x.custo != null ? 'R$ ' + x.custo.toLocaleString('pt-BR',{minimumFractionDigits:2, maximumFractionDigits:2}) + '/kg' : '') + '</div>'
+        : '';
       // peso acima do suportado (> 17.000 kg)
       if(x.frete && x.frete.frota === 'N/A'){
         return '<td class="frete-cell"'+dc+'>' +
@@ -1974,11 +1996,19 @@ function cellHtml(sec, r, c, x){
           '<div class="frete-modo" style="background:#fee2e2;color:#b91c1c">Peso acima do suportado</div>' +
         '</td>';
       }
-      if(modo === 'Valor Frete (manual)' || modo === 'Vlr Kg × Peso'){
+      if(modoCell === 'VLR Neg' || modoCell === 'Vlr Kg × Peso'){
+        // Neg?=Sim: o valor negociado é DIGITADO aqui na própria Previsão de frete
+        if(isNegSim(r)){
+          return '<td class="frete-cell"'+dc+'>' +
+            '<div class="frete-neg">' + moneyInner('valorFrete', r.valorFrete, '0,00', ' title="valor negociado da carga (Neg? = Sim) — Não/branco calcula automático"') + frotaBadge + '</div>' +
+            (numVal(r.valorFrete) > 0 ? '' : '<div class="frete-hint">auto: ' + fmtBRL(val) + '</div>') +
+            '<div class="frete-modo" title="fórmula usada">'+esc(modoCell)+'</div>' + custoDiv +
+          '</td>';
+        }
         // modo especial: sem campos, só o valor + fórmula usada
         return '<td class="frete-cell"'+dc+'>' +
           '<div class="frete-val">'+fmtBRL(val)+frotaBadge+'</div>' +
-          '<div class="frete-modo" title="fórmula usada">'+esc(modo)+'</div>' +
+          '<div class="frete-modo" title="fórmula usada">'+esc(modoCell)+'</div>' + custoDiv +
         '</td>';
       }
       // o select Agregado/Freelancer fica na coluna Neg? (Capital/Interior);
@@ -1988,12 +2018,12 @@ function cellHtml(sec, r, c, x){
         ? '<input type="text" inputmode="numeric" class="numin" data-field="dias" title="dias" value="'+esc(r.dias===''?1:r.dias)+'">' +
           '<input type="text" inputmode="decimal" class="numin" data-field="km" title="km da rota (Km Rota já vem +12%)" value="'+esc(r.km)+'" placeholder="km">' + ((r.kmPortaria && sec!=='capital') ? kmPortBadge(r) : '')
         : '';
-      const modoLabel = modo ? '<div class="frete-modo" title="Capital: valor fixo (sem km/pernoite)">'+esc(modo)+'</div>' : '';
+      const modoLabel = modoCell ? '<div class="frete-modo" title="'+esc(modo)+'">'+esc(modoCell)+'</div>' : '';
       const mini = selTabela + diasKm;
       return '<td class="frete-cell"'+dc+'>' +
         (mini ? '<div class="frete-mini">'+mini+'</div>' : '') +
         '<div class="frete-val">'+(x.frete? fmtBRL(val) : '—') + frotaBadge +
-        '</div>'+modoLabel+'</td>';
+        '</div>'+modoLabel+custoDiv+'</td>';
     }
     case 'custoMedio':
       return '<td class="num custo-cell"'+dc+'>' +
@@ -2032,15 +2062,14 @@ function tfootHtml(sec, cols){
     if(c.key==='placa') return '<td class="total-label">Totais ('+n+')</td>';
     if(c.key==='peso') return '<td class="num" data-col="peso">'+(n? fmtPeso2(peso)+' kg':'')+'</td>';
     if(c.key==='entregas') return '<td class="center" data-col="entregas">'+(n? fmtNum(ent):'')+'</td>';
-    if(c.key==='frete') return '<td class="num" data-col="frete">'+(hasFrete? fmtBRL(freteTotal):'')+'</td>';
+    if(c.key==='frete'){
+      const cm = (hasFrete && peso > 0) ? freteTotal / peso : null;
+      return '<td class="num" data-col="frete">'+(hasFrete? fmtBRL(freteTotal):'') +
+        '<div class="vf-custo" data-col="custoMedio">' + (cm != null ? 'R$ '+cm.toLocaleString('pt-BR',{minimumFractionDigits:2, maximumFractionDigits:2})+'/kg' : '') + '</div></td>';
+    }
     if(c.key==='custoMedio'){
       const cm = (hasFrete && peso > 0) ? freteTotal / peso : null;
       return '<td class="num custo-cell" data-col="custoMedio">' + (cm != null ? 'R$ '+cm.toLocaleString('pt-BR',{minimumFractionDigits:2, maximumFractionDigits:2})+'/kg' : '') + '</td>';
-    }
-    if(c.key==='valorFrete'){
-      // total do custo médio (Cap/Int) empilhado sob o campo, como nas linhas
-      const cm = (hasFrete && peso > 0) ? freteTotal / peso : null;
-      return '<td class="num vf-cell" data-col="valorfrete"><div class="vf-custo" data-col="custoMedio">' + (cm != null ? 'R$ '+cm.toLocaleString('pt-BR',{minimumFractionDigits:2, maximumFractionDigits:2})+'/kg' : '') + '</div></td>';
     }
     return '<td></td>';
   });
@@ -3005,7 +3034,7 @@ async function portariaParseFile(file){
   return portariaRowsToMap(rows);
 }
 /* carga negociada (Valor Frete manual ou Neg?=Sim): o valor NÃO depende do KM */
-function kpIsNeg(r){ return numVal(r.valorFrete) > 0 || isNegSim(r); }
+function kpIsNeg(r){ return isNegSim(r); }
 /* varre UM dia (rec já normalizado) -> {changes:[{d,sec,id,ordem,kmOld,kmNew,totOld,totNew,neg,same}], fechSkipped, fechOrdens}
    REGRAS: carga FECHADA não é alterada; negociada atualiza só o KM (o valor negociado permanece) */
 function kmPortScanRec(rec, d, map){
