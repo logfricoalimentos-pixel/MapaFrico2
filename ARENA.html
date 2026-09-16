@@ -241,6 +241,11 @@ body.print-big-font .custo-cell{font-size:15px}
 #cap-print .sec-head{margin-bottom:8px}
 #cap-print .sum-k{font-size:12px}
 #cap-print .sum-v{font-size:18px}
+/* documento exportado: texto das tabelas em preto e linhas SEM preenchimento de fundo */
+#cap-print .map-table td{color:#000}
+#cap-print .map-table tbody tr:nth-child(even) td{background:#fff}
+#cap-print .map-table tbody td:nth-child(1),#cap-print .map-table tbody td:nth-child(2){background:#fff}
+#cap-print .map-table tfoot td{background:#fff;color:#000}
 .cap-card{background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:8px 14px}
 .cap-k{display:block;font-size:12px;color:#475569;text-transform:uppercase;letter-spacing:.4px}
 .cap-v{font-size:18px;font-weight:700;font-family:var(--mono)}
@@ -1246,7 +1251,7 @@ body.readonly .sec-actions{display:none}
       <label>Motorista<input id="edc-motorista" maxlength="20"></label>
       <label>Transportadora<input id="edc-transp" maxlength="40"></label>
       <label>Veículo p/ frete (tabela)<select id="edc-frota"></select></label>
-      <label>Negociada? (Neg?)<select id="edc-neg"><option value="">—</option><option value="Sim">Sim</option><option value="Não">Não</option></select></label>
+      <label>Negociada? (Neg?)<select id="edc-neg"><option value="Sim">Sim</option><option value="Não">Não</option></select></label>
       <label>Vlr/kg (R$)<input id="edc-valorkg" inputmode="decimal" placeholder="0,00"></label>
       <label>Valor Frete manual (R$)<input id="edc-valorfrete" inputmode="decimal" placeholder="0,00"></label>
     </div>
@@ -1750,7 +1755,7 @@ function calcularFrete(section, row){
     // Neg?=Sim → o valor digitado na Previsão é o negociado (definitivo, sem margem).
     // Neg?=Não ou em branco → calcula automaticamente pela tabela (+margem).
     const vf = numVal(row.valorFrete);
-    if(isNegSim(row) && vf > 0) return {frota, total: vf, modo:'VLR Neg', modoCell:'VLR Neg'};
+    if(isNegSim(row) && vf > 0 && !row._vfAuto) return {frota, total: vf, modo:'VLR Neg', modoCell:'VLR Neg'};
     if(isNegSim(row)){
       const kgp = numVal(row.valorKg) * numVal(row.peso);
       if(kgp > 0) return {frota, total: kgp, modo:'Vlr Kg × Peso', modoCell:'Vlr Kg × Peso'};
@@ -1807,7 +1812,7 @@ function applyRotas(row){
 function emptyRow(){
   return { id:uid(), data:currentMapDate, placa:'', destino:'', carga:'', peso:'', entregas:'',
     motorista:'', transportadora:'', ajudantes:'', ajudante2:'', valorKg:'', neg:'',
-    km:'', dias:1, tabela:'agregado', custoKg:'', pctFrete:'', valorFrete:'', _sel:false };
+    km:'', dias:1, tabela:'agregado', custoKg:'', pctFrete:'', valorFrete:'', neg:'Não', _sel:false };
 }
 function buildRowFromImport(raw, section){
   const row = {
@@ -1820,7 +1825,7 @@ function buildRowFromImport(raw, section){
     motorista: clampMotorista(String(raw.motorista||'').trim()),
     transportadora:'', ajudantes:'', ajudante2:'', valorKg:'', neg:'',
     km: (raw.km!=null && raw.km!=='') ? Math.floor(numVal(raw.km)) : '', // +12% já aplicado; km sempre inteiro (sem casas decimais)
-    dias:1, tabela:'agregado', custoKg:'', pctFrete:'', valorFrete:'', _sel:false
+    dias:1, tabela:'agregado', custoKg:'', pctFrete:'', valorFrete:'', neg:'Não', _sel:false
   };
   applyRegistry(row);
   applyRotas(row); // diárias automáticas pela rota (Nº Carga/destino) cadastrada
@@ -1972,9 +1977,8 @@ function cellHtml(sec, r, c, x){
       // na parte SUPERIOR e Sim/Não logo abaixo — libera a célula de Previsão.
       return '<td class="center"'+dc+'><div class="neg-stack">' + tabelaSelHtml(r) +
         '<select data-field="neg">' +
-        '<option value=""'+(r.neg===undefined||r.neg===''?' selected':'')+'>—</option>' +
-        '<option value="Sim"'+(r.neg==='Sim'?' selected':'')+'>Sim</option>' +
-        '<option value="Não"'+(r.neg==='Não'?' selected':'')+'>Não</option>' +
+        '<option value="Sim"'+(isNegSim(r)?' selected':'')+'>Sim</option>' +
+        '<option value="Não"'+(!isNegSim(r)?' selected':'')+'>Não</option>' +
         '</select></div></td>';
     case 'custoKg':
       return '<td class="num"><input type="text" inputmode="decimal" class="numin" data-field="custoKg" value="'+esc(r.custoKg)+'"></td>';
@@ -2001,9 +2005,8 @@ function cellHtml(sec, r, c, x){
       // campo vazio vale o automático/Vlr Kg×Peso, mostrado como aviso "auto: R$ …".
       if(sec !== 'frotas' && isNegSim(r)){
         return '<td class="frete-cell"'+dc+'>' +
-          '<div class="frete-neg">' + moneyInner('valorFrete', r.valorFrete, '0,00', ' title="valor negociado da carga (Neg? = Sim) — vazio calcula automático"') + frotaBadge + '</div>' +
-          (numVal(r.valorFrete) > 0 ? '' : '<div class="frete-hint">auto: ' + fmtBRL(val) + '</div>') +
-          '<div class="frete-modo" title="fórmula usada">'+esc(numVal(r.valorFrete) > 0 ? 'VLR Neg' : modoCell)+'</div>' + custoDiv +
+          '<div class="frete-neg">' + moneyInner('valorFrete', r.valorFrete, '0,00', ' title="valor da carga (Neg? = Sim): digite p/ negociar; o valor automático já vem preenchido"') + frotaBadge + '</div>' +
+          '<div class="frete-modo" title="fórmula usada">'+esc(!r._vfAuto && numVal(r.valorFrete) > 0 ? 'VLR Neg' : modoCell)+'</div>' + custoDiv +
         '</td>';
       }
       // o select Agregado/Freelancer fica na coluna Neg? (Capital/Interior);
@@ -2036,6 +2039,13 @@ function cellHtml(sec, r, c, x){
 
 function rowHtml(sec, r, cols){
   const frete = calcularFrete(sec, r); // AUDITORIA: agora calculado p/ todas as seções (Frotas = estimado, sem negociação)
+  // O valor da previsão é SEMPRE atribuído em valorFrete (negociado ou não).
+  // _vfAuto marca valor atribuído automaticamente (não digitação manual).
+  if(sec !== 'frotas' && frete && frete.total > 0){
+    const manual = isNegSim(r) && numVal(r.valorFrete) > 0 && !r._vfAuto;
+    if(manual){ r._vfAuto = false; }
+    else { r.valorFrete = Math.round(frete.total * 100) / 100; r._vfAuto = true; }
+  }
   // custo médio só quando há frete calculável (> 0) e peso > 0; senão "—"
   const custo = (frete && frete.total > 0 && numVal(r.peso) > 0) ? frete.total / numVal(r.peso) : null;
   const unav = plateSegs(r.placa).some(p => AVAILABILITY[p] === false);
@@ -2647,8 +2657,11 @@ const CAP_COLS_FULL = [
   {key:'peso',      label:'Peso (kg)', mono:true, num:true},
   {key:'entregas',  label:'T.Entrega', mono:true, num:true},
   {key:'motorista', label:'Motorista'},
-  {key:'transp',    label:'Transportador'}
+  {key:'transp',    label:'Transportador'},
+  {key:'veiculo',   label:'Tipo de veículo'}
 ];
+/* "Mapa Carregamento": sem Peso/T.Entrega — demais colunas iguais ao completo */
+const CAP_COLS_CARG = CAP_COLS_FULL.filter(c=> c.key !== 'peso' && c.key !== 'entregas');
 function capCellText(sec, r, c){
   switch(c.key){
     case 'placa':     return r.placa || '—';
@@ -2660,6 +2673,11 @@ function capCellText(sec, r, c){
     case 'transp':
       if(sec === 'frotas') return [r.ajudantes, r.ajudante2].map(x=> String(x||'').trim()).filter(Boolean).join(', ') || '—';
       return r.transportadora || '—';
+    case 'veiculo':{
+      const f = calcularFrete(sec, r);
+      const fr = f && f.frota ? String(f.frota) : '';
+      return (fr && fr !== 'N/A') ? fr.replace(/^Caminhão\s+/,'') : '—';
+    }
   }
   return '';
 }
@@ -2669,7 +2687,7 @@ function capFontFor(c){ return '600 15px ' + (c.mono ? ETQ_MONO : ETQ_SANS); }
    frete/custo entra nesta imagem (regra mantida). Larguras UNIFICADAS entre as 3 tabelas:
    a mesma coluna tem a mesma largura em Frotas, Capital e Interior (maior conteúdo real). */
 function buildCapPrint(hidePV){
-  const cols = CAP_COLS_FULL;
+  const cols = hidePV ? CAP_COLS_CARG : CAP_COLS_FULL;
   const now = new Date();
   // 1) largura global por coluna (máximo entre as 3 seções) — nada de texto cortado
   const widths = cols.map(c=>{
@@ -3804,9 +3822,11 @@ function abrirEdicaoCarga(key){
   selF.innerHTML = '<option value="">Auto pelo peso (' + esc(auto || 'N/A') + ')</option>' +
     FLEET_TIERS.map(t=> '<option value="' + esc(t.name) + '">Tabela ' + esc(String(t.name).replace(/^Caminh[aã]o\s*/i, '')) + '</option>').join('');
   selF.value = r.frotaCalc || '';
-  relEl('edc-neg').value = String(r.neg || '');
+  relEl('edc-neg').value = isNegSim(r) ? 'Sim' : 'Não';
   relEl('edc-valorkg').value = (r.valorKg == null || r.valorKg === '') ? '' : String(r.valorKg);
   relEl('edc-valorfrete').value = (r.valorFrete == null || r.valorFrete === '') ? '' : String(r.valorFrete);
+  relEl('edc-valorfrete').dataset.v0 = relEl('edc-valorfrete').value;
+  relEl('edc-valorkg').dataset.v0 = relEl('edc-valorkg').value;
   relEl('edc-mask').hidden = false;
   edcPreview();
   const f = relEl('edc-destino'); if(f) f.focus();
@@ -3816,9 +3836,17 @@ function closeEdc(){ const m = relEl('edc-mask'); if(m) m.hidden = true; EDC_KEY
 function edcPreview(){
   const it = relFindItem(EDC_KEY); const box = relEl('edc-calc'); if(!it || !box) return;
   const rd2 = v => { const x = String(v == null ? '' : v).trim(); return x === '' ? '' : Math.round(num(x) * 100) / 100; };
+  // negociação automática na janela (mesmas regras da tabela):
+  // · Vlr Kg preenchido/apagado → Neg? Sim/Não · valorFrete alterado → Sim; apagado → Não
+  const vkEl = relEl('edc-valorkg'), vfEl = relEl('edc-valorfrete'), ngEl = relEl('edc-neg');
+  const vfChanged = vfEl.value !== (vfEl.dataset.v0 || '');
+  const vkChanged = vkEl.value !== (vkEl.dataset.v0 || '');
+  if(vfChanged) ngEl.value = (String(vfEl.value).trim() === '') ? 'Não' : 'Sim';
+  else if(vkChanged) ngEl.value = (String(vkEl.value).trim() === '') ? 'Não' : 'Sim';
+  const vfManual = vfChanged && String(vfEl.value).trim() !== '';
   const tmp = Object.assign({}, it.row, {
     destino: relEl('edc-destino').value, carga: relEl('edc-carga').value,
-    neg: relEl('edc-neg').value || '', valorKg: rd2(relEl('edc-valorkg').value), valorFrete: rd2(relEl('edc-valorfrete').value),
+    neg: relEl('edc-neg').value || 'Não', _vfAuto: !vfManual, valorKg: rd2(relEl('edc-valorkg').value), valorFrete: rd2(relEl('edc-valorfrete').value),
     peso: (relEl('edc-peso').value === '') ? '' : ceil2(num(relEl('edc-peso').value)),
     km: (relEl('edc-km').value === '') ? '' : Math.max(0, Math.floor(num(relEl('edc-km').value))),
     dias: (relEl('edc-dias').value === '') ? 1 : Math.max(1, Math.round(numVal(relEl('edc-dias').value)) || 1),
@@ -3846,12 +3874,16 @@ async function salvarEdicaoCarga(){
   relSetField(it, 'transportadora', relEl('edc-transp').value);
   const fv = String(relEl('edc-frota').value || '');
   if(fv) it.row.frotaCalc = fv; else delete it.row.frotaCalc;
-  const nv = String(relEl('edc-neg').value || '');
-  if(nv) it.row.neg = nv; else delete it.row.neg;
-  const vk = relEl('edc-valorkg').value; const vkN = (String(vk == null ? '' : vk).trim() === '') ? null : Math.round(num(vk) * 100) / 100;
+  const vkElS = relEl('edc-valorkg'), vfElS = relEl('edc-valorfrete');
+  const vk = vkElS.value; const vkN = (String(vk == null ? '' : vk).trim() === '') ? null : Math.round(num(vk) * 100) / 100;
   if(vkN == null) delete it.row.valorKg; else it.row.valorKg = vkN;
-  const vf = relEl('edc-valorfrete').value; const vfN = (String(vf == null ? '' : vf).trim() === '') ? null : Math.round(num(vf) * 100) / 100;
+  const vf = vfElS.value; const vfN = (String(vf == null ? '' : vf).trim() === '') ? null : Math.round(num(vf) * 100) / 100;
   if(vfN == null) delete it.row.valorFrete; else it.row.valorFrete = vfN;
+  const vfCh = vfElS.value !== (vfElS.dataset.v0 || '');
+  const vkCh = vkElS.value !== (vkElS.dataset.v0 || '');
+  if(vfCh){ if(vfN != null){ it.row.neg = 'Sim'; it.row._vfAuto = false; } else { it.row.neg = 'Não'; it.row._vfAuto = true; } }
+  else if(vkCh){ it.row.neg = (vkN != null) ? 'Sim' : 'Não'; it.row._vfAuto = true; }
+  else { const nv = String(relEl('edc-neg').value || 'Não'); it.row.neg = nv || 'Não'; it.row._vfAuto = (nv !== 'Sim'); }
   it.calc = relCalc(it.sec, it.row, it.d, it.entrega);
   const d = it.d;
   await relPersistDate(d);
@@ -6108,6 +6140,16 @@ function bindStatic(){
     } else {
       row[field] = t.value;
     }
+    // negociação automática:
+    // · preencheu Vlr Kg → Neg?=Sim; apagou Vlr Kg → Neg?=Não
+    if(field === 'valorKg' || field === 'valorkg'){
+      row.neg = (String(t.value).trim() === '') ? 'Não' : 'Sim';
+    }
+    // · alterou valorFrete manualmente → Neg?=Sim (definitivo); apagou → Neg?=Não (auto)
+    if(field === 'valorFrete'){
+      if(String(t.value).trim() === ''){ row.neg = 'Não'; row._vfAuto = true; }
+      else { row.neg = 'Sim'; row._vfAuto = false; }
+    }
     renderAll({focus:f}); // reclassifica na hora (placa) + recalcula frete/custo médio
   });
 
@@ -6153,7 +6195,7 @@ function bindStatic(){
       return;
     }
     if(t.dataset.field === 'tabela'){ row.tabela = t.value; renderAll(); return; }
-    if(t.dataset.field === 'neg'){ row.neg = t.value; renderAll(); return; }
+    if(t.dataset.field === 'neg'){ row.neg = t.value; row._vfAuto = (t.value !== 'Sim'); renderAll(); return; }
   });
 
   /* cliques (remover, pool) */
