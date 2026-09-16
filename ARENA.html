@@ -234,9 +234,9 @@ body.print-big-font .custo-cell{font-size:15px}
 .cap-empty{color:#475569;text-align:center;font-size:14.5px;padding:12px}
 .cap-summary{display:flex;gap:12px;flex-wrap:wrap;margin-top:16px}
 /* Captura no modelo novo: tipografia legível no A4 (documento estático) */
-#cap-print .map-table td{font-size:15px;padding:5px 9px;white-space:nowrap}
-#cap-print .map-table th{font-size:13.5px;padding:6px 9px}
-#cap-print .map-table tfoot td{font-size:14.5px;padding:6px 9px}
+#cap-print .map-table td{font-size:inherit;padding:4px 8px;white-space:nowrap}
+#cap-print .map-table th{font-size:inherit;padding:5px 8px}
+#cap-print .map-table tfoot td{font-size:inherit;padding:5px 8px}
 #cap-print .section{margin-top:14px}
 #cap-print .sec-head{margin-bottom:8px}
 #cap-print .sum-k{font-size:12px}
@@ -2681,7 +2681,7 @@ function capCellText(sec, r, c){
   }
   return '';
 }
-function capFontFor(c){ return '600 15px ' + (c.mono ? ETQ_MONO : ETQ_SANS); }
+function capFontFor(c, fs){ return '600 ' + (fs || 13) + 'px ' + (c.mono ? ETQ_MONO : ETQ_SANS); }
 /* Documento estático no MODELO NOVO (banner azul, faixas de seção, zebrado, cards com ícone).
    Mesmas colunas nos 2 prints (Placa…Transportador/Ajud. + totais) — nenhum valor de
    frete/custo entra nesta imagem (regra mantida). Larguras UNIFICADAS entre as 3 tabelas:
@@ -2689,16 +2689,35 @@ function capFontFor(c){ return '600 15px ' + (c.mono ? ETQ_MONO : ETQ_SANS); }
 function buildCapPrint(hidePV){
   const cols = hidePV ? CAP_COLS_CARG : CAP_COLS_FULL;
   const now = new Date();
-  // 1) largura global por coluna (máximo entre as 3 seções) — nada de texto cortado
-  const widths = cols.map(c=>{
-    let w = measureText(c.label, '700 13.5px ' + ETQ_SANS);
-    for(const sec of SECTIONS) for(const r of DATA[sec]){
-      const t = capCellText(sec, r, c);
-      if(t && t !== '—') w = Math.max(w, measureText(t, capFontFor(c)));
-    }
-    w = Math.max(w, measureText('Totais (00)', capFontFor(c)));
-    return Math.max(60, Math.ceil(w) + 28);
-  });
+  // 1) largura global por coluna (máximo entre as 3 seções) — nada de texto cortado.
+  //    A fonte é reduzida em degraus (13→9,5px) até a soma caber na área útil da
+  //    página; depois as colunas são escaladas p/ preencher a página inteira.
+  const PAGE_W = 1080 - 75.6; // área útil de #cap-print (1080px − margens de 1cm)
+  let widths = [], fs = 13;
+  for(const f of [13, 12, 11, 10, 9.5]){
+    fs = f;
+    widths = cols.map(c=>{
+      let w = measureText(c.label, '700 ' + f + 'px ' + ETQ_SANS);
+      for(const sec of SECTIONS) for(const r of DATA[sec]){
+        const t = capCellText(sec, r, c);
+        if(t && t !== '—') w = Math.max(w, measureText(t, capFontFor(c, f)));
+      }
+      w = Math.max(w, measureText('Totais (00)', capFontFor(c, f)));
+      return Math.max(56, Math.ceil(w) + 18);
+    });
+    if(widths.reduce((a,b)=>a+b, 0) <= PAGE_W) break;
+  }
+  // Ajusta a tabela à LARGURA DA PÁGINA (como no modelo): se a soma das colunas
+  // medidas for menor que a área útil, a sobra é distribuída proporcionalmente
+  // (fator igual p/ as 3 tabelas → colunas de mesmo nome seguem com largura igual).
+  let sumW = widths.reduce((a,b)=>a+b, 0);
+  if(sumW > 0 && sumW < PAGE_W){
+    const f = PAGE_W / sumW;
+    widths.forEach((w,i)=>{ widths[i] = Math.floor(w * f); });
+    sumW = widths.reduce((a,b)=>a+b, 0);
+    widths[widths.length - 1] += Math.round(PAGE_W - sumW); // acerto de arredondamento
+    sumW = Math.round(PAGE_W);
+  }
   const colgroup = '<colgroup>' + cols.map((c,i)=> '<col style="width:' + widths[i] + 'px">').join('') + '</colgroup>';
   // 2) banner no modelo novo (mesmo markup do cabeçalho vivo)
   let html = '<div class="doc-head"><div class="mh-title">' + MIC.truck + '<h1>MAPA DE CARREGAMENTO</h1></div>' +
@@ -2721,7 +2740,7 @@ function buildCapPrint(hidePV){
       '<td class="'+(c.num?'cap-num':'')+'">'+ (c.key==='peso' && pesoTot>0 ? fmtPeso2(pesoTot)+' kg' : c.key==='entregas' && entTot>0 ? fmtNum(entTot) : '') +'</td>'
     ).join('') + '</tr>';
     html += '<div class="section" data-sec="'+sec+'"><div class="sec-head"><h2>' + secIcon[sec] + ' ' + title + '</h2><span class="sec-count">' + rows.length + ' carga(s)</span></div>' +
-      '<table class="map-table">' + colgroup +
+      '<table class="map-table" style="width:' + sumW + 'px;font-size:' + fs + 'px">' + colgroup +
       '<thead><tr>'+ths+'</tr></thead><tbody>'+trs+'</tbody><tfoot>'+tot+'</tfoot></table></div>';
   }
   // resumo — somente contagens (NUNCA valores de frete/custo neste documento)
@@ -2742,7 +2761,8 @@ async function genCapPng(hidePV){
   let maxW = 0;
   const tables = el.querySelectorAll('.cap-table');
   for(let i=0;i<tables.length;i++){ const w = tables[i].scrollWidth || 0; if(w>maxW) maxW = w; }
-  if(maxW > 0) el.style.width = (maxW + 75.6) + 'px'; // 75.6 = 2× 37.8px (margem de 1cm em cada lado) — alvo A4 paisagem
+  // página nunca menor que o A4-alvo; se o conteúdo exigir mais, alarga (nada cortado)
+  el.style.width = Math.max(1080, (maxW || 0) + 75.6) + 'px'; // 75.6 = 2× 37.8px (margem de 1cm em cada lado)
   try{
     const canvas = await html2canvas(el, {scale:2, backgroundColor:'#ffffff', useCORS:true, logging:false});
     return {blob: dataUrlToBlob(canvas.toDataURL('image/png')), dataUrl: canvas.toDataURL('image/png'),
