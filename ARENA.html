@@ -1996,19 +1996,14 @@ function cellHtml(sec, r, c, x){
           '<div class="frete-modo" style="background:#fee2e2;color:#b91c1c">Peso acima do suportado</div>' +
         '</td>';
       }
-      if(modoCell === 'VLR Neg' || modoCell === 'Vlr Kg × Peso'){
-        // Neg?=Sim: o valor negociado é DIGITADO aqui na própria Previsão de frete
-        if(isNegSim(r)){
-          return '<td class="frete-cell"'+dc+'>' +
-            '<div class="frete-neg">' + moneyInner('valorFrete', r.valorFrete, '0,00', ' title="valor negociado da carga (Neg? = Sim) — Não/branco calcula automático"') + frotaBadge + '</div>' +
-            (numVal(r.valorFrete) > 0 ? '' : '<div class="frete-hint">auto: ' + fmtBRL(val) + '</div>') +
-            '<div class="frete-modo" title="fórmula usada">'+esc(modoCell)+'</div>' + custoDiv +
-          '</td>';
-        }
-        // modo especial: sem campos, só o valor + fórmula usada
+      // Neg?=Sim: o valor negociado é DIGITADO aqui na própria Previsão de frete —
+      // o campo aparece SEMPRE que Sim estiver marcado (mesmo ainda vazio); com o
+      // campo vazio vale o automático/Vlr Kg×Peso, mostrado como aviso "auto: R$ …".
+      if(sec !== 'frotas' && isNegSim(r)){
         return '<td class="frete-cell"'+dc+'>' +
-          '<div class="frete-val">'+fmtBRL(val)+frotaBadge+'</div>' +
-          '<div class="frete-modo" title="fórmula usada">'+esc(modoCell)+'</div>' + custoDiv +
+          '<div class="frete-neg">' + moneyInner('valorFrete', r.valorFrete, '0,00', ' title="valor negociado da carga (Neg? = Sim) — vazio calcula automático"') + frotaBadge + '</div>' +
+          (numVal(r.valorFrete) > 0 ? '' : '<div class="frete-hint">auto: ' + fmtBRL(val) + '</div>') +
+          '<div class="frete-modo" title="fórmula usada">'+esc(numVal(r.valorFrete) > 0 ? 'VLR Neg' : modoCell)+'</div>' + custoDiv +
         '</td>';
       }
       // o select Agregado/Freelancer fica na coluna Neg? (Capital/Interior);
@@ -2215,6 +2210,28 @@ function cellWidthOf(td){ return cellMeasure(td).w; }
    vencedor permitem compensar letter-spacing (inputs mono) e a seta dos selects,
    para que a largura final seja a MÍNIMA que exibe o texto inteiro. */
 function cellMeasure(td){
+  if(td.classList && td.classList.contains('frete-cell')){
+    // célula empilhada: a largura necessária é a da maior LINHA (dias+km, campo+chip,
+    // valor+chip, selo, custo) — e não a do maior input isolado
+    let w = 0;
+    const line = (txt, el, extra)=>{ if(el) w = Math.max(w, measureText(String(txt||'').trim(), fontOf(el)) + (extra||0)); };
+    const mini = td.querySelector('.frete-mini');
+    if(mini){
+      let mw = 0, n = 0;
+      mini.querySelectorAll('input, select').forEach(el=>{ mw += measureText(inputText(el), fontOf(el)) + (el.tagName === 'SELECT' ? 30 : 26); n++; });
+      mw += Math.max(0, n - 1) * 3;
+      w = Math.max(w, mw);
+    }
+    const neg = td.querySelector('.frete-neg');
+    const chip = td.querySelector('.badge');
+    const chipW = chip ? measureText(String(chip.textContent||'').trim(), fontOf(chip)) + 16 : 0;
+    if(neg) w = Math.max(w, 104 + 4 + chipW);           // campo de dinheiro (104px) + folga + chip
+    line(td.querySelector('.frete-val') ? td.querySelector('.frete-val').textContent : '', td.querySelector('.frete-val'), chip ? 16 : 0);
+    line(td.querySelector('.frete-hint') ? td.querySelector('.frete-hint').textContent : '', td.querySelector('.frete-hint'));
+    line(td.querySelector('.frete-modo') ? td.querySelector('.frete-modo').textContent : '', td.querySelector('.frete-modo'));
+    line(td.querySelector('.vf-custo') ? td.querySelector('.vf-custo').textContent : '', td.querySelector('.vf-custo'));
+    return {w: w, len: 0, ls: 0};
+  }
   const inputs = td.querySelectorAll('input, select, button');
   if(inputs.length){
     if(td.classList.contains('icon')){
