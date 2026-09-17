@@ -46,8 +46,8 @@ h1,h2,h3{margin:0}
 .btn.mini{padding:2px 6px;font-size:12px;border-radius:6px}
 /* AUDITORIA: fonte do topo +2px (só aqui — não mexe nos botões do resto do app) */
 .topbar .btn{background:#1e293b;border-color:#334155;color:#e2e8f0;font-size:15px}
-.topbar .btn-ff{background:#a855f7;border-color:#9333ea;color:#fff;font-weight:700}
-.topbar .btn-ff:hover{background:#9333ea}
+.topbar .btn-ff{background:#7e22ce;border-color:#6b21a8;color:#fff;font-weight:700}
+.topbar .btn-ff:hover{background:#6b21a8}
 .topbar .btn:hover{background:#334155}
 .topbar .btn.primary{background:var(--blue);border-color:var(--blue);color:#fff}
 .topbar .btn.primary:hover{background:var(--blue-d)}
@@ -104,6 +104,12 @@ h1,h2,h3{margin:0}
 .map-table{border-collapse:collapse}
 .map-table th{background:#f8fafc;border:1px solid var(--line);padding:5px 8px;font-size:11.5px;text-align:left;white-space:nowrap;color:#334155;letter-spacing:.2px}
 .map-table th.center{text-align:center}
+.map-table th.num{text-align:right}
+.map-table .th-mini{font-size:10px;font-weight:700;opacity:.8;letter-spacing:0}
+.map-table tr.empty-row td{position:static!important;left:auto!important;box-shadow:none!important;background:#fff!important}
+.map-table tr.empty-row .empty{text-align:center;color:#475569;font-size:12.5px;padding:6px 0}
+.map-table:has(tr.empty-row){width:auto!important;min-width:0}
+.map-table input:focus-visible,.map-table select:focus-visible{outline:2px solid #93c5fd;outline-offset:1px}
 .map-table td{border:1px solid var(--line);padding:2px 3px;vertical-align:middle}
 .map-table td.num{text-align:right}
 .map-table td.center{text-align:center}
@@ -137,7 +143,7 @@ tr.row-unavailable .td-placa input{background:#fee2e2;color:#b91c1c;font-weight:
 .frete-modo{font-size:10.5px;color:#92400e;background:#fef3c7;border-radius:6px;padding:1px 6px;display:inline-block;margin-top:3px;white-space:nowrap}
 .badge{display:inline-block;background:#e0f2fe;color:#075985;border-radius:999px;padding:1px 8px;font-size:10.5px;font-weight:600;margin-left:5px;white-space:nowrap}
 .custo-cell{white-space:nowrap;font-family:var(--mono);font-size:12.5px;color:#0f766e;font-weight:600}
-.map-table tfoot td{background:#f1f5f9;font-weight:700;font-size:12.5px;border:1px solid var(--line);padding:5px 8px}
+.map-table tfoot td{background:#f1f5f9;font-weight:700;font-size:12.5px;border:1px solid var(--line);padding:5px 8px;white-space:nowrap}
 .total-label{font-weight:700;font-size:12px;color:#334155}
 /* AUDITORIA (acessibilidade): fonte ampliada para impressão/PDF (pessoas com baixa visão).
    Aplicada via JS como classe comum (não @media print) para que autosizeAllTables() recalcule
@@ -723,10 +729,10 @@ body.readonly .sec-actions{display:none}
 .map-table td.icon select{background:#fff;border:1px solid #9cc3ea;border-radius:6px}
 .map-table .btn.mini{padding:1px 4px}
 .map-table .btn.mini .ic{width:12px;height:12px;vertical-align:-2px}
-/* Linhas compactas: altura acompanha o texto */
-.map-table td{padding:1px 3px;line-height:1.15}
+/* Linhas compactas com respiro mínimo (auditoria UI: 1px espremia o texto na borda) */
+.map-table td{padding:3px 6px;line-height:1.25}
 .map-table th{padding:4px 8px}
-.map-table input,.map-table select{padding:1px 6px}
+.map-table input,.map-table select{padding:2px 6px}
 .map-table td.icon{padding:1px 2px}
 /* Neg? empilhado: tipo de tabela em cima, Sim/Não embaixo */
 .neg-stack{display:flex;flex-direction:column;gap:2px;align-items:stretch}
@@ -736,7 +742,7 @@ body.readonly .sec-actions{display:none}
 /* valor negociado digitado dentro da Previsão de frete (Neg? = Sim) */
 .frete-neg{display:flex;gap:4px;align-items:center;justify-content:flex-end;flex-wrap:wrap}
 .frete-neg .money-inp{width:104px;flex:none}
-.frete-hint{font-size:10.5px;color:#64748b;white-space:nowrap}
+.frete-hint{font-size:11px;color:#475569;white-space:nowrap}
 #summary{border-top:0}
 .sum-card{background:#fff;border:1px solid #cfdff0;border-radius:12px;padding:10px 16px;display:flex;align-items:center;gap:12px;box-shadow:0 1px 4px rgba(13,60,120,.10)}
 .sum-card .ic{width:40px;height:40px;padding:8px;box-sizing:border-box;background:linear-gradient(160deg,#2f8be0,#0d54a8);border-radius:10px;color:#fff;flex:none}
@@ -1898,8 +1904,8 @@ function mergeSelected(sec){
 function sectionCols(sec){
   // full:true -> coluna se ajusta ao tamanho total do texto (sem limite prático)
   const cols = [
-    {key:'sel',      icon:true, label:''},
-    {key:'move',     icon:true, label:''},
+    {key:'sel',      icon:true, label:'<span class="th-mini" title="marcar/desmarcar cargas">✓</span>'},
+    {key:'move',     icon:true, label:'<span class="th-mini" title="ações da linha: seção e excluir">⋯</span>'},
     {key:'placa',    label:'Placa', cls:'mono'},
     {key:'destino',  label:'Destino', full:true},
     {key:'carga',    label:'Nº Carga', cls:'mono', full:true},
