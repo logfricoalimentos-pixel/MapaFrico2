@@ -787,7 +787,7 @@ body.readonly .sec-actions{display:none}
     <button class="btn" id="btn-restore">📂 Restaurar</button>
     <span class="sep"></span>
     <div class="btn-dd" id="dd-mapa">
-      <button class="btn" id="btn-mapa-toggle" type="button" aria-haspopup="true" aria-expanded="false" title="Gerar o MAPA DE CARREGAMENTO em formato de impressora (Sem Peso / Com Peso)">🖨 Formato de Impressora ▾</button>
+      <button class="btn" id="btn-mapa-toggle" type="button" aria-haspopup="true" aria-expanded="false" title="Gerar o MAPA DE CARREGAMENTO p/ impressão A4 (Sem Peso / Com Peso · Paisagem ou Retrato)">🖨 Mapa/Print ▾</button>
       <div class="btn-dd-menu" id="dd-mapa-menu" hidden>
         <button class="btn-dd-item" id="btn-shot-sem" type="button" title="MAPA DE CARREGAMENTO · colunas: Placa, Destino, Nº Carga, Motorista, Transportador · Imprimir/Abrir/Copiar/Baixar">🖨 Mapa Sem Peso</button>
         <button class="btn-dd-item" id="btn-shot-com" type="button" title="MAPA DE CARREGAMENTO · colunas: Placa, Destino, Nº Carga, Peso (kg), T.Entrega, Motorista, Transportador · Imprimir/Abrir/Copiar/Baixar">🖨 Mapa Com Peso</button>
@@ -888,7 +888,7 @@ body.readonly .sec-actions{display:none}
       <ul>
         <li><b>Capturas 📷 em layout dedicado A4 paisagem</b> (colunas medidas pelo conteúdo, <b>larguras iguais nas 3 tabelas</b> — <b>nada de texto cortado ou oculto</b>): os dois prints mostram Placa, Destino, Nº Carga, Peso, T.Entrega, Motorista e Ajud./Transportador, mais os cards Cargas/Peso total/Entregas, no <b>modelo visual novo</b> (banner azul, faixas de seção, zebrado e cards com ícone). As colunas Vlr Kg, Neg?, Previsão, Custo Médio e Valor Frete nunca aparecem nas imagens.</li>
         <li><b>📊 Planejamento de Transporte</b>: relatório Capital × Interior × Total com Veículos (cargas), Entregas e Peso em TON (kg ÷ 1000, 2 casas, sem zeros finais) — Frotas não entra.</li>
-        <li><b>🖨 Formato de Impressora (Mapa Sem Peso / Mapa Com Peso) / 📊 Planejamento</b>: geram a imagem e perguntam se você quer imprimir, abrir em nova guia, copiar (Ctrl+V no WhatsApp/e-mail) ou baixar o .png.</li>
+        <li><b>🖨 Mapa/Print (Mapa Sem Peso / Mapa Com Peso) / 📊 Planejamento</b>: geram a imagem A4 e perguntam a orientação (Paisagem/Retrato) e se você quer imprimir, abrir em nova guia, copiar (Ctrl+V no WhatsApp/e-mail) ou baixar o .png.</li>
         <li><b>🚀 Envio automático</b>: guia passo a passo que encadeia os 5 envios (todos os grupos) — o app copia cada imagem e avança (botão ou Enter), você só cola (Ctrl+V) e envia (Enter) na conversa indicada.</li>
         <li><b>Motorista limitado a 20 caracteres</b> em Frotas, Capital e Interior (campo, digitação, importação e dados já salvos).</li>
         <li><b>📥 Excel Mapa</b>: exporta o mapa do dia em .xlsx no MESMO formato do print (seções FROTAS/CAPITAL/INTERIOR, colunas, totais e resumo — sem valores).</li>
@@ -1108,6 +1108,11 @@ body.readonly .sec-actions{display:none}
     <h3 id="choice-title"></h3>
     <p id="choice-text" class="modal-text"></p>
     <div class="modal-err" id="choice-err"></div>
+    <div id="choice-orient" hidden style="margin:10px 0 0;display:flex;gap:14px;align-items:center;font:600 12.5px system-ui,-apple-system,sans-serif;color:#334155">
+      <span>A4:</span>
+      <label style="display:flex;gap:5px;align-items:center;cursor:pointer"><input type="radio" name="cap-orient" value="paisagem" checked> Paisagem</label>
+      <label style="display:flex;gap:5px;align-items:center;cursor:pointer"><input type="radio" name="cap-orient" value="retrato"> Retrato</label>
+    </div>
     <div class="modal-actions">
       <button class="btn" id="choice-cancel" type="button">Cancelar</button>
       <button class="btn" id="choice-open" type="button">🔗 Abrir em nova guia</button>
@@ -2684,13 +2689,13 @@ function capFontFor(c, fs){ return '600 ' + (fs || 13) + 'px ' + (c.mono ? ETQ_M
    Mesmas colunas nos 2 prints (Placa…Transportador/Ajud. + totais) — nenhum valor de
    frete/custo entra nesta imagem (regra mantida). Larguras UNIFICADAS entre as 3 tabelas:
    a mesma coluna tem a mesma largura em Frotas, Capital e Interior (maior conteúdo real). */
-function buildCapPrint(mode){
+function buildCapPrint(mode, orient){
   const cols = mode === 'com' ? CAP_COLS_COM : CAP_COLS_SEM;
   const now = new Date();
   // 1) largura global por coluna (máximo entre as 3 seções) — nada de texto cortado.
   //    A fonte é reduzida em degraus (13→9,5px) até a soma caber na área útil da
   //    página; depois as colunas são escaladas p/ preencher a página inteira.
-  const PAGE_W = 1080 - 75.6; // área útil de #cap-print (1080px − margens de 1cm)
+  const PAGE_W = ((orient === 'retrato') ? 794 : 1080) - 75.6; // área útil A4 @96dpi (retrato 794px / paisagem 1080px) − margens de 1cm
   let widths = [], fs = 13;
   for(const f of [13, 12, 11, 10, 9.5]){
     fs = f;
@@ -2752,19 +2757,20 @@ function buildCapPrint(mode){
   return html;
 }
 /* gera o PNG da captura a partir do layout dedicado; devolve {blob, dataUrl, name, label} */
-async function genCapPng(mode){
+async function genCapPng(mode, orient){
   const el = $('#cap-print');
   if(!el) throw new Error('#cap-print ausente');
-  el.innerHTML = buildCapPrint(mode);
+  el.innerHTML = buildCapPrint(mode, orient);
   let maxW = 0;
   const tables = el.querySelectorAll('.map-table');
   for(let i=0;i<tables.length;i++){ const w = tables[i].scrollWidth || 0; if(w>maxW) maxW = w; }
   // página nunca menor que o A4-alvo; se o conteúdo exigir mais, alarga (nada cortado)
-  el.style.width = Math.max(1080, (maxW || 0) + 75.6) + 'px'; // 75.6 = 2× 37.8px (margem de 1cm em cada lado)
+  const baseW = (orient === 'retrato') ? 794 : 1080; // A4 @96dpi: retrato 794px · paisagem 1080px
+  el.style.width = Math.max(baseW, (maxW || 0) + 75.6) + 'px'; // 75.6 = 2× 37.8px (margem de 1cm em cada lado)
   try{
     const canvas = await html2canvas(el, {scale:2, backgroundColor:'#ffffff', useCORS:true, logging:false});
     return {blob: dataUrlToBlob(canvas.toDataURL('image/png')), dataUrl: canvas.toDataURL('image/png'),
-            name: 'mapa-' + currentMapDate + (mode === 'com' ? '-com-peso' : '-sem-peso') + '-v' + APP_V + '.png',
+            name: 'mapa-' + currentMapDate + (mode === 'com' ? '-com-peso' : '-sem-peso') + (orient === 'retrato' ? '-retrato' : '') + '-v' + APP_V + '.png',
             label: mode === 'com' ? 'Mapa Com Peso' : 'Mapa Sem Peso'};
   }finally{
     el.innerHTML = '';
@@ -4982,12 +4988,15 @@ async function captureMap(mode){
   const label = mode === 'com' ? 'Mapa Com Peso' : 'Mapa Sem Peso';
   const choice = await choiceModal({
     title: '🖨 ' + label,
+    withOrient: true,
     text: 'O que deseja fazer com a imagem do <b>' + esc(label) + '</b>?<br><span style="color:#64748b;font-size:12px">Abrir mostra a imagem numa nova guia (dá para ampliar/salvar pelo próprio navegador). Imprimir envia o mapa direto para a impressora (A4). Copiar coloca a imagem na área de transferência (Ctrl+V para colar direto no WhatsApp/e-mail). Baixar salva o arquivo .png no dispositivo.</span>'
   });
   if(!choice) return; // cancelado
   setBusy(true);
   try{
-    const r = await genCapPng(mode);
+    const orient = ((document.querySelector('input[name="cap-orient"]:checked') || {}).value === 'retrato') ? 'retrato' : 'paisagem';
+    try{ localStorage.setItem('cap-orient', orient); }catch(e){}
+    const r = await genCapPng(mode, orient);
     if(choice === 'open'){
       // AUDITORIA: navegadores modernos bloqueiam window.open com data: URL direta;
       // um blob URL (via URL.createObjectURL) é o jeito confiável de abrir em nova guia.
@@ -5010,7 +5019,7 @@ async function captureMap(mode){
         toast('⚠️ Este navegador não permite copiar imagem — baixei o arquivo (' + r.name + ')', 'warn');
       }
     }else if(choice === 'print'){
-      printPng(r.dataUrl, true);
+      printPng(r.dataUrl, orient === 'paisagem');
       toast('🖨 Enviado para impressão (' + r.name + ')', 'ok');
     }else{
       downloadPng(r.dataUrl, r.name);
@@ -6023,6 +6032,16 @@ function choiceModal(opts){
     if(copyBtn) copyBtn.hidden = !!opts.onlyOk;
     if(dlBtn) dlBtn.hidden = !!opts.onlyOk;
     if(printBtn) printBtn.hidden = !!opts.onlyOk;
+    const orientBox = $('#choice-orient');
+    if(orientBox){
+      orientBox.hidden = !opts.withOrient;
+      if(opts.withOrient){
+        let pref = 'paisagem';
+        try{ pref = localStorage.getItem('cap-orient') || 'paisagem'; }catch(e){}
+        const rd = orientBox.querySelector('input[value="' + (pref === 'retrato' ? 'retrato' : 'paisagem') + '"]');
+        if(rd) rd.checked = true;
+      }
+    }
     if(cancelBtn) cancelBtn.textContent = opts.onlyOk ? 'Entendi' : 'Cancelar';
     let settled = false;
     const finish = (choice)=>{
@@ -6832,7 +6851,7 @@ async function init(){
 /* AUTO-CHECK DE VERSAO: avisa (somente quando roda em github.io) se a aba estiver com
    copia antiga em cache — compara o selo APP_V local com o do arquivo publicado no repo.
    Falha de rede/offline = silencioso; nunca bloqueia o uso. */
-const APP_V = '2026-09-17a';
+const APP_V = '2026-09-17b';
 (function(){
   // Selo de versão VISÍVEL no canto da tela: qualquer print/print-screen mostra qual código
   // está rodando no aparelho (cópia antiga = selo antigo/ausente). Não entra nas capturas.
