@@ -6808,8 +6808,17 @@ async function init(){
 /* AUTO-CHECK DE VERSAO: avisa (somente quando roda em github.io) se a aba estiver com
    copia antiga em cache — compara o selo APP_V local com o do arquivo publicado no repo.
    Falha de rede/offline = silencioso; nunca bloqueia o uso. */
-const APP_V = '2026-09-16e';
+const APP_V = '2026-09-16f';
 (function(){
+  // Selo de versão VISÍVEL no canto da tela: qualquer print/print-screen mostra qual código
+  // está rodando no aparelho (cópia antiga = selo antigo/ausente). Não entra nas capturas.
+  try{
+    var badge = document.createElement('div');
+    badge.id = 'app-v-badge';
+    badge.textContent = 'v' + APP_V;
+    badge.style.cssText = 'position:fixed;right:6px;bottom:4px;z-index:99998;font:600 10px system-ui,-apple-system,sans-serif;color:#94a3b8;opacity:.8;pointer-events:none;user-select:none';
+    (document.body || document.documentElement).appendChild(badge);
+  }catch(e){}
   try{
     if(typeof fetch !== 'function' || !location.hostname.endsWith('github.io')) return;
     fetch('https://raw.githubusercontent.com/logfricoalimentos-pixel/MapaFrico2/main/ARENA.html?ts=' + Date.now(), {cache:'no-store'})
