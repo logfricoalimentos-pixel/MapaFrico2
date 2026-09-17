@@ -6808,7 +6808,7 @@ async function init(){
 /* AUTO-CHECK DE VERSAO: avisa (somente quando roda em github.io) se a aba estiver com
    copia antiga em cache — compara o selo APP_V local com o do arquivo publicado no repo.
    Falha de rede/offline = silencioso; nunca bloqueia o uso. */
-const APP_V = '2026-09-16d';
+const APP_V = '2026-09-16e';
 (function(){
   try{
     if(typeof fetch !== 'function' || !location.hostname.endsWith('github.io')) return;
@@ -6818,7 +6818,13 @@ const APP_V = '2026-09-16d';
         var m = t && t.match(/const APP_V = '([^']+)'/);
         if(!m || m[1] === APP_V) return;
         var d = document.createElement('div');
-        d.innerHTML = '⚠️ Este navegador está com a <b>página antiga em cache</b> (na aba: ' + APP_V + '; publicada no site: ' + m[1] + '). Pressione <b>Ctrl+F5</b> ou abra <b>ARENA.html?v=' + m[1] + '</b> para carregar a versão atual.';
+        d.innerHTML = '⚠️ Este navegador está com a <b>página antiga em cache</b> (na aba: ' + APP_V + '; publicada no site: ' + m[1] + '). Clique no botão ao lado (ou pressione Ctrl+F5) para carregar a versão atual.';
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.textContent = 'ATUALIZAR AGORA';
+        b.style.cssText = 'margin-left:10px;background:#fff;color:#b45309;border:0;border-radius:6px;padding:4px 12px;font:700 12px system-ui,-apple-system,sans-serif;cursor:pointer;vertical-align:middle';
+        b.onclick = function(){ location.reload(); };
+        d.appendChild(b);
         d.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;background:#b45309;color:#fff;font:600 13px/1.5 system-ui,-apple-system,sans-serif;padding:9px 14px;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,.3)';
         (document.body || document.documentElement).appendChild(d);
       }).catch(function(){});
