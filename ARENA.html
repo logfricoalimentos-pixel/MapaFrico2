@@ -2767,6 +2767,10 @@ async function genCapPng(mode, orient){
   // página nunca menor que o A4-alvo; se o conteúdo exigir mais, alarga (nada cortado)
   const baseW = (orient === 'retrato') ? 794 : 1080; // A4 @96dpi: retrato 794px · paisagem 1080px
   el.style.width = Math.max(baseW, (maxW || 0) + 75.6) + 'px'; // 75.6 = 2× 37.8px (margem de 1cm em cada lado)
+  // AUDIT-FIX: html2canvas 1.4.1 deforma a tabela quando o alvo está position:fixed;left:-10000px
+  // (colunas brancas/finas e ordem embaralhada no PNG baixado). Durante o render o documento vai
+  // para o fluxo (static, left 0) atrás de tudo (z-index:-1); o finally restaura tudo.
+  el.style.position = 'static'; el.style.left = '0'; el.style.zIndex = '-1';
   try{
     const canvas = await html2canvas(el, {scale:2, backgroundColor:'#ffffff', useCORS:true, logging:false});
     return {blob: dataUrlToBlob(canvas.toDataURL('image/png')), dataUrl: canvas.toDataURL('image/png'),
@@ -2774,7 +2778,7 @@ async function genCapPng(mode, orient){
             label: mode === 'com' ? 'Mapa Com Peso' : 'Mapa Sem Peso'};
   }finally{
     el.innerHTML = '';
-    el.style.width = '';
+    el.style.width = ''; el.style.position = ''; el.style.left = ''; el.style.zIndex = '';
   }
 }
 function dataUrlToBlob(dataUrl){
@@ -6851,7 +6855,7 @@ async function init(){
 /* AUTO-CHECK DE VERSAO: avisa (somente quando roda em github.io) se a aba estiver com
    copia antiga em cache — compara o selo APP_V local com o do arquivo publicado no repo.
    Falha de rede/offline = silencioso; nunca bloqueia o uso. */
-const APP_V = '2026-09-17b';
+const APP_V = '2026-09-17c';
 (function(){
   // Selo de versão VISÍVEL no canto da tela: qualquer print/print-screen mostra qual código
   // está rodando no aparelho (cópia antiga = selo antigo/ausente). Não entra nas capturas.
