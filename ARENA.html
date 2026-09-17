@@ -731,6 +731,9 @@ body.readonly .sec-actions{display:none}
 .map-table .btn.mini .ic{width:12px;height:12px;vertical-align:-2px}
 /* Linhas compactas com respiro mínimo (auditoria UI: 1px espremia o texto na borda) */
 .map-table td{padding:3px 6px;line-height:1.25}
+/* Célula com campo/select: o padding horizontal quem faz é o próprio controle
+   (2px 6px) — o td só guarda 2px de cada lado p/ coluna ficar no tamanho do conteúdo */
+.map-table td:has(input),.map-table td:has(select){padding-left:2px;padding-right:2px}
 .map-table th{padding:4px 8px}
 .map-table input,.map-table select{padding:2px 6px}
 .map-table td.icon{padding:1px 2px}
@@ -2233,12 +2236,14 @@ function cellMeasure(td){
   if(td.classList && td.classList.contains('frete-cell')){
     // célula empilhada: a largura necessária é a da maior LINHA (dias+km, campo+chip,
     // valor+chip, selo, custo) — e não a do maior input isolado
+    // Medida pelo LAYOUT real (scrollWidth/offsetWidth): a célula empilhada tem
+    // linhas com badges/paddings próprios e mini-campos com largura fixa no CSS —
+    // o canvas subestimava e o texto encostava/cortava na borda.
     let w = 0;
-    const line = (txt, el, extra)=>{ if(el) w = Math.max(w, measureText(String(txt||'').trim(), fontOf(el)) + (extra||0)); };
     const mini = td.querySelector('.frete-mini');
     if(mini){
       let mw = 0, n = 0;
-      mini.querySelectorAll('input, select').forEach(el=>{ mw += measureText(inputText(el), fontOf(el)) + (el.tagName === 'SELECT' ? 30 : 26); n++; });
+      mini.querySelectorAll('input, select').forEach(el=>{ mw += el.offsetWidth || 0; n++; });
       mw += Math.max(0, n - 1) * 3;
       w = Math.max(w, mw);
     }
@@ -2246,32 +2251,46 @@ function cellMeasure(td){
     const chip = td.querySelector('.badge');
     const chipW = chip ? measureText(String(chip.textContent||'').trim(), fontOf(chip)) + 16 : 0;
     if(neg) w = Math.max(w, 104 + 4 + chipW);           // campo de dinheiro (104px) + folga + chip
-    line(td.querySelector('.frete-val') ? td.querySelector('.frete-val').textContent : '', td.querySelector('.frete-val'), chip ? 16 : 0);
-    line(td.querySelector('.frete-hint') ? td.querySelector('.frete-hint').textContent : '', td.querySelector('.frete-hint'));
-    line(td.querySelector('.frete-modo') ? td.querySelector('.frete-modo').textContent : '', td.querySelector('.frete-modo'));
-    line(td.querySelector('.vf-custo') ? td.querySelector('.vf-custo').textContent : '', td.querySelector('.vf-custo'));
-    return {w: w, len: 0, ls: 0};
+    ['.frete-val','.frete-modo','.frete-hint','.vf-custo'].forEach(sel=>{
+      const el = td.querySelector(sel);
+      if(el && el.scrollWidth) w = Math.max(w, el.scrollWidth);
+    });
+    return {w: w + 6, len: 0, ls: 0}; // chrome do td c/ campo (padding 2+2 + bordas 2)
   }
   const inputs = td.querySelectorAll('input, select, button');
   if(inputs.length){
     if(td.classList.contains('icon')){
       // célula de controles (select mover + lixeira / checkbox): soma os controles
+      // (checkbox mede o próprio box — 18px — e não o value interno "on")
       let w = 0;
-      inputs.forEach(el=>{ w += measureText(inputText(el), fontOf(el)) + (el.tagName === 'SELECT' ? 30 : (el.tagName === 'BUTTON' ? 26 : 16)); });
+      inputs.forEach(el=>{
+        if(el.type === 'checkbox'){ w += 18; return; }
+        w += measureText(inputText(el), fontOf(el)) + (el.tagName === 'SELECT' ? 30 : (el.tagName === 'BUTTON' ? 26 : 16));
+      });
       return {w: w + 2, len: 0, ls: 0};
     }
     let best = {w: -1, len: 0, ls: 0};
     inputs.forEach(inp=>{
       const t = inputText(inp);
+      // largura do texto + o "chrome" do próprio controle (paddings/bordas):
+      // o input do dinheiro tem padding-right:16px p/ setas ▲▼ — sem isso o
+      // último dígito ficava escondido embaixo das setas.
       let w = measureText(t, fontOf(inp));
+      try{
+        const cs = getComputedStyle(inp);
+        w += (parseFloat(cs.paddingLeft)||0) + (parseFloat(cs.paddingRight)||0) +
+             (parseFloat(cs.borderLeftWidth)||0) + (parseFloat(cs.borderRightWidth)||0);
+      }catch(e){ w += 14; }
       if(inp.tagName === 'SELECT') w += 16; // seta nativa do select
       const ls = parseFloat(getComputedStyle(inp).letterSpacing) || 0;
       if(w > best.w) best = {w: w, len: t.length, ls: ls};
     });
+    if(best.w > -1) best.w += 6; // chrome do td c/ campo: padding 2+2 + bordas 2
     return best;
   }
   const t = (td.textContent || '').replace(/\s+/g,' ').trim();
-  return {w: measureText(t, fontOf(td)), len: t.length, ls: parseFloat(getComputedStyle(td).letterSpacing) || 0};
+  // célula só-texto: texto + padding do td (6+6) + bordas (2)
+  return {w: measureText(t, fontOf(td)) + 14, len: t.length, ls: parseFloat(getComputedStyle(td).letterSpacing) || 0};
 }
 function measureCols(table){
   const ths = Array.from(table.querySelectorAll('thead th'));
@@ -2279,7 +2298,7 @@ function measureCols(table){
   return ths.map((th, i)=>{
     const label = (th.textContent || '').trim();
     const icon = th.dataset.icon === '1';
-    let best = {w: icon ? 0 : measureText(label, fontOf(th)), len: label.length, ls: parseFloat(getComputedStyle(th).letterSpacing) || 0};
+    let best = {w: icon ? 0 : measureText(label, fontOf(th)) + 18, len: label.length, ls: parseFloat(getComputedStyle(th).letterSpacing) || 0}; // th: padding 8+8 + bordas 2
     for(const tr of trs){ const td = tr.children[i]; if(td){ const m = cellMeasure(td); if(m.w > best.w) best = m; } }
     return {label: label, icon: icon, w: best.w, len: best.len, ls: best.ls, full: th.dataset.full === '1', flex: th.dataset.flex === '1'};
   });
@@ -2303,31 +2322,21 @@ function autosizeAllTables(){
     const widths = measured[ti].map(c=>{
       if(c.icon) return Math.max(30, Math.ceil(c.w) + 12);
       const g = glob[c.label];
-      // largura MÍNIMA que exibe o texto: conteúdo + paddings/bordas (20px)
-      // + letter-spacing do trecho medido + 4px de segurança
-      let w = g.w + 20 + Math.ceil(g.ls * g.len) + 4;
+      // largura MÍNIMA que exibe o texto: cellMeasure já devolve conteúdo +
+      // chrome do controle + chrome do td; aqui soma só o letter-spacing do
+      // trecho medido + 3px de segurança
+      let w = g.w + Math.ceil(g.ls * g.len) + 3;
       const min = (c.full || c.flex) ? 90 : 52;
       const max = c.full ? (capturing ? 340 : 100000) : (c.flex ? (capturing ? 300 : 420) : 150);
       return Math.max(min, Math.min(max, Math.ceil(w)));
     });
-    /* Preenche a largura disponível: a sobra vai SÓ p/ colunas sem nome
-       (checkbox/tipo/excluir) — assim as colunas nomeadas permanecem
-       idênticas nas 3 tabelas e o table-layout:fixed não redistribui nada,
-       porque a largura da tabela = soma exata das colunas. */
-    const wrap = table.parentElement;
-    const avail = wrap ? wrap.clientWidth : 0;
+    /* SEM esticar até a borda: cada coluna fica com a largura MÍNIMA que exibe
+       o seu conteúdo (texto/select/checkbox), e a tabela termina no fim da
+       última coluna — como aprovado pelo usuário (modelo image-2).
+       As colunas nomeadas permanecem idênticas nas 3 tabelas (glob por nome)
+       e o table-layout:fixed não redistribui nada, porque a largura da
+       tabela = soma exata das colunas. */
     let sum = widths.reduce((a,b)=>a+b,0);
-    if(avail > sum){
-      const iconIdx = [];
-      measured[ti].forEach((c,i)=>{ if(c.icon) iconIdx.push(i); });
-      if(iconIdx.length){
-        const extra = avail - sum;
-        const weights = iconIdx.map(i=> measured[ti][i].w > 40 ? 0.5 : 0.25);
-        const wt = weights.reduce((a,b)=>a+b,0);
-        iconIdx.forEach((ci,k)=>{ widths[ci] += Math.floor(extra * weights[k] / wt); });
-        sum = widths.reduce((a,b)=>a+b,0);
-      }
-    }
     widths.forEach((w,i)=>{ cg.children[i].style.width = w + 'px'; });
     table.style.width = sum + 'px';
     table.style.setProperty('--wcol1', widths[0] + 'px');
@@ -6861,7 +6870,7 @@ async function init(){
 /* AUTO-CHECK DE VERSAO: avisa (somente quando roda em github.io) se a aba estiver com
    copia antiga em cache — compara o selo APP_V local com o do arquivo publicado no repo.
    Falha de rede/offline = silencioso; nunca bloqueia o uso. */
-const APP_V = '2026-09-17c';
+const APP_V = '2026-09-17d';
 (function(){
   // Selo de versão VISÍVEL no canto da tela: qualquer print/print-screen mostra qual código
   // está rodando no aparelho (cópia antiga = selo antigo/ausente). Não entra nas capturas.
