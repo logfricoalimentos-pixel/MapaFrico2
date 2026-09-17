@@ -787,10 +787,10 @@ body.readonly .sec-actions{display:none}
     <button class="btn" id="btn-restore">📂 Restaurar</button>
     <span class="sep"></span>
     <div class="btn-dd" id="dd-mapa">
-      <button class="btn" id="btn-mapa-toggle" type="button" aria-haspopup="true" aria-expanded="false" title="Gerar imagem do mapa">📷 Mapa ▾</button>
+      <button class="btn" id="btn-mapa-toggle" type="button" aria-haspopup="true" aria-expanded="false" title="Gerar o MAPA DE CARREGAMENTO em formato de impressora (Sem Peso / Com Peso)">🖨 Formato de Impressora ▾</button>
       <div class="btn-dd-menu" id="dd-mapa-menu" hidden>
-        <button class="btn-dd-item" id="btn-shot-full" type="button" title="Documento A4 paisagem no modelo novo · todas as colunas (Peso e Entregas inclusos) · sem valores/negociação">📷 Mapa completo</button>
-        <button class="btn-dd-item" id="btn-shot-nopv" type="button" title="Documento A4 paisagem no modelo novo · mesmas colunas do completo · sem valores/negociação">📷 Mapa Carregamento</button>
+        <button class="btn-dd-item" id="btn-shot-sem" type="button" title="MAPA DE CARREGAMENTO · colunas: Placa, Destino, Nº Carga, Motorista, Transportador · Imprimir/Abrir/Copiar/Baixar">🖨 Mapa Sem Peso</button>
+        <button class="btn-dd-item" id="btn-shot-com" type="button" title="MAPA DE CARREGAMENTO · colunas: Placa, Destino, Nº Carga, Peso (kg), T.Entrega, Motorista, Transportador · Imprimir/Abrir/Copiar/Baixar">🖨 Mapa Com Peso</button>
       </div>
     </div>
     <button class="btn" id="btn-pdf">🖨 PDF</button>
@@ -888,7 +888,7 @@ body.readonly .sec-actions{display:none}
       <ul>
         <li><b>Capturas 📷 em layout dedicado A4 paisagem</b> (colunas medidas pelo conteúdo, <b>larguras iguais nas 3 tabelas</b> — <b>nada de texto cortado ou oculto</b>): os dois prints mostram Placa, Destino, Nº Carga, Peso, T.Entrega, Motorista e Ajud./Transportador, mais os cards Cargas/Peso total/Entregas, no <b>modelo visual novo</b> (banner azul, faixas de seção, zebrado e cards com ícone). As colunas Vlr Kg, Neg?, Previsão, Custo Médio e Valor Frete nunca aparecem nas imagens.</li>
         <li><b>📊 Planejamento de Transporte</b>: relatório Capital × Interior × Total com Veículos (cargas), Entregas e Peso em TON (kg ÷ 1000, 2 casas, sem zeros finais) — Frotas não entra.</li>
-        <li><b>📷 Mapa completo / Mapa Carregamento / 📊 Planejamento</b>: geram a imagem e perguntam se você quer abrir em nova guia, copiar (Ctrl+V no WhatsApp/e-mail) ou baixar o .png.</li>
+        <li><b>🖨 Formato de Impressora (Mapa Sem Peso / Mapa Com Peso) / 📊 Planejamento</b>: geram a imagem e perguntam se você quer imprimir, abrir em nova guia, copiar (Ctrl+V no WhatsApp/e-mail) ou baixar o .png.</li>
         <li><b>🚀 Envio automático</b>: guia passo a passo que encadeia os 5 envios (todos os grupos) — o app copia cada imagem e avança (botão ou Enter), você só cola (Ctrl+V) e envia (Enter) na conversa indicada.</li>
         <li><b>Motorista limitado a 20 caracteres</b> em Frotas, Capital e Interior (campo, digitação, importação e dados já salvos).</li>
         <li><b>📥 Excel Mapa</b>: exporta o mapa do dia em .xlsx no MESMO formato do print (seções FROTAS/CAPITAL/INTERIOR, colunas, totais e resumo — sem valores).</li>
@@ -1112,6 +1112,7 @@ body.readonly .sec-actions{display:none}
       <button class="btn" id="choice-cancel" type="button">Cancelar</button>
       <button class="btn" id="choice-open" type="button">🔗 Abrir em nova guia</button>
       <button class="btn" id="choice-copy" type="button">📋 Copiar</button>
+      <button class="btn" id="choice-print" type="button">🖨 Imprimir</button>
       <button class="btn primary" id="choice-download" type="button">⬇ Baixar</button>
     </div>
   </div>
@@ -2648,18 +2649,17 @@ async function restoreBackup(file){
 /* AUDITORIA/ROBUSTEZ: a captura NÃO usa mais a tabela viva (inputs + autosize — fonte dos
    cortes de texto e da coluna fantasma "0,00"). Ela renderiza um documento ESTÁTICO (#cap-print)
    com colunas medidas pelo conteúdo real: nada de texto cortado, sem colunas de valor/negociação. */
-const CAP_COLS_FULL = [
+const CAP_COLS_COM = [
   {key:'placa',     label:'Placa',     mono:true},
   {key:'destino',   label:'Destino'},
   {key:'carga',     label:'Nº Carga',  mono:true},
   {key:'peso',      label:'Peso (kg)', mono:true, num:true},
   {key:'entregas',  label:'T.Entrega', mono:true, num:true},
   {key:'motorista', label:'Motorista'},
-  {key:'transp',    label:'Transportador'},
-  {key:'veiculo',   label:'Tipo de veículo'}
+  {key:'transp',    label:'Transportador'}
 ];
-/* "Mapa Carregamento": sem Peso/T.Entrega — demais colunas iguais ao completo */
-const CAP_COLS_CARG = CAP_COLS_FULL.filter(c=> c.key !== 'peso' && c.key !== 'entregas');
+/* "Mapa Sem Peso": mesmas colunas, na mesma ordem, sem Peso (kg)/T.Entrega */
+const CAP_COLS_SEM = CAP_COLS_COM.filter(c=> c.key !== 'peso' && c.key !== 'entregas');
 function capCellText(sec, r, c){
   switch(c.key){
     case 'placa':     return r.placa || '—';
@@ -2684,8 +2684,8 @@ function capFontFor(c, fs){ return '600 ' + (fs || 13) + 'px ' + (c.mono ? ETQ_M
    Mesmas colunas nos 2 prints (Placa…Transportador/Ajud. + totais) — nenhum valor de
    frete/custo entra nesta imagem (regra mantida). Larguras UNIFICADAS entre as 3 tabelas:
    a mesma coluna tem a mesma largura em Frotas, Capital e Interior (maior conteúdo real). */
-function buildCapPrint(hidePV){
-  const cols = hidePV ? CAP_COLS_CARG : CAP_COLS_FULL;
+function buildCapPrint(mode){
+  const cols = mode === 'com' ? CAP_COLS_COM : CAP_COLS_SEM;
   const now = new Date();
   // 1) largura global por coluna (máximo entre as 3 seções) — nada de texto cortado.
   //    A fonte é reduzida em degraus (13→9,5px) até a soma caber na área útil da
@@ -2718,7 +2718,7 @@ function buildCapPrint(hidePV){
   }
   const colgroup = '<colgroup>' + cols.map((c,i)=> '<col style="width:' + widths[i] + 'px">').join('') + '</colgroup>';
   // 2) banner no modelo novo (mesmo markup do cabeçalho vivo)
-  let html = '<div class="doc-head"><div class="mh-title">' + MIC.truck + '<h1>' + (hidePV ? 'MAPA DE CARREGAMENTO' : 'MAPA COMPLETO') + '</h1></div>' +
+  let html = '<div class="doc-head"><div class="mh-title">' + MIC.truck + '<h1>MAPA DE CARREGAMENTO</h1></div>' +
     '<div class="mh-item">' + MIC.cal + '<div><span>Faturamento:</span><b>' + esc(fmtBR(currentMapDate)) + '</b></div></div>' +
     '<div class="mh-item">' + MIC.pkg + '<div><span>Entrega:</span><b>' + (esc(fmtBR(dtEntrega)) || '—') + '</b></div></div>' +
     '<div class="mh-item">' + MIC.clock + '<div><span>Gerado em:</span><b>' + now.toLocaleDateString('pt-BR') + ' ' + now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) + '</b></div></div></div>';
@@ -2752,10 +2752,10 @@ function buildCapPrint(hidePV){
   return html;
 }
 /* gera o PNG da captura a partir do layout dedicado; devolve {blob, dataUrl, name, label} */
-async function genCapPng(hidePV){
+async function genCapPng(mode){
   const el = $('#cap-print');
   if(!el) throw new Error('#cap-print ausente');
-  el.innerHTML = buildCapPrint(hidePV);
+  el.innerHTML = buildCapPrint(mode);
   let maxW = 0;
   const tables = el.querySelectorAll('.map-table');
   for(let i=0;i<tables.length;i++){ const w = tables[i].scrollWidth || 0; if(w>maxW) maxW = w; }
@@ -2764,8 +2764,8 @@ async function genCapPng(hidePV){
   try{
     const canvas = await html2canvas(el, {scale:2, backgroundColor:'#ffffff', useCORS:true, logging:false});
     return {blob: dataUrlToBlob(canvas.toDataURL('image/png')), dataUrl: canvas.toDataURL('image/png'),
-            name: 'mapa-' + currentMapDate + (hidePV? '-carregamento' : '-completo') + '-v' + APP_V + '.png',
-            label: hidePV ? 'Mapa Carregamento' : 'Mapa Completo'};
+            name: 'mapa-' + currentMapDate + (mode === 'com' ? '-com-peso' : '-sem-peso') + '-v' + APP_V + '.png',
+            label: mode === 'com' ? 'Mapa Com Peso' : 'Mapa Sem Peso'};
   }finally{
     el.innerHTML = '';
     el.style.width = '';
@@ -2897,7 +2897,7 @@ async function capturePlan(){
   const metaHtml = planMetaHtml(r, agg);
   const choice = await choiceModal({
     title: '📊 Planejamento de Transporte',
-    text: 'O que deseja fazer com a imagem do <b>relatório</b>?<br><span style="color:#64748b;font-size:12px">Abrir mostra a imagem numa nova guia (dá para ampliar/salvar pelo próprio navegador). Copiar coloca na área de transferência (Ctrl+V para colar direto no WhatsApp/e-mail). Baixar salva o arquivo .png no dispositivo.</span>'
+    text: 'O que deseja fazer com a imagem do <b>relatório</b>?<br><span style="color:#64748b;font-size:12px">Abrir mostra a imagem numa nova guia (dá para ampliar/salvar pelo próprio navegador). Imprimir envia o mapa direto para a impressora (A4). Copiar coloca a imagem na área de transferência (Ctrl+V para colar direto no WhatsApp/e-mail). Baixar salva o arquivo .png no dispositivo.</span>'
   });
   if(!choice) return; // cancelado
   setBusy(true);
@@ -2920,11 +2920,14 @@ async function capturePlan(){
         downloadPng(r2.dataUrl, r2.name);
         toast('⚠️ Este navegador não permite copiar imagem — baixei o arquivo (' + r2.name + ')', 'warn');
       }
+    }else if(choice === 'print'){
+      printPng(r2.dataUrl, false);
+      toast('🖨 Enviado para impressão (' + r2.name + ')', 'ok');
     }else{
       downloadPng(r2.dataUrl, r2.name);
       toast('📊 Relatório baixado (' + r2.name + ')', 'ok');
     }
-    audit('planejamento-exportado', (choice === 'open' ? 'aberto' : choice === 'copy' ? 'copiado' : 'baixado') + ' · ' + r.label);
+    audit('planejamento-exportado', (choice === 'open' ? 'aberto' : choice === 'copy' ? 'copiado' : choice === 'print' ? 'impresso' : 'baixado') + ' · ' + r.label);
   }catch(err){
     console.error(err);
     toast('Erro ao gerar relatório', 'err');
@@ -4963,7 +4966,7 @@ async function copyPngToClipboard(blob){
     return true;
   }catch(e){ return false; }
 }
-async function captureMap(hidePV){
+async function captureMap(mode){
   if(!(SESSION && perm().map)){ toast('🔒 Seu nível de acesso não permite o mapa', 'err'); return; }
   if(typeof html2canvas === 'undefined'){ toast('❌ html2canvas não carregada (sem internet para o CDN?)', 'err'); return; }
   if(!DATA.frotas.length && !DATA.capital.length && !DATA.interior.length){
@@ -4976,15 +4979,15 @@ async function captureMap(hidePV){
     });
     return;
   }
-  const label = hidePV ? 'Mapa Carregamento' : 'Mapa Completo';
+  const label = mode === 'com' ? 'Mapa Com Peso' : 'Mapa Sem Peso';
   const choice = await choiceModal({
-    title: '📷 ' + label,
-    text: 'O que deseja fazer com a imagem do <b>' + esc(label) + '</b>?<br><span style="color:#64748b;font-size:12px">Abrir mostra a imagem numa nova guia (dá para ampliar/salvar pelo próprio navegador). Copiar coloca na área de transferência (Ctrl+V para colar direto no WhatsApp/e-mail). Baixar salva o arquivo .png no dispositivo.</span>'
+    title: '🖨 ' + label,
+    text: 'O que deseja fazer com a imagem do <b>' + esc(label) + '</b>?<br><span style="color:#64748b;font-size:12px">Abrir mostra a imagem numa nova guia (dá para ampliar/salvar pelo próprio navegador). Imprimir envia o mapa direto para a impressora (A4). Copiar coloca a imagem na área de transferência (Ctrl+V para colar direto no WhatsApp/e-mail). Baixar salva o arquivo .png no dispositivo.</span>'
   });
   if(!choice) return; // cancelado
   setBusy(true);
   try{
-    const r = await genCapPng(hidePV);
+    const r = await genCapPng(mode);
     if(choice === 'open'){
       // AUDITORIA: navegadores modernos bloqueiam window.open com data: URL direta;
       // um blob URL (via URL.createObjectURL) é o jeito confiável de abrir em nova guia.
@@ -5006,11 +5009,14 @@ async function captureMap(hidePV){
         downloadPng(r.dataUrl, r.name);
         toast('⚠️ Este navegador não permite copiar imagem — baixei o arquivo (' + r.name + ')', 'warn');
       }
+    }else if(choice === 'print'){
+      printPng(r.dataUrl, true);
+      toast('🖨 Enviado para impressão (' + r.name + ')', 'ok');
     }else{
       downloadPng(r.dataUrl, r.name);
       toast('📷 Imagem baixada (' + r.name + ')', 'ok');
     }
-    audit('mapa-exportado', label + ' · ' + (choice === 'open' ? 'aberto' : choice === 'copy' ? 'copiado' : 'baixado'));
+    audit('mapa-exportado', label + ' · ' + (choice === 'open' ? 'aberto' : choice === 'copy' ? 'copiado' : choice === 'print' ? 'impresso' : 'baixado'));
   }catch(err){
     console.error(err);
     toast('Erro ao gerar imagem', 'err');
@@ -5613,7 +5619,7 @@ let SESSION = null;             // {id, key, name, level, at, access_token, refr
 let AUDIT = [];                 // [{ts, user, action, detail, ok}] — máx. 200
 const loginFails = {};          // usuário (maiúsculo) -> {n, until} — throttle local nesta aba
 /* Botões da topbar -> nível mínimo para exibir (botões de edição = só admin) */
-const TOPBAR_BTN_MIN = {'btn-import':4,'btn-kmport':4,'btn-ftrack':4,'btn-backup':4,'btn-restore':4,'btn-mapa-toggle':2,'btn-shot-full':2,'btn-shot-nopv':2,'btn-pdf':2,'btn-etiq':2,'btn-plan':2,'btn-xls-toggle':2,'btn-xls-map':2,'btn-xls-per':4,'btn-ff':4,'btn-reclass':4,'btn-clear':4,'btn-settings':4,'btn-dash':3};
+const TOPBAR_BTN_MIN = {'btn-import':4,'btn-kmport':4,'btn-ftrack':4,'btn-backup':4,'btn-restore':4,'btn-mapa-toggle':2,'btn-shot-sem':2,'btn-shot-com':2,'btn-pdf':2,'btn-etiq':2,'btn-plan':2,'btn-xls-toggle':2,'btn-xls-map':2,'btn-xls-per':4,'btn-ff':4,'btn-reclass':4,'btn-clear':4,'btn-settings':4,'btn-dash':3};
 
 function normUser(s){ return String(s==null?'':s).trim().toUpperCase(); }
 function validUsername(s){
@@ -5990,6 +5996,21 @@ function confirmModal(opts){
 
 /* --- Modal: "Abrir/Copiar/Baixar" (usado pelas capturas 📷 Mapa completo / Mapa Carregamento)
    opts.onlyOk: modo aviso simples (esconde Abrir/Copiar/Baixar, mostra só um botão "Entendi") --- */
+/* Imprime o PNG gerado via iframe oculto (A4 paisagem p/ mapas, retrato p/ relatórios),
+   sem pop-up e sem alterar a tela atual. */
+function printPng(dataUrl, landscape){
+  const f = document.createElement('iframe');
+  f.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden';
+  document.body.appendChild(f);
+  const doc = f.contentWindow.document;
+  doc.open();
+  doc.write('<html><head><title>MAPA DE CARREGAMENTO</title><style>@page{size:A4 ' + (landscape ? 'landscape' : 'portrait') + ';margin:8mm}html,body{margin:0}img{width:100%;height:auto;display:block}</style></head><body><img src="' + dataUrl + '"></body></html>');
+  doc.close();
+  const win = f.contentWindow;
+  const img = doc.images[0];
+  const go = ()=>{ try{ win.focus(); win.print(); }catch(e){} setTimeout(()=> f.remove(), 60000); };
+  if(img && img.complete) go(); else if(img) img.onload = go; else setTimeout(()=> f.remove(), 5000);
+}
 function choiceModal(opts){
   return new Promise(resolve=>{
     const mask = $('#choice-mask');
@@ -5997,10 +6018,11 @@ function choiceModal(opts){
     $('#choice-title').textContent = opts.title || 'Escolha uma opção';
     $('#choice-text').innerHTML = opts.text || '';
     const errEl = $('#choice-err'); if(errEl) errEl.textContent = '';
-    const openBtn = $('#choice-open'), copyBtn = $('#choice-copy'), dlBtn = $('#choice-download'), cancelBtn = $('#choice-cancel');
+    const openBtn = $('#choice-open'), copyBtn = $('#choice-copy'), dlBtn = $('#choice-download'), cancelBtn = $('#choice-cancel'), printBtn = $('#choice-print');
     if(openBtn) openBtn.hidden = !!opts.onlyOk;
     if(copyBtn) copyBtn.hidden = !!opts.onlyOk;
     if(dlBtn) dlBtn.hidden = !!opts.onlyOk;
+    if(printBtn) printBtn.hidden = !!opts.onlyOk;
     if(cancelBtn) cancelBtn.textContent = opts.onlyOk ? 'Entendi' : 'Cancelar';
     let settled = false;
     const finish = (choice)=>{
@@ -6009,12 +6031,14 @@ function choiceModal(opts){
       if(openBtn){ openBtn.onclick = null; openBtn.hidden = false; }
       if(copyBtn){ copyBtn.onclick = null; copyBtn.hidden = false; }
       if(dlBtn){ dlBtn.onclick = null; dlBtn.hidden = false; }
+      if(printBtn){ printBtn.onclick = null; printBtn.hidden = false; }
       if(cancelBtn){ cancelBtn.onclick = null; cancelBtn.textContent = 'Cancelar'; }
       resolve(choice);
     };
     if(openBtn) openBtn.onclick = ()=> finish('open');
     if(copyBtn) copyBtn.onclick = ()=> finish('copy');
     if(dlBtn) dlBtn.onclick = ()=> finish('download');
+    if(printBtn) printBtn.onclick = ()=> finish('print');
     if(cancelBtn) cancelBtn.onclick = ()=> finish(null);
     mask.hidden = false;
   });
@@ -6374,8 +6398,8 @@ function bindStatic(){
     if(f) await restoreBackup(f);
     e.target.value = '';
   });
-  $('#btn-shot-full').addEventListener('click', ()=> captureMap(false));
-  $('#btn-shot-nopv').addEventListener('click', ()=> captureMap(true));
+  $('#btn-shot-sem').addEventListener('click', ()=> captureMap('sem'));
+  $('#btn-shot-com').addEventListener('click', ()=> captureMap('com'));
   $('#btn-pdf').addEventListener('click', printMap);
   $('#btn-etiq').addEventListener('click', printEtiquetas);
   $('#btn-plan').addEventListener('click', capturePlan);
@@ -6808,7 +6832,7 @@ async function init(){
 /* AUTO-CHECK DE VERSAO: avisa (somente quando roda em github.io) se a aba estiver com
    copia antiga em cache — compara o selo APP_V local com o do arquivo publicado no repo.
    Falha de rede/offline = silencioso; nunca bloqueia o uso. */
-const APP_V = '2026-09-16f';
+const APP_V = '2026-09-17a';
 (function(){
   // Selo de versão VISÍVEL no canto da tela: qualquer print/print-screen mostra qual código
   // está rodando no aparelho (cópia antiga = selo antigo/ausente). Não entra nas capturas.
