@@ -359,8 +359,13 @@ body.print-big-font .custo-cell{font-size:15px}
 /* ===== Painel de Indicadores ===== */
 #painel{max-width:1500px;margin:0 auto 16px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px;box-shadow:0 1px 3px rgba(15,23,42,.08)}
 .painel-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
-.frotas-cost-toggle{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted);margin-left:auto;cursor:pointer;user-select:none}
+.frotas-cost-toggle{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted);margin-left:0;cursor:pointer;user-select:none}
 .frotas-cost-toggle input{cursor:pointer}
+/* Filtro de status das cargas do painel (Fechadas / Em Aberto / Todas) */
+.dash-stf{display:inline-flex;align-items:center;gap:10px;font-size:12.5px;color:var(--muted);border:1px solid var(--line);border-radius:8px;padding:4px 10px;background:#f8fafc;user-select:none;margin-left:auto}
+.dash-stf .dash-stf-k{font-weight:700;color:#334155}
+.dash-stf .chk{display:inline-flex;align-items:center;gap:4px;cursor:pointer;color:#334155}
+.dash-stf input{cursor:pointer}
 .painel-head h2{font-size:15px}
 .painel-tabs{display:flex;gap:6px;margin-left:auto}
 .tab{border:1px solid var(--line);background:#fff;border-radius:8px;padding:6px 12px;font:inherit;font-size:13px;cursor:pointer;color:#334155}
@@ -829,6 +834,12 @@ body.readonly .sec-actions{display:none}
       <button class="tab active" data-tab="diaria">Acompanhamento dia a dia</button>
       <button class="tab" data-tab="periodo">Fechamento por período</button>
       <button class="tab" data-tab="comparativo">📈 Comparativo de custo (rotas)</button>
+    </div>
+    <div class="dash-stf" role="group" aria-label="Filtrar indicadores pelo status da carga">
+      <span class="dash-stf-k">Filtrar:</span>
+      <label class="chk" title="Somente cargas FECHADAS p/ pagamento"><input type="radio" name="dash-stf" value="fechadas"> Fechadas</label>
+      <label class="chk" title="Pendentes + Em análise (não fechadas)"><input type="radio" name="dash-stf" value="abertas"> Em Aberto</label>
+      <label class="chk" title="Todas as cargas, independente do status"><input type="radio" name="dash-stf" value="todas" checked> Todas</label>
     </div>
     <label class="frotas-cost-toggle" title="Custo estimado da Frota própria pela tabela Interior — informativo, não soma no Custo Geral (Capital+Interior)">
       <input type="checkbox" id="chk-frotas-cost" checked> Mostrar custo de Frotas (estimado)
@@ -5183,7 +5194,7 @@ function reclassifyAll(){
 }
 
 /* ================= Painel de Indicadores & Fechamento ================= */
-let DASH = {days: [], period: null, preset: '7d', granularity: 'daily', showFrotas: true};
+let DASH = {days: [], period: null, preset: '7d', granularity: 'daily', showFrotas: true, statusFilter: 'todas'};
 let dashVisible = false;
 
 function isoToDate(iso){ const p = String(iso).split('-'); return new Date(+p[0], (+p[1]||1)-1, +p[2]||1); }
@@ -5202,6 +5213,20 @@ function fmtMoney(v){ return 'R$ ' + numVal(v).toLocaleString('pt-BR',{minimumFr
 function fmtNum2(v){ return numVal(v).toLocaleString('pt-BR',{maximumFractionDigits:2}); }
 function fmtInt(v){ return Math.round(numVal(v)).toLocaleString('pt-BR'); }
 
+/* Filtro de status do painel (memorizado): Fechadas / Em Aberto / Todas.
+   "Em Aberto" = Pendente + Em análise (tudo que não está Fechado p/ pagamento).
+   Aplicado na LEITURA dos dados: KPIs, dia a dia, período e comparativo de rotas. */
+function dashPickRow(r){
+  const f = DASH.statusFilter || 'todas';
+  if(f === 'todas') return true;
+  return f === 'fechadas' ? relIsFech(r) : !relIsFech(r);
+}
+function dashView(data){
+  if((DASH.statusFilter || 'todas') === 'todas') return data || {frotas:[], capital:[], interior:[]};
+  return {frotas: ((data && data.frotas) || []).filter(dashPickRow),
+          capital: ((data && data.capital) || []).filter(dashPickRow),
+          interior: ((data && data.interior) || []).filter(dashPickRow)};
+}
 /* Métricas de um dia (data completa): sem negociação (tabela) vs com negociação (calcularFrete).
    Frotas = custo ESTIMADO pela tabela Interior (indicador separado — não soma no Custo Geral). */
 function metricsFromData(data){
@@ -5267,9 +5292,9 @@ async function loadDashboard(){
   const dates = await getSavedDates();
   const days = [];
   for(const d of dates){
-    if(d === currentMapDate){ days.push({date:d, m: metricsFromData(DATA), routes: routesFromData(DATA)}); continue; }
+    if(d === currentMapDate){ const dv = dashView(DATA); days.push({date:d, m: metricsFromData(dv), routes: routesFromData(dv)}); continue; }
     const rec = await Stor.get('map:' + d);
-    if(rec && rec.data) days.push({date:d, m: metricsFromData(rec.data), routes: routesFromData(rec.data)});
+    if(rec && rec.data){ const dv = dashView(rec.data); days.push({date:d, m: metricsFromData(dv), routes: routesFromData(dv)}); }
   }
   days.sort((a,b)=> a.date.localeCompare(b.date));
   DASH.days = days;
@@ -5517,7 +5542,7 @@ function renderKpis(m, deltas){
   return hero + detail + meta;
 }
 function renderDashDaily(){
-  const today = DASH.days.find(d=>d.date===currentMapDate) || {date:currentMapDate, m: metricsFromData(DATA)};
+  const today = DASH.days.find(d=>d.date===currentMapDate) || {date:currentMapDate, m: metricsFromData(dashView(DATA))};
   const m = today.m;
   const showFrotas = DASH.showFrotas !== false;
   const el = $('#dash-today-date'); if(el) el.textContent = fmtBR(currentMapDate);
@@ -6776,6 +6801,20 @@ function bindStatic(){
     $('#tab-comparativo').hidden = b.dataset.tab !== 'comparativo';
     if(b.dataset.tab === 'comparativo') renderComparativo();
   }));
+  /* filtro de status dos indicadores (Fechadas / Em Aberto / Todas) — memorizado */
+  try{
+    const sf = localStorage.getItem('mapa:dashStatusFilter');
+    if(sf === 'fechadas' || sf === 'abertas' || sf === 'todas') DASH.statusFilter = sf;
+  }catch(e){}
+  $$('input[name="dash-stf"]').forEach(rd=>{
+    rd.checked = (rd.value === (DASH.statusFilter || 'todas'));
+    rd.addEventListener('change', ()=>{
+      if(!rd.checked) return;
+      DASH.statusFilter = rd.value;
+      try{ localStorage.setItem('mapa:dashStatusFilter', rd.value); }catch(e){}
+      loadDashboard(); // recalcula KPIs, dia a dia, período e comparativo c/ o filtro
+    });
+  });
   const chkFrotasCost = $('#chk-frotas-cost');
   if(chkFrotasCost){
     try{ const saved = localStorage.getItem('mapa:showFrotasCost'); if(saved !== null) DASH.showFrotas = saved === '1'; }catch(e){}
@@ -6870,7 +6909,7 @@ async function init(){
 /* AUTO-CHECK DE VERSAO: avisa (somente quando roda em github.io) se a aba estiver com
    copia antiga em cache — compara o selo APP_V local com o do arquivo publicado no repo.
    Falha de rede/offline = silencioso; nunca bloqueia o uso. */
-const APP_V = '2026-09-17d';
+const APP_V = '2026-09-18a';
 (function(){
   // Selo de versão VISÍVEL no canto da tela: qualquer print/print-screen mostra qual código
   // está rodando no aparelho (cópia antiga = selo antigo/ausente). Não entra nas capturas.
