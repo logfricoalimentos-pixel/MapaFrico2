@@ -366,6 +366,13 @@ body.print-big-font .custo-cell{font-size:15px}
 .dash-stf .dash-stf-k{font-weight:700;color:#334155}
 .dash-stf .chk{display:inline-flex;align-items:center;gap:4px;cursor:pointer;color:#334155}
 .dash-stf input{cursor:pointer}
+/* Datas de fechamento (filtro opcional, só com "Fechadas" marcado) */
+.dash-fech-dates{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);width:100%;padding:2px 2px 0}
+.dash-fech-dates[hidden]{display:none}
+.dfd-hint{font-size:11.5px;color:#64748b}
+.dfd-chips{display:flex;gap:6px;flex-wrap:wrap}
+.dfd-chip{border:1px solid var(--line);background:#fff;border-radius:999px;padding:3px 10px;font:inherit;font-size:12px;cursor:pointer;color:#334155}
+.dfd-chip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
 .painel-head h2{font-size:15px}
 .painel-tabs{display:flex;gap:6px;margin-left:auto}
 .tab{border:1px solid var(--line);background:#fff;border-radius:8px;padding:6px 12px;font:inherit;font-size:13px;cursor:pointer;color:#334155}
@@ -840,6 +847,11 @@ body.readonly .sec-actions{display:none}
       <label class="chk" title="Somente cargas FECHADAS p/ pagamento"><input type="radio" name="dash-stf" value="fechadas"> Fechadas</label>
       <label class="chk" title="Pendentes + Em análise (não fechadas)"><input type="radio" name="dash-stf" value="abertas"> Em Aberto</label>
       <label class="chk" title="Todas as cargas, independente do status"><input type="radio" name="dash-stf" value="todas" checked> Todas</label>
+    </div>
+    <div class="dash-fech-dates" id="dash-fech-dates" hidden>
+      <span class="dash-stf-k">Fechadas em:</span>
+      <span class="dfd-hint">opcional — sem marcar, valem todas as fechadas</span>
+      <span class="dfd-chips" id="dfd-chips"></span>
     </div>
     <label class="frotas-cost-toggle" title="Custo estimado da Frota própria pela tabela Interior — informativo, não soma no Custo Geral (Capital+Interior)">
       <input type="checkbox" id="chk-frotas-cost" checked> Mostrar custo de Frotas (estimado)
@@ -5194,7 +5206,7 @@ function reclassifyAll(){
 }
 
 /* ================= Painel de Indicadores & Fechamento ================= */
-let DASH = {days: [], period: null, preset: '7d', granularity: 'daily', showFrotas: true, statusFilter: 'todas'};
+let DASH = {days: [], raw: [], period: null, preset: '7d', granularity: 'daily', showFrotas: true, statusFilter: 'todas', fechDates: [], fechDatesAvail: []};
 let dashVisible = false;
 
 function isoToDate(iso){ const p = String(iso).split('-'); return new Date(+p[0], (+p[1]||1)-1, +p[2]||1); }
@@ -5215,11 +5227,26 @@ function fmtInt(v){ return Math.round(numVal(v)).toLocaleString('pt-BR'); }
 
 /* Filtro de status do painel (memorizado): Fechadas / Em Aberto / Todas.
    "Em Aberto" = Pendente + Em análise (tudo que não está Fechado p/ pagamento).
+   Com "Fechadas", dá p/ refinar (opcional) por 1 ou mais DATAS em que a carga
+   foi fechada (r.fechDt; legado sem fechDt resolve pelo fechamento de origem).
    Aplicado na LEITURA dos dados: KPIs, dia a dia, período e comparativo de rotas. */
+function fechDateOfRow(r){
+  if(r && r.fechDt) return String(r.fechDt).slice(0, 10);
+  if(r && r.fechId){
+    const f = (typeof FECHAMENTOS !== 'undefined' ? FECHAMENTOS : []).find(x=> x.id === r.fechId);
+    if(f && f.dataFech) return String(f.dataFech).slice(0, 10);
+  }
+  return null;
+}
 function dashPickRow(r){
   const f = DASH.statusFilter || 'todas';
   if(f === 'todas') return true;
-  return f === 'fechadas' ? relIsFech(r) : !relIsFech(r);
+  if(f === 'abertas') return !relIsFech(r);
+  if(!relIsFech(r)) return false;
+  const sel = DASH.fechDates || [];
+  if(!sel.length) return true;                      // opcional: nada marcado = todas as fechadas
+  const d = fechDateOfRow(r);
+  return !!d && sel.includes(d);
 }
 function dashView(data){
   if((DASH.statusFilter || 'todas') === 'todas') return data || {frotas:[], capital:[], interior:[]};
@@ -5290,16 +5317,45 @@ function routesFromData(data){
 }
 async function loadDashboard(){
   const dates = await getSavedDates();
-  const days = [];
+  const raw = [];
   for(const d of dates){
-    if(d === currentMapDate){ const dv = dashView(DATA); days.push({date:d, m: metricsFromData(dv), routes: routesFromData(dv)}); continue; }
+    if(d === currentMapDate){ raw.push({date:d, data: DATA}); continue; }
     const rec = await Stor.get('map:' + d);
-    if(rec && rec.data){ const dv = dashView(rec.data); days.push({date:d, m: metricsFromData(dv), routes: routesFromData(dv)}); }
+    if(rec && rec.data) raw.push({date:d, data: rec.data});
   }
-  days.sort((a,b)=> a.date.localeCompare(b.date));
-  DASH.days = days;
+  raw.sort((a,b)=> a.date.localeCompare(b.date));
+  DASH.raw = raw;
   if(!DASH.period) DASH.period = periodFromPreset(DASH.preset, currentMapDate) || {start: dateAddDays(currentMapDate,-6), end: currentMapDate};
+  dashRecompute(); // aplica filtros de status/datas SEM recarregar do banco
+}
+/* Recalcula os indicadores a partir dos dias já carregados (DASH.raw) com os
+   filtros atuais (status + datas de fechamento) — instantâneo, sem rede. */
+function dashRecompute(){
+  const avail = new Set();
+  DASH.days = (DASH.raw || []).map(rd=>{
+    const data = rd.data || {};
+    for(const sec of ['frotas','capital','interior']){
+      for(const r of (data[sec] || [])) if(relIsFech(r)){ const dt = fechDateOfRow(r); if(dt) avail.add(dt); }
+    }
+    const dv = dashView(data);
+    return {date: rd.date, m: metricsFromData(dv), routes: routesFromData(dv)};
+  });
+  DASH.fechDatesAvail = Array.from(avail).sort((a,b)=> b.localeCompare(a));
+  DASH.fechDates = (DASH.fechDates || []).filter(d=> DASH.fechDatesAvail.includes(d));
+  renderFechDateChips();
   renderDash();
+}
+/* Chips com as datas em que há cargas fechadas (só visível com "Fechadas") */
+function renderFechDateChips(){
+  const box = $('#dash-fech-dates'), wrap = $('#dfd-chips');
+  if(!box || !wrap) return;
+  const show = (DASH.statusFilter || 'todas') === 'fechadas';
+  box.hidden = !show;
+  if(!show) return;
+  const sel = DASH.fechDates || [];
+  wrap.innerHTML = (DASH.fechDatesAvail || []).map(d=>
+    '<button type="button" class="dfd-chip' + (sel.includes(d) ? ' on' : '') + '" data-dfd="' + d + '" title="Somente cargas fechadas em ' + fmtBR(d) + '">' + fmtBR(d) + '</button>'
+  ).join('') || '<span class="dfd-hint">nenhuma carga fechada nos dias carregados</span>';
 }
 /* ================= Comparativo de custo por rota (semanal/mensal/anual) ================= */
 let CMP = {gran:'week', year:0, month:1, week:1, cls:'all'};
@@ -6806,14 +6862,30 @@ function bindStatic(){
     const sf = localStorage.getItem('mapa:dashStatusFilter');
     if(sf === 'fechadas' || sf === 'abertas' || sf === 'todas') DASH.statusFilter = sf;
   }catch(e){}
+  try{
+    const fd = JSON.parse(localStorage.getItem('mapa:dashFechDates') || '[]');
+    if(Array.isArray(fd)) DASH.fechDates = fd.filter(x=> typeof x === 'string');
+  }catch(e){}
   $$('input[name="dash-stf"]').forEach(rd=>{
     rd.checked = (rd.value === (DASH.statusFilter || 'todas'));
     rd.addEventListener('change', ()=>{
       if(!rd.checked) return;
       DASH.statusFilter = rd.value;
       try{ localStorage.setItem('mapa:dashStatusFilter', rd.value); }catch(e){}
-      loadDashboard(); // recalcula KPIs, dia a dia, período e comparativo c/ o filtro
+      dashRecompute(); // recalcula KPIs, dia a dia, período e comparativo c/ o filtro (instantâneo)
     });
+  });
+  /* datas de fechamento (opcional, só com "Fechadas"): 1 ou mais, clique alterna */
+  const dfdWrap = $('#dfd-chips');
+  if(dfdWrap) dfdWrap.addEventListener('click', e=>{
+    const b = e.target && e.target.closest ? e.target.closest('.dfd-chip') : null;
+    if(!b) return;
+    const d = b.getAttribute('data-dfd');
+    const sel = DASH.fechDates || (DASH.fechDates = []);
+    const i = sel.indexOf(d);
+    if(i >= 0) sel.splice(i, 1); else sel.push(d);
+    try{ localStorage.setItem('mapa:dashFechDates', JSON.stringify(sel)); }catch(e2){}
+    dashRecompute(); // re-renderiza chips + indicadores com a seleção
   });
   const chkFrotasCost = $('#chk-frotas-cost');
   if(chkFrotasCost){
@@ -6909,7 +6981,7 @@ async function init(){
 /* AUTO-CHECK DE VERSAO: avisa (somente quando roda em github.io) se a aba estiver com
    copia antiga em cache — compara o selo APP_V local com o do arquivo publicado no repo.
    Falha de rede/offline = silencioso; nunca bloqueia o uso. */
-const APP_V = '2026-09-18a';
+const APP_V = '2026-09-18b';
 (function(){
   // Selo de versão VISÍVEL no canto da tela: qualquer print/print-screen mostra qual código
   // está rodando no aparelho (cópia antiga = selo antigo/ausente). Não entra nas capturas.
