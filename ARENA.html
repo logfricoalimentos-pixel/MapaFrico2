@@ -5379,6 +5379,9 @@ function renderFechDatesBox(){
   const show = (DASH.statusFilter || 'todas') === 'fechadas';
   box.hidden = !show;
   if(!show) return;
+  // re-limita ao período atual a cada render (troca de preset/DE-ATÉ) e poda a seleção
+  DASH.fechDatesAvail = fechDatesWithinPeriod();
+  DASH.fechDates = (DASH.fechDates || []).filter(d=> DASH.fechDatesAvail.includes(d));
   const sel = DASH.fechDates || [];
   if(lab) lab.textContent = !sel.length ? 'todas as fechadas' : (sel.length === 1 ? fmtBR(sel[0]) : sel.length + ' datas selecionadas');
   const cnt = DASH.fechDateCounts || {};
@@ -6947,7 +6950,7 @@ function bindStatic(){
   $$('.chip-preset').forEach(c=> c.addEventListener('click', ()=>{
     DASH.preset = c.dataset.preset;
     const p = periodFromPreset(DASH.preset, currentMapDate);
-    if(p){ DASH.period = p; renderDash(); }
+    if(p){ DASH.period = p; dashRecompute(); } // refaz métricas + lista de datas do período
   }));
   $$('.gran-btn').forEach(b=> b.addEventListener('click', ()=>{
     DASH.granularity = b.dataset.gran;
@@ -6957,7 +6960,7 @@ function bindStatic(){
   const onCustomPeriod = ()=>{
     DASH.preset = 'custom';
     const s = $('#period-start').value, e = $('#period-end').value;
-    if(s && e && s <= e){ DASH.period = {start:s, end:e}; renderDash(); }
+    if(s && e && s <= e){ DASH.period = {start:s, end:e}; dashRecompute(); } // refaz métricas + lista de datas do período
   };
   $('#period-start').addEventListener('change', onCustomPeriod);
   $('#period-end').addEventListener('change', onCustomPeriod);
@@ -7028,7 +7031,7 @@ async function init(){
 /* AUTO-CHECK DE VERSAO: avisa (somente quando roda em github.io) se a aba estiver com
    copia antiga em cache — compara o selo APP_V local com o do arquivo publicado no repo.
    Falha de rede/offline = silencioso; nunca bloqueia o uso. */
-const APP_V = '2026-09-18c';
+const APP_V = '2026-09-18d';
 (function(){
   // Selo de versão VISÍVEL no canto da tela: qualquer print/print-screen mostra qual código
   // está rodando no aparelho (cópia antiga = selo antigo/ausente). Não entra nas capturas.
