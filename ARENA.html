@@ -663,15 +663,9 @@ body.readonly .sec-actions{display:none}
 @media (max-width:760px){ .modal-fech{width:100vw;max-height:100vh;height:100vh;border-radius:0} #fech-mask{padding:0} }
 .st-badge.anal{background:#fef3c7;color:#92400e;border:1px solid #fde68a}
 .fech-conf{white-space:nowrap;text-align:center}
-/* Botão 📚 Fechamentos anteriores (tela Fechamento de Fretes): VERMELHO c/ letras PRETAS */
+/* Botão 📚 Fechamentos anteriores (tela Fechamento de Fretes): VERMELHO c/ letras PRETAS — abre a JANELA nova */
 .btn-hist{background:#dc2626;border-color:#7f1d1d;color:#000;font-weight:700}
 .btn-hist:hover{background:#b91c1c;border-color:#450a0a;color:#000}
-/* ===== Tela 📚 Fechamentos anteriores ===== */
-#hist-mask{position:fixed;inset:0;z-index:460;background:rgba(15,23,42,.6);display:flex;align-items:center;justify-content:center;padding:16px}
-#hist-mask[hidden]{display:none}
-.modal-hist{width:min(1780px,97vw)}
-#hist-mask .hist-act{white-space:nowrap;text-align:center}
-@media (max-width:760px){ .modal-hist{width:100vw;max-height:100vh;height:100vh;border-radius:0} #hist-mask{padding:0} }
 #edc-mask, #ret-mask, #plan-mask, #kp-mask, #ft-mask{position:fixed;inset:0;z-index:470;background:rgba(15,23,42,.6);display:flex;align-items:center;justify-content:center;padding:16px}
 #edc-mask[hidden], #ret-mask[hidden], #plan-mask[hidden]{display:none}
 .modal-edc{width:min(620px,94vw);max-height:92vh;overflow:auto}
@@ -1354,59 +1348,6 @@ body.readonly .sec-actions{display:none}
       <button class="btn" type="button" id="fech-wa-auto" title="Manda o print + resumo por WhatsApp (API configurada) para cada transportador marcada, um a um">🤖 Enviar resumo p/ marcados</button>
       <button class="btn" type="button" id="fech-cancel">Cancelar</button>
       <button class="btn primary" type="button" id="fech-ok" title="Marca as transportadoras marcadas como Fechado e gera os arquivos Excel">🔒 Fechar selecionadas + gerar Excel</button>
-    </div>
-  </div>
-</div>
-
-<!-- ============ FECHAMENTOS ANTERIORES (tela de cargas fechadas) ============ -->
-<div id="hist-mask" class="no-print" hidden>
-  <div class="modal modal-report modal-hist" role="dialog" aria-modal="true" aria-labelledby="hist-title">
-    <div class="rel-head">
-      <h3 id="hist-title">📚 Fechamentos anteriores — cargas fechadas</h3>
-      <button class="rel-x" type="button" id="hist-x" title="Fechar (Esc)">✕</button>
-    </div>
-    <p class="modal-text">Uma linha por <b>carga fechada</b>, com a <b>data de FATURAMENTO</b> (dia do mapa), a <b>data de ENTREGA</b> (campo ENTREGA do dia; dia sem entrega vale pelo faturamento) e a <b>data do FECHAMENTO</b> (quando foi marcada como Fechado). Use os <b>filtros</b> para localizar; o <b>↺</b> devolve a carga p/ PENDENTE ou EM ANÁLISE; o <b>📥</b> gera de novo o resumo + os arquivos do fechamento daquela carga (com os valores da época).</p>
-    <div class="rel-bar">
-      <div class="rel-dates">
-        <label>Fechadas entre<input type="date" id="fh-start"></label>
-        <label>e<input type="date" id="fh-end"></label>
-        <label>Faturamento de<input type="date" id="hf-fat-start"></label>
-        <label>até<input type="date" id="hf-fat-end"></label>
-        <label>Entrega de<input type="date" id="hf-ent-start"></label>
-        <label>até<input type="date" id="hf-ent-end"></label>
-      </div>
-      <div class="rel-filters">
-        <label>Ordem<input type="search" id="hf-ordem" placeholder="nº da carga" autocomplete="off"></label>
-        <label>Transportadora<input type="search" id="hf-transp" placeholder="transportador" autocomplete="off"></label>
-        <label>Destino / Rota<input type="search" id="hf-destino" placeholder="ex.: RIO VERDE" autocomplete="off"></label>
-        <label>Placa<input type="search" id="hf-placa" placeholder="placa" autocomplete="off"></label>
-        <label>Motorista<input type="search" id="hf-motorista" placeholder="motorista" autocomplete="off"></label>
-        <label>Tipo<select id="hf-tipo"><option value="">Todas</option><option value="capital">Capital</option><option value="interior">Interior</option></select></label>
-        <button class="btn mini" type="button" id="fh-clear" title="Limpa todos os filtros">🧹 Limpar filtros</button>
-      </div>
-    </div>
-    <div class="rel-scroll">
-      <table class="rel-table" id="hist-table">
-        <thead>
-          <tr>
-            <th>Ordem</th><th>Faturamento</th><th>Entrega</th><th>Fechamento</th><th>Tipo</th>
-            <th>Placa</th><th>Destino / Rota</th><th>Motorista</th><th>Transportadora</th>
-            <th class="num">Peso (kg)</th><th class="num">Total (R$)</th><th class="num">Média (R$/kg)</th>
-            <th>Período do fechamento</th><th class="center">Ações</th>
-          </tr>
-        </thead>
-        <tbody id="hist-body"></tbody>
-        <tfoot id="hist-foot"></tfoot>
-      </table>
-      <div class="rel-empty" id="hist-empty" hidden>Nenhuma carga fechada nos critérios escolhidos.</div>
-    </div>
-    <div class="rel-status">
-      <span id="hist-count">—</span>
-      <span id="hist-saved"></span>
-    </div>
-    <div class="modal-actions">
-      <button class="btn" type="button" id="hist-cancel">Fechar</button>
-      <button class="btn primary" type="button" id="hist-dl-all" title="Gera de novo o resumo + os arquivos por transportadora de TODOS os fechamentos que têm carga na listagem filtrada (com os valores da época)">📥 Baixar de novo (fechamentos filtrados)</button>
     </div>
   </div>
 </div>
@@ -4788,10 +4729,13 @@ function fechXlsTransp(fech, g){
   return sxWrite(name, sheets);
 }
 
-/* ---- fechamentos anteriores: tela de cargas fechadas (faturamento/entrega/fechamento) ---- */
+/* ---- fechamentos anteriores: JANELA NOVA com a lista de cargas fechadas
+   (uma linha por carga, com data de FATURAMENTO, ENTREGA e FECHAMENTO + filtros;
+   reabre por linha ou em massa p/ PENDENTE / EM ANÁLISE) ---- */
 const HIST_ENT = {};   // cache: data ISO do mapa -> data de entrega (campo ENTREGA do dia; '' = sem entrega cadastrada)
+let HIST_WIN = null;   // referência da janela aberta (p/ foco e atualização)
 function histFechDate(f){ return f.dataFech || (f.criadoEm ? String(f.criadoEm).slice(0, 10) : ''); }
-/* todas as cargas de todos os fechamentos, já "achatadas" (uma linha por carga) */
+/* todas as cargas de todos os fechamentos registrados, já "achatadas" (uma linha por carga) */
 function histRowsRaw(){
   const out = [];
   for(const f of FECHAMENTOS){
@@ -4800,129 +4744,316 @@ function histRowsRaw(){
     for(const g of (f.grupos || [])) for(const c of (g.cargas || [])){
       out.push({fid: f.id, fechDt: dtF, periodo: periodo, por: f.por || '', transp: g.transp || '',
                 d: c.d || '', sec: c.sec || '', id: c.id || '', ordem: String(c.ordem || ''), placa: c.placa || '',
-                destino: c.destino || '', motorista: c.motorista || '', entrega: c.entrega || '',
+                destino: c.destino || '', motorista: c.motorista || '', entrega: c.entrega || '', avulsa: false,
                 peso: numVal(c.peso), total: numVal(c.total), media: c.media});
     }
   }
   return out;
 }
-/* data de entrega de uma carga: a gravada no fechamento (novos) OU o campo ENTREGA do
-   mapa do dia (fechamentos antigos — resolvido sob demanda e cacheado em HIST_ENT) */
-function histEntregaOf(r){
-  if(r.entrega) return r.entrega;
-  if(!r.d) return '';
-  if(r.d === currentMapDate) return dtEntrega || '';
-  const v = HIST_ENT[r.d];
-  return v == null ? '' : v;
-}
-function histFiltered(){
-  const v = id => { const el = relEl(id); return el ? String(el.value == null ? '' : el.value).trim() : ''; };
-  const fs = v('fh-start'), fe = v('fh-end');                 // fechadas entre
-  const fts = v('hf-fat-start'), fte = v('hf-fat-end');       // faturamento de/até
-  const ets = v('hf-ent-start'), ete = v('hf-ent-end');       // entrega de/até (sem entrega = faturamento)
-  const ord = norm(v('hf-ordem')), tr = norm(v('hf-transp')), de = norm(v('hf-destino'));
-  const pl = normPlaca(v('hf-placa')), mo = norm(v('hf-motorista'));
-  const tp = v('hf-tipo');
-  return histRowsRaw().filter(r=>{
-    if(fs && r.fechDt < fs) return false;
-    if(fe && r.fechDt > fe) return false;
-    if(fts && r.d < fts) return false;
-    if(fte && r.d > fte) return false;
-    const ent = histEntregaOf(r) || r.d;
-    if(ets && ent < ets) return false;
-    if(ete && ent > ete) return false;
-    if(ord && norm(r.ordem).indexOf(ord) < 0) return false;
-    if(tr && norm(r.transp).indexOf(tr) < 0) return false;
-    if(de && norm(r.destino).indexOf(de) < 0) return false;
-    if(pl && normPlaca(r.placa).indexOf(pl) < 0) return false;
-    if(mo && norm(r.motorista).indexOf(mo) < 0) return false;
-    if(tp && r.sec !== tp) return false;
-    return true;
-  });
-}
-function renderHistModal(){
-  const body = relEl('hist-body'), tbl = relEl('hist-table'), empty = relEl('hist-empty');
-  if(!body) return;
-  const mask = relEl('hist-mask');
-  if(mask && mask.hidden) return; // tela fechada: nada p/ renderizar
-  const rows = histFiltered();
-  // mais recentes primeiro: data do fechamento ↓, faturamento ↓, ordem ↑
-  rows.sort((a, b)=> b.fechDt.localeCompare(a.fechDt) || b.d.localeCompare(a.d) || a.ordem.localeCompare(b.ordem, 'pt-BR'));
-  if(!rows.length){
-    body.innerHTML = '';
-    if(tbl) tbl.style.display = 'none';
-    if(empty){ empty.hidden = false; empty.textContent = FECHAMENTOS.length ? 'Nenhuma carga fechada nos critérios escolhidos.' : 'Nenhum fechamento feito ainda.'; }
-  } else {
-    if(tbl) tbl.style.display = '';
-    if(empty) empty.hidden = true;
-    body.innerHTML = rows.map(r=>{
-      const ent = histEntregaOf(r);
-      return '<tr data-fid="' + esc(r.fid) + '" data-d="' + esc(r.d) + '" data-sec="' + esc(r.sec) + '" data-id="' + esc(r.id) + '">' +
-        '<td class="mono">' + esc(r.ordem || '—') + '</td>' +
-        '<td>' + (r.d ? fmtBR(r.d) : '—') + '</td>' +
-        '<td title="campo ENTREGA do dia; dia sem entrega cadastrada vale pelo faturamento">' + (ent ? fmtBR(ent) : '<span style="color:#b6c2d2">—</span>') + '</td>' +
-        '<td title="data em que a carga foi marcada como Fechado"><b>' + (r.fechDt ? fmtBR(r.fechDt) : '—') + '</b>' + (r.por ? ' <span style="color:#94a3b8;font-size:11px">· ' + esc(r.por) + '</span>' : '') + '</td>' +
-        '<td><span class="rel-badge ' + (r.sec === 'capital' ? 'cap' : 'int') + '">' + (r.sec === 'capital' ? 'Capital' : 'Interior') + '</span></td>' +
-        '<td class="mono">' + esc(r.placa || '—') + '</td>' +
-        '<td>' + esc(r.destino || '') + '</td>' +
-        '<td>' + esc(r.motorista || '') + '</td>' +
-        '<td>' + esc(r.transp || '') + '</td>' +
-        '<td class="num">' + fmtPeso2(r.peso) + '</td>' +
-        '<td class="num">' + fmtBRL(r.total) + '</td>' +
-        '<td class="num">' + relFmtMedia(r.media) + '</td>' +
-        '<td title="período em que a carga foi fechada">' + esc(r.periodo || '—') + '</td>' +
-        '<td class="hist-act">' +
-          '<button class="btn mini" type="button" data-hact="dl" title="Gera de novo o resumo do financeiro + os arquivos por transportadora DESTE fechamento (com os valores da época)">📥</button>' +
-          '<button class="btn mini" type="button" data-hact="rs" title="Devolve esta carga p/ PENDENTE ou EM ANÁLISE">↺</button>' +
-        '</td></tr>';
-    }).join('');
-  }
-  const foot = relEl('hist-foot');
-  if(foot){
-    if(!rows.length){ foot.innerHTML = ''; }
-    else{
-      let peso = 0, total = 0;
-      for(const r of rows){ peso += r.peso; total += r.total; }
-      const media = (total > 0 && peso > 0) ? total / peso : null;
-      const nF = new Set(rows.map(r=> r.fid)).size;
-      const nT = new Set(rows.map(r=> r.transp)).size;
-      foot.innerHTML = '<tr>' +
-        '<td class="total-label">Totais (' + rows.length + ' carga(s) · ' + nF + ' fechamento(s) · ' + nT + ' transportadora(s))</td>' +
-        '<td colspan="8"></td>' +
-        '<td class="num">' + fmtPeso2(peso) + '</td><td class="num">' + fmtBRL(total) + '</td><td class="num">' + relFmtMedia(media) + '</td>' +
-        '<td colspan="2"></td></tr>';
+/* Junta TODAS as cargas FECHADAS: as do histórico de fechamentos (FECHAMENTOS) +
+   as "avulsas/em lote" (stFech='fechado' no mapa cujo fechId não consta no histórico —
+   ex.: fechamento em lote). Também preenche o cache de ENTREGA de cada dia. */
+async function histCollectRows(){
+  const out = histRowsRaw();
+  const fids = new Set(FECHAMENTOS.map(f=> f.id));
+  const seen = new Set(out.map(r=> r.d + '|' + r.sec + '|' + r.id));
+  let days = [];
+  try{ const keys = await Stor.list(); days = keys.filter(k=> k.startsWith('map:')).map(k=> k.slice(4)).filter(d=> /^\d{4}-\d{2}-\d{2}$/.test(d)); }catch(e){}
+  if(currentMapDate && !days.includes(currentMapDate)) days.push(currentMapDate);
+  days.sort();
+  for(const d of days){
+    let rec = null;
+    try{ rec = (d === currentMapDate) ? {data: DATA, dtEntrega: dtEntrega} : await Stor.get('map:' + d); }catch(e){ continue; }
+    if(!rec || !rec.data) continue;
+    const entD = (d === currentMapDate ? dtEntrega : rec.dtEntrega) || '';
+    HIST_ENT[d] = entD;
+    for(const sec of SECTIONS){
+      for(const row of (rec.data[sec] || [])){
+        if(!row || !relIsFech(row)) continue;
+        const key = d + '|' + sec + '|' + row.id;
+        if(seen.has(key)) continue;
+        const fid = row.fechId || '';
+        if(fid && fids.has(fid)) continue; // já entrou pelo histórico (sem duplicar)
+        const fr = calcularFrete(sec, row) || {};
+        const tot = numVal(fr.total), psi = numVal(row.peso);
+        out.push({fid: fid, fechDt: row.fechDt || '', periodo: fid ? 'Lote/avulso' : '(sem registro)',
+                  por: '', transp: row.transportadora || '', d: d, sec: sec, id: row.id || '',
+                  ordem: String(row.carga || ''), placa: row.placa || '', destino: row.destino || '',
+                  motorista: row.motorista || '', entrega: entD, avulsa: true,
+                  peso: psi, total: tot, media: (tot > 0 && psi > 0) ? tot / psi : null});
+      }
     }
   }
-  const cnt = relEl('hist-count');
-  if(cnt){
-    const nF = new Set(rows.map(r=> r.fid)).size;
-    cnt.textContent = rows.length ? ('📚 ' + rows.length + ' carga(s) fechada(s) · ' + nF + ' fechamento(s) na listagem') : '—';
+  for(const r of out) if(!r.entrega) r.entrega = HIST_ENT[r.d] || (r.d === currentMapDate ? (dtEntrega || '') : '');
+  return out;
+}
+/* reabre cargas fechadas: as do histórico saem do fechamento (mesma regra do ↺ do
+   relatório); as avulsas/em lote são reabertas direto na linha do mapa do dia */
+async function histReopenBatch(items, st){
+  if(!requireAdmin()) return {ok:false, msg:'🔒 Ação restrita ao administrador'};
+  st = (st === 'analise') ? 'analise' : 'pendente';
+  const fids = new Set(FECHAMENTOS.map(f=> f.id));
+  const byFid = new Map(), orphans = [];
+  for(const it of items){
+    if(it.fid && fids.has(it.fid)){ if(!byFid.has(it.fid)) byFid.set(it.fid, new Set()); byFid.get(it.fid).add(it.d + '|' + it.sec + '|' + it.id); }
+    else orphans.push(it);
   }
+  let n = 0;
+  for(const [fid, keys] of byFid){ await fechReopenSel(fid, st, keys); n += keys.size; }
+  const byD = new Map();
+  for(const it of orphans){ if(!byD.has(it.d)) byD.set(it.d, []); byD.get(it.d).push(it); }
+  let nOrf = 0;
+  for(const d of Array.from(byD.keys()).sort()){
+    const loaded = REL.recs[d] || null;
+    const rec = loaded || ((d === currentMapDate) ? {data: DATA, _live: true} : relNormalizeRec(await Stor.get('map:' + d)));
+    if(!rec || !rec.data) continue;
+    for(const it of byD.get(d)){
+      const row = (rec.data[it.sec] || []).find(r=> r.id === it.id);
+      if(!row) continue;
+      if(st === 'analise') row.stFech = 'analise'; else delete row.stFech;
+      delete row.fechId; delete row.fechDt;
+      nOrf++;
+    }
+    if(loaded || d === currentMapDate){ await relPersistDate(d); }
+    else {
+      rec.savedAt = new Date().toISOString();
+      const clean2 = s2 => (rec.data[s2] || []).map(r=>{ const o = Object.assign({}, r); delete o._sel; return o; });
+      await Stor.set('map:' + d, Object.assign({}, rec, {data: {frotas: clean2('frotas'), capital: clean2('capital'), interior: clean2('interior')}}));
+    }
+  }
+  if(nOrf){
+    audit('fechamento-reaberto-avulsas', nOrf + ' carga(s) → ' + (st === 'analise' ? 'EM ANÁLISE' : 'PENDENTE'));
+    toast('↺ ' + nOrf + ' carga(s) avulsa(s) reaberta(s) → ' + (st === 'analise' ? 'EM ANÁLISE' : 'PENDENTE'), 'ok');
+  }
+  if(REL.loaded){ relApplyFilters(); renderRelTable(); }
+  if(REL.mapDirty) renderAll();
+  return {ok: true, n: n + nOrf};
 }
-/* resolve sob demanda as datas de ENTREGA dos fechamentos antigos (antes de a carga
-   guardar a entrega no fechamento) — busca o campo ENTREGA do mapa de cada dia e cacheia */
-async function histEnsureEntregas(){
-  const missing = [...new Set(histRowsRaw().map(r=> r.d))].filter(d=> d && d !== currentMapDate && !(d in HIST_ENT));
-  if(!missing.length) return;
-  await Promise.all(missing.map(async d=>{
-    try{ const rec = await Stor.get('map:' + d); HIST_ENT[d] = (rec && rec.dtEntrega) || ''; }
-    catch(e){ HIST_ENT[d] = ''; }
-  }));
-  renderHistModal(); // re-renderiza já com as entregas resolvidas
+/* ===== janela nova (window.open) — página independente gerada pelo app ===== */
+function histWinHtml(){
+  const CSS = [
+    ':root{--line:#e2e8f0;--ink:#0f172a;--muted:#64748b;--red:#dc2626;--red-d:#b91c1c;--ok:#16a34a}',
+    '*{box-sizing:border-box}html,body{margin:0;padding:0}',
+    'body{background:#f1f5f9;color:var(--ink);font:13.5px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;height:100vh;display:flex;flex-direction:column}',
+    'header{background:#7f1d1d;color:#fff;padding:12px 16px;box-shadow:0 2px 8px rgba(0,0,0,.25)}',
+    'header h1{font-size:16.5px;margin:0;display:flex;align-items:center;gap:8px;flex-wrap:wrap}',
+    'header h1 .sub{font-size:12px;font-weight:400;color:#fecaca}',
+    '.h-actions{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}',
+    '.h-actions .hst{width:auto;min-width:96px}',
+    '.bar{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;background:#fff;border-bottom:1px solid var(--line);padding:10px 16px;position:sticky;top:0;z-index:5}',
+    '.bar label{font-size:10.5px;color:var(--muted);display:flex;flex-direction:column;gap:3px;text-transform:uppercase;letter-spacing:.2px}',
+    '.bar input,.bar select{border:1px solid var(--line);border-radius:7px;padding:5px 7px;font:inherit;font-size:12.5px;min-width:86px;background:#fff;color:var(--ink)}',
+    '.bar input:focus,.bar select:focus{border-color:#2563eb;outline:none}',
+    '.btn{border:1px solid var(--line);background:#fff;border-radius:8px;padding:6px 10px;font:inherit;font-size:12.5px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}',
+    '.btn:hover{background:#f8fafc;border-color:#cbd5e1}',
+    '.btn.mini{padding:2px 6px;font-size:12px;border-radius:6px}',
+    '.btn.red{background:var(--red);border-color:#7f1d1d;color:#000;font-weight:700}',
+    '.btn.red:hover{background:var(--red-d);color:#000}',
+    '.btn:disabled{opacity:.5;cursor:default}',
+    '#status{background:#fff7ed;border-bottom:1px solid #fed7aa;color:#9a3412;font-size:12.5px;padding:7px 16px;min-height:16px;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}',
+    '.scroll{flex:1;overflow:auto;padding:12px 16px 16px}',
+    'table{border-collapse:separate;border-spacing:0;width:100%;font-size:12.5px;background:#fff;border:1px solid var(--line);border-radius:10px;overflow:hidden}',
+    'thead th{position:sticky;top:0;z-index:2;background:#1f2937;border-bottom:1px solid #111827;border-right:1px solid #111827;padding:7px 8px;text-align:left;white-space:nowrap;font-size:10.5px;color:#fff;letter-spacing:.2px;text-transform:uppercase}',
+    'thead th.num{text-align:right}',
+    'tbody td{border-bottom:1px solid var(--line);border-right:1px solid var(--line);padding:4px 7px;vertical-align:middle;white-space:nowrap}',
+    'tbody tr:nth-child(even) td{background:#fbfdff}',
+    'tbody tr:hover td{background:#f0f7ff}',
+    'td.num{text-align:right;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}',
+    'td.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.4px}',
+    'td.act{white-space:nowrap;text-align:center}',
+    '.b{display:inline-block;padding:1px 7px;border-radius:999px;font-size:10.5px;font-weight:700;letter-spacing:.2px}',
+    '.b.cap{background:#ede9fe;color:#6d28d9}.b.int{background:#fef3c7;color:#b45309}.b.fro{background:#e0f2fe;color:#0369a1}',
+    '.b.lote{background:#fee2e2;color:#991b1b;margin-left:5px}',
+    '.dim{color:#b6c2d2}.mut{color:var(--muted);font-size:11px}',
+    'tfoot td{position:sticky;bottom:0;z-index:2;background:#f1f5f9;font-weight:700;border-top:2px solid #94a3b8;border-right:1px solid var(--line);padding:6px 7px;white-space:nowrap}',
+    'tfoot td.num{text-align:right;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}',
+    '.empty{color:var(--muted);text-align:center;padding:26px;font-size:13px;background:#fff;border:1px dashed #cbd5e1;border-radius:10px;margin-top:12px}',
+    'footer{padding:8px 16px;background:#fff;border-top:1px solid var(--line);display:flex;gap:10px;justify-content:space-between;align-items:center;flex-wrap:wrap;font-size:12px;color:var(--muted)}'
+  ].join('\n');
+  const BODY = [
+    '<header><h1>📚 Fechamentos anteriores — cargas fechadas <span class="sub">uma linha por carga · faturamento · entrega · fechamento</span>',
+    '<span class="h-actions">',
+    '<select id="hst" class="hst" title="Status p/ onde as cargas voltam ao reabrir"><option value="pendente">→ Pendente</option><option value="analise">→ Em análise</option></select>',
+    '<button class="btn red" id="h-reopen-all" title="Reabre TODAS as cargas da listagem filtrada p/ o status escolhido ao lado">↺ Reabrir listadas</button>',
+    '<button class="btn" id="h-reload" title="Recarrega a lista do banco (depois de alterações feitas em outras telas)">🔄 Atualizar</button>',
+    '<button class="btn" id="h-close" title="Fecha esta janela">✕ Fechar janela</button>',
+    '</span></header>',
+    '<div class="bar">',
+    '<label>Fechadas entre<input type="date" id="f-f1"></label>',
+    '<label>e<input type="date" id="f-f2"></label>',
+    '<label>Faturamento de<input type="date" id="f-d1"></label>',
+    '<label>até<input type="date" id="f-d2"></label>',
+    '<label>Entrega de<input type="date" id="f-e1"></label>',
+    '<label>até<input type="date" id="f-e2"></label>',
+    '<label>Ordem<input type="search" id="f-ordem" placeholder="nº da carga" autocomplete="off"></label>',
+    '<label>Transportadora<input type="search" id="f-transp" placeholder="transportador" autocomplete="off"></label>',
+    '<label>Destino / Rota<input type="search" id="f-dest" placeholder="ex.: RIO VERDE" autocomplete="off"></label>',
+    '<label>Placa<input type="search" id="f-placa" placeholder="placa" autocomplete="off"></label>',
+    '<label>Motorista<input type="search" id="f-mot" placeholder="motorista" autocomplete="off"></label>',
+    '<label>Tipo<select id="f-tipo"><option value="">Todas</option><option value="capital">Capital</option><option value="interior">Interior</option><option value="frotas">Frotas</option></select></label>',
+    '<button class="btn mini" id="f-clear" title="Limpa todos os filtros">🧹 Limpar filtros</button>',
+    '</div>',
+    '<div id="status"><span id="status-txt">⏳ Carregando as cargas fechadas…</span><span id="status-tot"></span></div>',
+    '<div class="scroll">',
+    '<table id="tbl"><thead><tr>',
+    '<th>Ordem</th><th>Faturamento</th><th>Entrega</th><th>Fechamento</th><th>Tipo</th><th>Placa</th><th>Destino / Rota</th><th>Motorista</th><th>Transportadora</th>',
+    '<th class="num">Peso (kg)</th><th class="num">Total (R$)</th><th class="num">Média (R$/kg)</th><th>Origem do fechamento</th><th class="act">Ações</th>',
+    '</tr></thead><tbody id="body"></tbody><tfoot id="foot"></tfoot></table>',
+    '<div class="empty" id="empty" hidden>Carregando…</div>',
+    '</div>',
+    '<footer><span>↩ devolve a carga p/ <b>PENDENTE</b> · 🔍 devolve p/ <b>EM ANÁLISE</b> · 📥 baixa de novo o resumo + Excel do fechamento (valores da época)</span><span>janela aberta pelo Mapa de Carregamento — manter a aba principal aberta</span></footer>'
+  ].join('\n');
+  const JS = [
+    "'use strict';",
+    "let ROWS = null;",
+    "const $ = s => document.querySelector(s);",
+    "function op(){ const o = window.opener; return (o && !o.closed) ? o : null; }",
+    "function esc(s){ return String(s==null?'':s).replace(/[&<>\"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',\"'\":'&#39;'}[c])); }",
+    "function norm(s){ return String(s==null?'':s).toUpperCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').trim(); }",
+    "function normPlaca(p){ return norm(p).replace(/[^A-Z0-9]/g,''); }",
+    "function fmtBR(iso){ if(!iso) return ''; const p=String(iso).split('-'); return p.length===3? p[2]+'/'+p[1]+'/'+p[0] : iso; }",
+    "function fmtBRL(v){ return 'R$ '+(Number(v)||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }",
+    "function fmtPeso(v){ return (Number(v)||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }",
+    "function fmtMedia(v){ return v==null? '—' : 'R$ '+Number(v).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+'/kg'; }",
+    "const SEC_LBL = {capital:'Capital', interior:'Interior', frotas:'Frotas'};",
+    "function keyOf(r){ return r.d+'|'+r.sec+'|'+r.id; }",
+    "function filtered(){",
+    "  if(!ROWS) return [];",
+    "  const v = id => { const el=$(id); return el ? String(el.value||'').trim() : ''; };",
+    "  const fs=v('#f-f1'), fe=v('#f-f2'), ds=v('#f-d1'), de=v('#f-d2'), es=v('#f-e1'), ee=v('#f-e2');",
+    "  const ord=norm(v('#f-ordem')), tr=norm(v('#f-transp')), dst=norm(v('#f-dest')), pl=normPlaca(v('#f-placa')), mo=norm(v('#f-mot'));",
+    "  const tp=v('#f-tipo');",
+    "  return ROWS.filter(r=>{",
+    "    if(fs && r.fechDt < fs) return false; if(fe && r.fechDt > fe) return false;",
+    "    if(ds && r.d < ds) return false; if(de && r.d > de) return false;",
+    "    const ent = r.entrega || r.d; if(es && ent < es) return false; if(ee && ent > ee) return false;",
+    "    if(ord && norm(r.ordem).indexOf(ord) < 0) return false;",
+    "    if(tr && norm(r.transp).indexOf(tr) < 0) return false;",
+    "    if(dst && norm(r.destino).indexOf(dst) < 0) return false;",
+    "    if(pl && normPlaca(r.placa).indexOf(pl) < 0) return false;",
+    "    if(mo && norm(r.motorista).indexOf(mo) < 0) return false;",
+    "    if(tp && r.sec !== tp) return false;",
+    "    return true;",
+    "  });",
+    "}",
+    "function render(){",
+    "  const body=$('#body'), foot=$('#foot'), tbl=$('#tbl'), empty=$('#empty'), st=$('#status-txt'), tot=$('#status-tot');",
+    "  if(ROWS === null){ body.innerHTML=''; foot.innerHTML=''; empty.hidden=false; empty.textContent='Carregando…'; tbl.style.display='none'; return; }",
+    "  const rows = filtered();",
+    "  rows.sort((a,b)=> String(b.fechDt).localeCompare(String(a.fechDt)) || String(b.d).localeCompare(String(a.d)) || String(a.ordem).localeCompare(String(b.ordem),'pt-BR'));",
+    "  if(!rows.length){",
+    "    body.innerHTML=''; foot.innerHTML=''; tbl.style.display='none'; empty.hidden=false;",
+    "    empty.textContent = ROWS.length ? 'Nenhuma carga nos critérios filtrados — ajuste os filtros.' : 'Nenhuma carga fechada encontrada.';",
+    "  } else {",
+    "    tbl.style.display=''; empty.hidden=true;",
+    "    body.innerHTML = rows.map(r=>",
+    "      '<tr data-k=\"'+esc(keyOf(r))+'\" data-fid=\"'+esc(r.fid||'')+'\"'+ (r.avulsa?' class=\"avulsa\"':'') +'>'+",
+    "      '<td class=\"mono\"><b>'+esc(r.ordem||'—')+'</b></td>'+",
+    "      '<td>'+(r.d?fmtBR(r.d):'—')+'</td>'+",
+    "      '<td title=\"campo ENTREGA do dia; sem ela vale o faturamento\">'+(r.entrega?fmtBR(r.entrega):'<span class=\"dim\">—</span>')+'</td>'+",
+    "      '<td title=\"data em que foi marcada como Fechado\"><b>'+(r.fechDt?fmtBR(r.fechDt):'—')+'</b>'+(r.por?' <span class=\"mut\">· '+esc(r.por)+'</span>':'')+'</td>'+",
+    "      '<td><span class=\"b '+(r.sec==='capital'?'cap':r.sec==='interior'?'int':'fro')+'\">'+(SEC_LBL[r.sec]||r.sec)+'</span></td>'+",
+    "      '<td class=\"mono\">'+esc(r.placa||'—')+'</td>'+",
+    "      '<td>'+esc(r.destino||'')+'</td>'+",
+    "      '<td>'+esc(r.motorista||'')+'</td>'+",
+    "      '<td>'+esc(r.transp||'')+'</td>'+",
+    "      '<td class=\"num\">'+fmtPeso(r.peso)+'</td>'+",
+    "      '<td class=\"num\">'+fmtBRL(r.total)+'</td>'+",
+    "      '<td class=\"num\">'+fmtMedia(r.media)+'</td>'+",
+    "      '<td>'+esc(r.periodo||'—')+(r.avulsa?'<span class=\"b lote\" title=\"fechada fora de um fechamento quinzenal (ex.: fechamento em lote) — sem Excel p/ baixar\">avulsa</span>':'')+'</td>'+",
+    "      '<td class=\"act\">'+",
+    "      (r.avulsa?'':'<button class=\"btn mini\" data-hact=\"dl\" title=\"Baixa de novo o resumo + os arquivos por transportadora deste fechamento (valores da época)\">📥</button>')+",
+    "      '<button class=\"btn mini\" data-hact=\"pd\" title=\"Devolve esta carga p/ PENDENTE\">↩</button>'+",
+    "      '<button class=\"btn mini\" data-hact=\"an\" title=\"Devolve esta carga p/ EM ANÁLISE\">🔍</button>'+",
+    "      '</td></tr>').join('');",
+    "    let peso=0,total=0; for(const r of rows){ peso+=Number(r.peso)||0; total+=Number(r.total)||0; }",
+    "    const media=(total>0&&peso>0)?total/peso:null;",
+    "    const nF=new Set(rows.filter(r=>!r.avulsa&&r.fid).map(r=>r.fid)).size, nT=new Set(rows.map(r=>r.transp)).size, nA=rows.filter(r=>r.avulsa).length;",
+    "    foot.innerHTML='<tr><td>Totais ('+rows.length+' carga(s) · '+nF+' fechamento(s)'+(nA?' · '+nA+' avulsa(s)':'')+' · '+nT+' transportadora(s))</td><td colspan=\"8\"></td><td class=\"num\">'+fmtPeso(peso)+'</td><td class=\"num\">'+fmtBRL(total)+'</td><td class=\"num\">'+fmtMedia(media)+'</td><td colspan=\"2\"></td></tr>';",
+    "  }",
+    "  const nF=new Set(rows.filter(r=>!r.avulsa&&r.fid).map(r=>r.fid)).size;",
+    "  st.textContent = ROWS.length ? ('📚 '+rows.length+' carga(s) na listagem ('+ROWS.length+' fechada(s) no total · '+nF+' fechamento(s))') : 'Nenhuma carga fechada encontrada.';",
+    "  tot.textContent = ROWS.length ? ('Peso '+fmtPeso(rows.reduce((a,r)=>a+(Number(r.peso)||0),0))+' kg · Total '+fmtBRL(rows.reduce((a,r)=>a+(Number(r.total)||0),0))) : '';",
+    "}",
+    "function histSetRows(rows){ ROWS = Array.isArray(rows) ? rows : []; render(); }",
+    "function histSetStatus(t){ const el=$('#status-txt'); if(el) el.textContent = t; }",
+    "window.histSetRows = histSetRows; window.histSetStatus = histSetStatus;",
+    "async function reopenItems(items, st){",
+    "  if(!items.length) return;",
+    "  const o = op(); if(!o){ alert('⚠️ A aba principal do Mapa foi fechada — feche esta janela e abra de novo pelo botão 📚.'); return; }",
+    "  histSetStatus('⏳ Reabrindo '+items.length+' carga(s)…');",
+    "  let r = null;",
+    "  try{ r = await o.histReopenBatch(items, st); }catch(e){ r = {ok:false, msg:String(e && e.message || e)}; }",
+    "  if(r && r.ok){",
+    "    const ks = new Set(items.map(keyOf));",
+    "    ROWS = ROWS.filter(x=> !ks.has(keyOf(x)));",
+    "    render();",
+    "  } else {",
+    "    histSetStatus('❌ ' + (r && r.msg ? r.msg : 'Falha ao reabrir')); ",
+    "  }",
+    "}",
+    "document.getElementById('body').addEventListener('click', e=>{",
+    "  const b = e.target.closest('[data-hact]'); if(!b) return;",
+    "  const tr = b.closest('tr[data-k]'); if(!tr || !ROWS) return;",
+    "  const it = ROWS.find(x=> keyOf(x) === tr.getAttribute('data-k')); if(!it) return;",
+    "  const o = op(); if(!o){ alert('⚠️ A aba principal do Mapa foi fechada.'); return; }",
+    "  const act = b.getAttribute('data-hact');",
+    "  if(act === 'dl'){ o.fechBaixarDeNovo(it.fid); return; }",
+    "  reopenItems([{fid: it.fid, d: it.d, sec: it.sec, id: it.id}], act === 'an' ? 'analise' : 'pendente');",
+    "});",
+    "document.getElementById('h-reopen-all').addEventListener('click', ()=>{",
+    "  const rows = filtered(); if(!rows.length){ alert('Nenhuma carga na listagem filtrada.'); return; }",
+    "  const st = document.getElementById('hst').value;",
+    "  if(!confirm('Reabrir TODAS as '+rows.length+' carga(s) da listagem filtrada?\\nElas voltam como ' + (st==='analise'?'EM ANÁLISE':'PENDENTE') + '.')) return;",
+    "  reopenItems(rows.map(r=>({fid:r.fid, d:r.d, sec:r.sec, id:r.id})), st);",
+    "});",
+    "document.getElementById('h-reload').addEventListener('click', ()=>{",
+    "  const o = op(); if(!o){ alert('⚠️ A aba principal do Mapa foi fechada.'); return; }",
+    "  histSetStatus('⏳ Recarregando…'); o.histWinRefresh();",
+    "});",
+    "document.getElementById('h-close').addEventListener('click', ()=> window.close());",
+    "const F_IDS=['#f-f1','#f-f2','#f-d1','#f-d2','#f-e1','#f-e2','#f-ordem','#f-transp','#f-dest','#f-placa','#f-mot','#f-tipo'];",
+    "for(const id of F_IDS){ const el=$(id); if(!el) continue; el.addEventListener('input', render); el.addEventListener('change', render); }",
+    "document.getElementById('f-clear').addEventListener('click', ()=>{ for(const id of F_IDS){ const el=$(id); if(el) el.value=''; } render(); });"
+  ].join('\n');
+  return '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">' +
+    '<meta name="viewport" content="width=device-width, initial-scale=1">' +
+    '<meta name="referrer" content="no-referrer">' +
+    '<title>📚 Fechamentos anteriores — cargas fechadas</title>' +
+    '<style>' + CSS + '</style></head><body>' + BODY +
+    '<script>' + JS + '<\/script></body></html>';
 }
-async function openHist(){
+function openHistWin(){
   if(!requireAdmin()) return;
-  const mask = relEl('hist-mask'); if(!mask) return;
-  mask.hidden = false;
-  renderHistModal();
-  await histEnsureEntregas();
+  if(HIST_WIN && !HIST_WIN.closed){
+    try{ HIST_WIN.focus(); }catch(e){}
+    histWinRefresh();
+    return;
+  }
+  let w = null;
+  try{ w = window.open('', 'fechamentos-anteriores', 'width=1520,height=880,menubar=no,toolbar=no,location=no,status=no,scrollbars=yes,resizable=yes'); }catch(e){}
+  if(!w){ toast('⚠️ O navegador bloqueou a nova janela — permita pop-ups p/ este site e clique de novo', 'err'); return; }
+  HIST_WIN = w;
+  try{
+    w.document.open();
+    w.document.write(histWinHtml());
+    w.document.close();
+  }catch(e){ console.error(e); }
+  histWinRefresh();
 }
-function closeHist(){ const m = relEl('hist-mask'); if(m) m.hidden = true; }
-/* compat p/ os pontos que atualizavam o antigo painel dentro do 🔒 Fechamento */
-function renderFechHist(){ renderHistModal(); }
-/* mantido p/ compat: o painel antigo de reabrir em massa foi substituído pela tela;
-   aqui só renderiza (vazio) — a reabertura agora é por carga, na própria listagem */
-function fechRsPanel(){ return ''; }
+function histWinRefresh(){
+  const w = HIST_WIN;
+  if(!w || w.closed) return;
+  try{ if(w.histSetStatus) w.histSetStatus('⏳ Carregando as cargas fechadas…'); }catch(e){}
+  histCollectRows().then(rows=>{
+    try{ if(w.closed) return; if(w.histSetRows) w.histSetRows(rows); }catch(e){}
+  }).catch(err=>{
+    try{ if(!w.closed && w.histSetStatus) w.histSetStatus('❌ Falha ao carregar: ' + (err && err.message ? err.message : err)); }catch(e){}
+  });
+}
+/* compat p/ os pontos que atualizavam o antigo painel dentro do 🔒 Fechamento:
+   agora só atualiza a janela 📚 (se estiver aberta) */
+function renderFechHist(){ if(HIST_WIN && !HIST_WIN.closed) histWinRefresh(); }
 function fechBaixarDeNovo(id){
   const f = FECHAMENTOS.find(x=> x.id === id); if(!f) return;
   fechXlsGeral(f);
@@ -6717,11 +6848,9 @@ function bindStatic(){
   $('#fech-x').addEventListener('click', closeFech);
   $('#fech-ok').addEventListener('click', fechConfirm);
   $('#fech-mask').addEventListener('mousedown', e=>{ if(e.target.id === 'fech-mask') closeFech(); });
-  /* fecha com Esc (fechamentos anteriores primeiro — está por cima; depois o painel de fechamento; por último o relatório, gravando pendências) */
+  /* fecha com Esc (painel de fechamento primeiro; depois o relatório, gravando pendências) */
   document.addEventListener('keydown', e=>{
     if(e.key !== 'Escape') return;
-    const hm = $('#hist-mask');
-    if(hm && !hm.hidden){ closeHist(); return; }
     const fm = $('#fech-mask');
     if(fm && !fm.hidden){ closeFech(); return; }
     const m = $('#report-xls-mask');
@@ -6936,42 +7065,9 @@ function bindStatic(){
     relEl('edc-neg').value = '';
     edcPreview();
   });
-  /* 📚 Fechamentos anteriores: botão (tela Fechamento de Fretes) + tela com filtros */
-  const rfHist = relEl('rf-hist-btn'); if(rfHist) rfHist.addEventListener('click', openHist);
-  const histX = relEl('hist-x'); if(histX) histX.addEventListener('click', closeHist);
-  const histCancel = relEl('hist-cancel'); if(histCancel) histCancel.addEventListener('click', closeHist);
-  const histMaskEl = relEl('hist-mask'); if(histMaskEl) histMaskEl.addEventListener('mousedown', e=>{ if(e.target.id === 'hist-mask') closeHist(); });
-  const HIST_FILTER_IDS = ['fh-start','fh-end','hf-fat-start','hf-fat-end','hf-ent-start','hf-ent-end','hf-ordem','hf-transp','hf-destino','hf-placa','hf-motorista','hf-tipo'];
-  for(const fid of HIST_FILTER_IDS){
-    const fe2 = relEl(fid); if(!fe2) continue;
-    fe2.addEventListener('change', ()=> renderHistModal());
-    fe2.addEventListener('input', ()=> renderHistModal());
-  }
-  const fhc = relEl('fh-clear'); if(fhc) fhc.addEventListener('click', ()=>{ for(const fid of HIST_FILTER_IDS){ const el2 = relEl(fid); if(el2) el2.value = ''; } renderHistModal(); });
-  const histBody = relEl('hist-body');
-  if(histBody && histBody.dataset.histBound !== '1'){
-    histBody.dataset.histBound = '1';
-    histBody.addEventListener('click', async e=>{
-      const btn = e.target.closest('[data-hact]'); if(!btn) return;
-      const trEl = btn.closest('tr[data-fid]'); if(!trEl) return;
-      const fid = trEl.getAttribute('data-fid');
-      if(btn.getAttribute('data-hact') === 'dl'){ fechBaixarDeNovo(fid); return; }
-      /* ↺ reabrir a carga da linha: menu PENDENTE / EM ANÁLISE (mesmo da linha fechada do relatório) */
-      const rowObj = {fechId: fid, id: trEl.getAttribute('data-id')};
-      abrirMenuReopenRow(btn, {row: rowObj, d: trEl.getAttribute('data-d'), sec: trEl.getAttribute('data-sec')});
-    });
-  }
-  const histDlAll = relEl('hist-dl-all');
-  if(histDlAll && histDlAll.dataset.histBound !== '1'){
-    histDlAll.dataset.histBound = '1';
-    histDlAll.addEventListener('click', ()=>{
-      if(!requireAdmin()) return;
-      const fids = [...new Set(histFiltered().map(r=> r.fid))];
-      if(!fids.length){ toast('Nenhum fechamento na listagem filtrada', 'err'); return; }
-      for(const fid of fids) fechBaixarDeNovo(fid);
-      toast('📥 Baixando de novo: ' + fids.length + ' fechamento(s) (' + (fids.length ? histFiltered().length : 0) + ' carga(s) na listagem)', 'ok');
-    });
-  }
+  /* 📚 Fechamentos anteriores: botão (tela Fechamento de Fretes) abre a JANELA nova
+     com a lista de cargas fechadas (faturamento · entrega · fechamento + filtros) */
+  const rfHist = relEl('rf-hist-btn'); if(rfHist) rfHist.addEventListener('click', openHistWin);
 
   /* códigos/whatsapp de transportadora p/ fechamento (mesmo padrão do cadastro de rotas) */
   $('#btn-transp-add').addEventListener('click', ()=>{
@@ -7297,7 +7393,7 @@ async function tryAutoMigrarLote(){
   }catch(e){ console.warn('[Migração fechamento] auto falhou', e); }
 }
 
-const APP_V = '2026-09-21b';
+const APP_V = '2026-09-21c';
 (function(){
   // Selo de versão VISÍVEL no canto da tela: qualquer print/print-screen mostra qual código
   // está rodando no aparelho (cópia antiga = selo antigo/ausente). Não entra nas capturas.
