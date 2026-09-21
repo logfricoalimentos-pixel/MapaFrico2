@@ -1784,6 +1784,10 @@ function isNegSim(row){ return String(row.neg||'').trim().toLowerCase() === 'sim
 function tableForecast(section, row){
   const frota = row.frotaCalc || selecionarFrota(row.peso);   // frotaCalc = tabela negociada p/ esta carga
   if(!frota) return {frota, total:0};
+  // AUDITORIA (regra): peso 0 ou vazio -> valor da rota = R$ 0 (sem viagem calculável).
+  // Vale p/ Capital (valor fixo), Interior e Frotas (estimado); a negociação manual
+  // (Valor Frete) continua valendo em calcularFrete — lá ela é definitiva.
+  if(numVal(row.peso) <= 0) return {frota, total:0};
   const tabelaTipo = normalizarTipo(row.tabela);
   const grupo = section === 'capital' ? 'capital' : 'interior';
   const preco = (PRICE_TABLE[tabelaTipo] && PRICE_TABLE[tabelaTipo][grupo] && PRICE_TABLE[tabelaTipo][grupo][frota]) || null;
@@ -7393,7 +7397,7 @@ async function tryAutoMigrarLote(){
   }catch(e){ console.warn('[Migração fechamento] auto falhou', e); }
 }
 
-const APP_V = '2026-09-21c';
+const APP_V = '2026-09-21d';
 (function(){
   // Selo de versão VISÍVEL no canto da tela: qualquer print/print-screen mostra qual código
   // está rodando no aparelho (cópia antiga = selo antigo/ausente). Não entra nas capturas.
