@@ -6470,6 +6470,7 @@ function bindStatic(){
       toast('👤 Olá, ' + SESSION.name + ' (' + PERM[SESSION.level].label + ')', 'ok');
       if(SESSION.level === 1) await loadDashboard(); // nível 1 vê apenas indicadores
       else if(dashVisible) await loadDashboard();
+      try{ await tryAutoMigrarLote(); }catch(e){}
     } else {
       if(err) err.textContent = r.msg;
       const pp = $('#login-pass');
@@ -6636,7 +6637,6 @@ function bindStatic(){
   $('#hist').addEventListener('change', e=>{ if(e.target.value) switchToDate(e.target.value); });
 
   /* configurações */
-  $('#btn-save-fixed').addEventListener('click', ()=>{
   $('#btn-save-margem').addEventListener('click', async ()=>{
     const v = Math.max(0, Math.min(100, Number(($('#margem-frete')||{}).value) || 0));
     MARGEM_FRETE = v;
@@ -6645,6 +6645,7 @@ function bindStatic(){
     audit('margem-frete', v + '%');
     toast(v ? '✅ Margem salva: +' + v + '% sobre não negociadas' : '✅ Margem salva: sem percentual (0%)', 'ok');
   });
+  $('#btn-save-fixed').addEventListener('click', ()=>{
     if(!requireAdmin()) return;
     FIXED_FROTAS = $('#fixed-frotas').value.split(/[,;\n]/).map(s=> s.trim()).filter(Boolean);
     saveSettings();
@@ -7021,6 +7022,7 @@ async function init(){
     await loadMapForDate(currentMapDate);
     renderAll();
     setSaveState('synced');
+    try{ await tryAutoMigrarLote(); }catch(e){}
   }catch(err){
     // AUDITORIA: falha de init não deixa a página em branco sem explicação
     console.error(err);
@@ -7031,7 +7033,113 @@ async function init(){
 /* AUTO-CHECK DE VERSAO: avisa (somente quando roda em github.io) se a aba estiver com
    copia antiga em cache — compara o selo APP_V local com o do arquivo publicado no repo.
    Falha de rede/offline = silencioso; nunca bloqueia o uso. */
-const APP_V = '2026-09-18d';
+/* ================= MIGRAÇÃO DE FECHAMENTO EM LOTE (2026-09-21) =================
+   Solicitação: marcar como "Fechado" todas as cargas listadas (~180 ordens),
+   tratando pares com "/" em qualquer ordem (inclui invertido) e variações com
+   espaços. Ex.: "10835000/133223" casa com "133223/10835000", "10835000 / 133223",
+   etc. A lógica é idempotente (não duplica) e registra fechId/fechDt.
+   - Roda automaticamente uma vez após login/refresh de sessão (se admin) ou
+     pode ser disparada manualmente via console: await migrarFechamentoLotes()
+     ou pelo botão gerado via temporário. Persiste flag em Stor para não
+     reexecutar à toa, mas permite reexecução via {force:true}.
+   =========================================================================== */
+const FECHAMENTO_LOTE_RAW = [
+  "10732000","10734000","10742000","10747000","10756000","10753000","10755000","10754000",
+  "10794000","10791000","10800000","10804000","10801000","10798000","10805000","10808000","10802000","10803000",
+  "10829000","10815000","10817000","10825000","10826000","10837000","10838000","10835000/133223","10833000","10842000",
+  "10845000","10834000","10836000","10846000","10855000/10854000","10847000","10844000","10848000","10840000","10859000",
+  "10863000","10864000","10849000","10865000","10862000","10861000","10876000","10871000","10860000","10885000","10891000",
+  "10879000","10887000","10884000","10880000","10882000","10888000","10881000","10878000","10883000","10886000","10905000",
+  "10903000","10890000/10906000","10910000","10927000","10908000","10909000","10925000","10922000","10921000","10934000",
+  "10933000","10935000","10943000","10936000","10932000","10945000","10946000","10949000","10952000","10947000","10950000",
+  "10953000","10966000","10974000/10973000","10971000","10970000","10987000","10986000","10975000","10982000","10988000/10994000",
+  "10996000","10972000","10814000","10781000","10786000","10783000","10795000","10789000","10788000","10785000","10782000",
+  "10790000","10784000","10787000","10810000","10807000","10813000","10797000/10809000","10811000","10818000","10824000","10822000",
+  "10820000","10827000","10830000","10823000","10853000","10851000","10850000","10856000","10852000","10874000","10870000",
+  "10872000","10875000","10869000","10867000","10877000/10873000","10868000","10900000","10898000","10897000","10894000","10892000",
+  "10904000","10899000","10895000","10893000","10911000","10916000","10912000","10917000","10920000","10915000","10919000",
+  "10913000","10914000","10924000","10937000","10942000","10940000","10939000","10938000","10961000","10957000","10959000",
+  "10956000","10954000","10962000","10958000","10963000","10960000","10955000","10978000","10983000","10977000","10980000",
+  "10984000","10976000","10981000"
+];
+const FECHAMENTO_LOTE_FLAG = 'migra-fechamento-2026-09-21';
+const _ALVO_SINGLES = new Set();
+const _ALVO_PARES = new Set();
+(function(){ for(const raw of FECHAMENTO_LOTE_RAW){ const parts = raw.split('/').map(s=> s.trim()).filter(Boolean); for(const p of parts){ _ALVO_SINGLES.add(p.replace(/\s+/g,'').toUpperCase()); } if(parts.length===2){ const a=parts[0].replace(/\s+/g,'').toUpperCase(), b=parts[1].replace(/\s+/g,'').toUpperCase(); _ALVO_PARES.add(a+'/'+b); _ALVO_PARES.add(b+'/'+a); } } })();
+function _normCarga(c){ return String(c==null?'':c).replace(/\s+/g,'').toUpperCase(); }
+function cargaEhAlvo(cargaStr){ const n=_normCarga(cargaStr); if(!n) return false; if(_ALVO_PARES.has(n)) return true; const parts=n.split('/').filter(Boolean); if(parts.length===1) return _ALVO_SINGLES.has(parts[0]); return parts.some(p=> _ALVO_SINGLES.has(p)) || (parts.length===2 && _ALVO_PARES.has(parts[0]+'/'+parts[1])); }
+async function migrarFechamentoLotes(opts){
+  opts = opts||{}; const silent=!!opts.silent, force=!!opts.force;
+  const flagKey = FECHAMENTO_LOTE_FLAG;
+  if(!force){ try{ const flag=await Stor.get(flagKey); if(flag && flag.done) { console.log('[Migração fechamento] já executada em', flag.at, '- use {force:true} para reexecutar'); return {skipped:true, flag}; } }catch(e){} }
+  let hoje=''; try{ hoje=isoDate(new Date()); }catch(e){ hoje=new Date().toISOString().slice(0,10); }
+  const migId='mig-lote-'+Date.now().toString(36);
+  let totalDias=0, totalEncontradas=0, jaFechadas=0, alteradas=0;
+  const detalhes=[];
+  let mapKeys=[]; try{ const all=await Stor.list(); mapKeys=all.filter(k=> k.startsWith('map:')).map(k=> k.slice(4)).filter(d=> /^\d{4}-\d{2}-\d{2}$/.test(d)); }catch(e){ mapKeys=[]; }
+  const alvoLog = FECHAMENTO_LOTE_RAW.length+' ordens ('+_ALVO_SINGLES.size+' tokens únicos, '+(_ALVO_PARES.size/2)+' pares com "/")';
+  console.log('[Migração fechamento] alvos:', alvoLog, '· pares:', Array.from(_ALVO_PARES).slice(0,6));
+  for(const d of mapKeys){
+    let rec=null; try{ rec=await Stor.get('map:'+d); }catch(e){ continue; }
+    if(!rec || !rec.data) continue;
+    let mudou=false;
+    for(const sec of ['frotas','capital','interior']){
+      const arr=rec.data[sec]||[];
+      for(const row of arr){
+        if(!row) continue;
+        const cargaVal=row.carga==null?'':String(row.carga);
+        if(!cargaEhAlvo(cargaVal)) continue;
+        totalEncontradas++;
+        if(row.stFech==='fechado'){ jaFechadas++; continue; }
+        row.stFech='fechado'; row.fechId=migId; row.fechDt=hoje;
+        alteradas++; mudou=true;
+        detalhes.push({data:d, sec, carga:cargaVal, destino:row.destino||'', placa:row.placa||'', transportadora:row.transportadora||''});
+      }
+    }
+    if(mudou){
+      rec.savedAt=new Date().toISOString();
+      try{ await Stor.set('map:'+d, rec); totalDias++; }catch(e){ console.warn('[Migração] falha ao salvar',d,e); }
+    }
+  }
+  try{
+    if(!mapKeys.includes(currentMapDate) && (DATA && (DATA.frotas.length||DATA.capital.length||DATA.interior.length))){
+      let mudou=false;
+      for(const sec of SECTIONS){
+        for(const row of (DATA[sec]||[])){
+          if(!cargaEhAlvo(String(row.carga||''))) continue;
+          if(row.stFech==='fechado') continue;
+          row.stFech='fechado'; row.fechId=migId; row.fechDt=hoje; mudou=true; alteradas++;
+          detalhes.push({data:currentMapDate, sec, carga:String(row.carga||''), destino:row.destino||'', placa:row.placa||''});
+        }
+      }
+      if(mudou){ try{ await saveMapForDate(currentMapDate); totalDias++; }catch(e){} }
+    }
+  }catch(e){}
+  try{ await Stor.set(flagKey, {done:true, at:new Date().toISOString(), migId, totalDias, totalEncontradas, jaFechadas, alteradas, detalhes: detalhes.slice(0,500)}); }catch(e){}
+  try{ localStorage.setItem('mapa:'+flagKey, JSON.stringify({done:true, at:new Date().toISOString(), migId})); }catch(e){}
+  const msg = alteradas>0 ? `🔒 Fechamento em lote: ${alteradas} carga(s) fechadas em ${totalDias} dia(s)` : (totalEncontradas===0 ? 'Nenhuma carga da lista encontrada nos mapas salvos' : `Todas as ${totalEncontradas} carga(s) encontradas já estavam Fechadas`);
+  console.log('[Migração fechamento]', {migId, hoje, totalDias, totalEncontradas, jaFechadas, alteradas, detalhes: detalhes.length});
+  if(!silent){
+    try{ toast(msg, alteradas>0?'ok': (totalEncontradas===0?'warn':'ok')); }catch(e){}
+    try{ audit('migracao-fechamento-lote', `${alteradas} fechadas / ${totalEncontradas} encontradas em ${totalDias} dia(s) · ${migId}`); }catch(e){}
+    try{ if(alteradas>0 && typeof renderAll==='function') renderAll(); }catch(e){}
+  }
+  return {migId, hoje, totalDias, totalEncontradas, jaFechadas, alteradas, detalhes};
+}
+if(typeof window!=='undefined'){ window.migrarFechamentoLotes=migrarFechamentoLotes; window.cargaEhAlvo=cargaEhAlvo; window.FECHAMENTO_LOTE_RAW=FECHAMENTO_LOTE_RAW; }
+async function tryAutoMigrarLote(){
+  try{
+    const hasSession = (typeof SESSION!=='undefined' && SESSION && SESSION.access_token);
+    const hasLocal = (()=>{ try{ return Object.keys(localStorage).some(k=> k.startsWith('mapa:map:')); }catch(e){ return false; }})();
+    if(!hasSession && !hasLocal) return;
+    const flag = await Stor.get(FECHAMENTO_LOTE_FLAG).catch(()=>null);
+    if(flag && flag.done) return;
+    console.log('[Migração fechamento] auto-iniciando...');
+    await migrarFechamentoLotes({silent:false});
+  }catch(e){ console.warn('[Migração fechamento] auto falhou', e); }
+}
+
+const APP_V = '2026-09-21a';
 (function(){
   // Selo de versão VISÍVEL no canto da tela: qualquer print/print-screen mostra qual código
   // está rodando no aparelho (cópia antiga = selo antigo/ausente). Não entra nas capturas.
