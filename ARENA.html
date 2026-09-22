@@ -140,6 +140,9 @@ tr.row-unavailable .td-placa input{background:#fee2e2;color:#b91c1c;font-weight:
 .frete-mini select{width:auto;min-width:62px;font-size:11px;padding:2px 4px}
 .frete-mini input{width:54px;min-width:44px;font-size:11px;padding:2px 4px}
 .frete-val{font-weight:700;font-size:13px;white-space:nowrap}
+/* Destino (FROTAS) por status: EM ROTA/COLETA/EM VIAGEM = cinza negrito-itálico · OFICINA = vermelho negrito */
+.dest-move{color:#6b7280;font-weight:700;font-style:italic}
+.dest-oficina{color:#dc2626;font-weight:700}
 .frete-modo{font-size:10.5px;color:#92400e;background:#fef3c7;border-radius:6px;padding:1px 6px;display:inline-block;margin-top:3px;white-space:nowrap}
 .badge{display:inline-block;background:#e0f2fe;color:#075985;border-radius:999px;padding:1px 8px;font-size:10.5px;font-weight:600;margin-left:5px;white-space:nowrap}
 .custo-cell{white-space:nowrap;font-family:var(--mono);font-size:12.5px;color:#0f766e;font-weight:600}
@@ -923,7 +926,7 @@ body.readonly .sec-actions{display:none}
       <h4>Verificações de auditoria aplicadas</h4>
       <ul>
         <li>Divisão por zero bloqueada (custo/kg e % economia só com denominador &gt; 0).</li>
-        <li>Frotas: sem negociação (veículo próprio). O sistema calcula um <b>custo estimado da rota</b> (mesma tabela do Interior) só para referência — não entra no Custo Geral (Capital+Interior). Peso/cargas sempre contam no total geral. Pode ocultar esse indicador em "Mostrar custo de Frotas" no painel. Veículos fixos <b>sempre aparecem</b> em Frotas (mesmo sem carga), com <b>motorista/ajudante padrão por placa</b>; <b>sem Nº Carga</b> o custo estimado fica <b>R$ 0,00</b> e a linha <b>não conta como carga/veículo</b> (badge, Totais, resumo, etiquetas, planejamento e indicadores).</li>
+        <li>Frotas: sem negociação (veículo próprio). O sistema calcula um <b>custo estimado da rota</b> (mesma tabela do Interior) só para referência — não entra no Custo Geral (Capital+Interior). Peso/cargas sempre contam no total geral. Pode ocultar esse indicador em "Mostrar custo de Frotas" no painel. Veículos fixos <b>sempre aparecem</b> em Frotas (mesmo sem carga), com <b>motorista/ajudante padrão por placa</b>; <b>sem Nº Carga</b> o custo estimado fica <b>R$ 0,00</b> e a linha <b>não conta como carga/veículo</b> (badge, Totais, resumo, etiquetas, planejamento e indicadores). O texto de <b>Destino</b> em Frotas muda de cor por status: <b>EM ROTA / COLETA / EM VIAGEM</b> = cinza negrito-itálico · <b>OFICINA</b> = vermelho negrito.</li>
         <li>Negociação contada apenas quando há valor efetivo (Valor Frete &gt; 0 ou Neg? = Sim).</li>
         <li>Delta "vs período anterior" só exibido quando o período anterior tem dados (senão, aviso "sem base").</li>
         <li>Períodos comparados por datas ISO (YYYY-MM-DD) — sem problemas de fuso horário.</li>
@@ -1581,6 +1584,14 @@ function clampMotorista(v){ return String(v==null?'':v).slice(0, 32); }
    a linha aparece no mapa, mas NÃO conta como carga/veículo em nenhuma contagem */
 function rowTemCarga(r){ return String(r && r.carga != null ? r.carga : '').trim() !== ''; }
 function countCargas(rows, sec){ return sec === 'frotas' ? rows.filter(rowTemCarga).length : rows.length; }
+/* Destino em FROTAS por status (valor IGUAL, sem diferenciar maiúsc./acento/espaços):
+   EM ROTA / COLETA / EM VIAGEM = cinza negrito-itálico · OFICINA = vermelho negrito */
+function destStatusClass(v){
+  const d = norm(v).replace(/\s+/g, ' ');
+  if(d === 'EM ROTA' || d === 'COLETA' || d === 'EM VIAGEM') return 'dest-move';
+  if(d === 'OFICINA') return 'dest-oficina';
+  return '';
+}
 function plateSegs(p){ return String(p||'').split('/').map(x=>normPlaca(x)).filter(Boolean); }
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function num(v){
@@ -2046,8 +2057,11 @@ function cellHtml(sec, r, c, x){
         '<button class="btn mini" data-act="del" title="Remover linha">' + MIC.trash + '</button></td>';
     case 'placa':
       return '<td class="td-placa"><input type="text" class="mono" data-field="placa" value="'+esc(r.placa)+'" placeholder="placa"></td>';
-    case 'destino':
-      return '<td><input type="text" data-field="destino" value="'+esc(r.destino)+'" placeholder="destino"></td>';
+    case 'destino': {
+      // FROTAS: cor do texto por status do destino (EM ROTA/COLETA/EM VIAGEM = cinza negrito-itálico · OFICINA = vermelho negrito)
+      const dcls = (sec === 'frotas') ? destStatusClass(r.destino) : '';
+      return '<td><input type="text" data-field="destino"'+(dcls? ' class="'+dcls+'"' : '')+' value="'+esc(r.destino)+'" placeholder="destino"></td>';
+    }
     case 'carga':
       return '<td><input type="text" class="mono" data-field="carga" value="'+esc(r.carga)+'" placeholder="nº">' + ((sec==='capital' && r.kmPortaria) ? kmPortBadge(r) : '') + '</td>';
     case 'peso':
@@ -7098,7 +7112,7 @@ async function init(){
 /* AUTO-CHECK DE VERSAO: avisa (somente quando roda em github.io) se a aba estiver com
    copia antiga em cache — compara o selo APP_V local com o do arquivo publicado no repo.
    Falha de rede/offline = silencioso; nunca bloqueia o uso. */
-const APP_V = '2026-09-22a';
+const APP_V = '2026-09-22b';
 (function(){
   // Selo de versão VISÍVEL no canto da tela: qualquer print/print-screen mostra qual código
   // está rodando no aparelho (cópia antiga = selo antigo/ausente). Não entra nas capturas.
