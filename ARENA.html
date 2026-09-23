@@ -140,6 +140,11 @@ tr.row-unavailable .td-placa input{background:#fee2e2;color:#b91c1c;font-weight:
 .frete-mini select{width:auto;min-width:62px;font-size:11px;padding:2px 4px}
 .frete-mini input{width:54px;min-width:44px;font-size:11px;padding:2px 4px}
 .frete-val{font-weight:700;font-size:13px;white-space:nowrap}
+/* Destino (FROTAS) por status: EM ROTA/COLETA/EM VIAGEM = cinza negrito-itálico · OFICINA = vermelho negrito
+   Especificidade: .map-table input{color:var(--ink)} (e o visual do mapa .map-table input{color:#0b3d78})
+   venciam .dest-move/.dest-oficina e anulavam cor/negrito/itálico. */
+.map-table input.dest-move{color:#6b7280;font-weight:700;font-style:italic}
+.map-table input.dest-oficina{color:#dc2626;font-weight:700}
 .frete-modo{font-size:10.5px;color:#92400e;background:#fef3c7;border-radius:6px;padding:1px 6px;display:inline-block;margin-top:3px;white-space:nowrap}
 .badge{display:inline-block;background:#e0f2fe;color:#075985;border-radius:999px;padding:1px 8px;font-size:10.5px;font-weight:600;margin-left:5px;white-space:nowrap}
 .custo-cell{white-space:nowrap;font-family:var(--mono);font-size:12.5px;color:#0f766e;font-weight:600}
@@ -923,7 +928,7 @@ body.readonly .sec-actions{display:none}
       <h4>Verificações de auditoria aplicadas</h4>
       <ul>
         <li>Divisão por zero bloqueada (custo/kg e % economia só com denominador &gt; 0).</li>
-        <li>Frotas: sem negociação (veículo próprio). O sistema calcula um <b>custo estimado da rota</b> (mesma tabela do Interior) só para referência — não entra no Custo Geral (Capital+Interior). Peso/cargas sempre contam no total geral. Pode ocultar esse indicador em "Mostrar custo de Frotas" no painel.</li>
+        <li>Frotas: sem negociação (veículo próprio). O sistema calcula um <b>custo estimado da rota</b> (mesma tabela do Interior) só para referência — não entra no Custo Geral (Capital+Interior). Peso/cargas sempre contam no total geral. Pode ocultar esse indicador em "Mostrar custo de Frotas" no painel. Veículos fixos <b>sempre aparecem</b> em Frotas (mesmo sem carga), com <b>motorista/ajudante padrão por placa</b>; <b>sem Nº Carga</b> o custo estimado fica <b>R$ 0,00</b> e a linha <b>não conta como carga/veículo</b> (badge, Totais, resumo, etiquetas, planejamento e indicadores). O texto de <b>Destino</b> em Frotas muda de cor por status: <b>EM ROTA / COLETA / EM VIAGEM</b> = cinza negrito-itálico · <b>OFICINA</b> = vermelho negrito.</li>
         <li>Negociação contada apenas quando há valor efetivo (Valor Frete &gt; 0 ou Neg? = Sim).</li>
         <li>Delta "vs período anterior" só exibido quando o período anterior tem dados (senão, aviso "sem base").</li>
         <li>Períodos comparados por datas ISO (YYYY-MM-DD) — sem problemas de fuso horário.</li>
@@ -935,7 +940,7 @@ body.readonly .sec-actions{display:none}
         <li><b>📊 Planejamento de Transporte</b>: relatório Capital × Interior × Total com Veículos (cargas), Entregas e Peso em TON (kg ÷ 1000, 2 casas, sem zeros finais) — Frotas não entra.</li>
         <li><b>🖨 Mapa/Print (Mapa Sem Peso / Mapa Com Peso) / 📊 Planejamento</b>: geram a imagem A4 e perguntam a orientação (Paisagem/Retrato) e se você quer imprimir, abrir em nova guia, copiar (Ctrl+V no WhatsApp/e-mail) ou baixar o .png.</li>
         <li><b>🚀 Envio automático</b>: guia passo a passo que encadeia os 5 envios (todos os grupos) — o app copia cada imagem e avança (botão ou Enter), você só cola (Ctrl+V) e envia (Enter) na conversa indicada.</li>
-        <li><b>Motorista limitado a 20 caracteres</b> em Frotas, Capital e Interior (campo, digitação, importação e dados já salvos).</li>
+        <li><b>Motorista limitado a 32 caracteres</b> em Frotas, Capital e Interior (campo, digitação, importação e dados já salvos).</li>
         <li><b>📥 Excel Mapa</b>: exporta o mapa do dia em .xlsx no MESMO formato do print (seções FROTAS/CAPITAL/INTERIOR, colunas, totais e resumo — sem valores).</li>
         <li><b>📥 Excel Período</b> (admin): exporta TODAS as cargas de Capital e Interior de um período (com Vlr Kg, Neg?, Previsão, Custo/kg e Valor Frete) + aba Resumo por dia. Frotas não entra.</li>
         <li><b>Margem configurável (padrão +10%)</b> no valor previsto de cargas não negociadas — em Configurações dá p/ poner 0 ou qualquer X%; negociadas (Valor Frete manual ou Neg? = Sim) mantêm o valor fechado.</li>
@@ -1297,7 +1302,7 @@ body.readonly .sec-actions{display:none}
       <label>Peso (kg)<input id="edc-peso" inputmode="decimal"></label>
       <label>KM<input id="edc-km" inputmode="decimal"></label>
       <label>Diárias<input id="edc-dias" inputmode="numeric"></label>
-      <label>Motorista<input id="edc-motorista" maxlength="20"></label>
+      <label>Motorista<input id="edc-motorista" maxlength="32"></label>
       <label>Transportadora<input id="edc-transp" maxlength="40"></label>
       <label>Veículo p/ frete (tabela)<select id="edc-frota"></select></label>
       <label>Negociada? (Neg?)<select id="edc-neg"><option value="Sim">Sim</option><option value="Não">Não</option></select></label>
@@ -1370,6 +1375,14 @@ body.readonly .sec-actions{display:none}
 
 /* ================= Constantes ================= */
 const DEFAULT_FIXED_FROTAS = ['MFM8075','RBQ4C63','RSD1E71','NWN3975','NVP6191'];
+/* Tripulação PADRÃO por placa de Frotas (motorista + 1º ajudante) — preenche ao criar/editar linha */
+const DEFAULT_FROTA_TRIPULACAO = {
+  MFM8075: {motorista:'ALEX LOPES DA SILVA',       ajudante:'ISRAEL'},
+  RBQ4C63: {motorista:'JAIRO DE OLIVEIRA',         ajudante:'PAULO'},
+  RSD1E71: {motorista:'DOUGLACY FURTADO DA SILVA', ajudante:'EDIMILSON'},
+  NWN3975: {motorista:'JULIO CESAR DOS REIS',      ajudante:'JEAN'},
+  NVP6191: {motorista:'SEBASTIÃO FELIX DE BRITO',  ajudante:'GIL'}
+};
 const DEFAULT_CAPITAL_KEYWORDS = ['LACERDA','TG','BRAGANÇA','AVIZ','GW','MINERIM','MASTER','EUBOM','RUBENS','BARBOSA','APARECIDA','BALNEARIO','CENTRO','GUANABARA','NOVO MUNDO','PARQUE OESTE','PQ.OESTE','PQ. OESTE','PQ.ANHANGUERA','PQ. ANHANGUERA','TRINDADE','COSTA BL','PQ.ANH'];
 const DEFAULT_INTERIOR_KEYWORDS = ['ARUANA','BARRA DO GARCAS','CAMPOS BELOS','CATALAO','GOIAS','IPORA','JARAGUA','MINACU','MINEIROS','MORRINHOS','QUIRINOPOLIS','RIO VERDE','ANAPOLIS','GOIANIRA','INHUMAS','TRIUNFO','ALEXANIA','CALDAS NOVAS','CEZARINA','GOIANESIA','JATAI','NEROPOLIS','GUAPO','SILVANIA','VALE S PATRICIO','AGUAS LINDAS','VALPARAISO','BRASILIA','LUZIANIA','PLANALTINA','HIDROLANDIA','BELA VISTA','BOM FINOPOLIS','CANEDO','DF','VIVENDAS','SANTA HELENA','RD+MAX','CUIABA MT','BRITANIA','ABADIA','BARRA DO GARÇA','CEILANDIA','ITAPURANGA','PORANGATU','ITUMBIARA','-DF','- DF','BOM CORTE','GOIATUBA','NILO'];
 /* Diárias padrão por rota (nome da rota/destino) — tabela do relatório, sempre mesclada
@@ -1567,8 +1580,20 @@ function normRotaKey(v){
   const s = String(v==null?'':v).trim();
   return /^\d+$/.test(s.replace(/\s+/g,'')) ? normRota(s) : normKw(s);
 }
-/* Limite do campo Motorista: 20 caracteres (Frotas, Capital e Interior) */
-function clampMotorista(v){ return String(v==null?'':v).slice(0, 20); }
+/* Limite do campo Motorista: 32 caracteres (Frotas, Capital e Interior) */
+function clampMotorista(v){ return String(v==null?'':v).slice(0, 32); }
+/* carga real = linha com Nº Carga preenchido; Frotas SEM Nº Carga = "veículo parado":
+   a linha aparece no mapa, mas NÃO conta como carga/veículo em nenhuma contagem */
+function rowTemCarga(r){ return String(r && r.carga != null ? r.carga : '').trim() !== ''; }
+function countCargas(rows, sec){ return sec === 'frotas' ? rows.filter(rowTemCarga).length : rows.length; }
+/* Destino em FROTAS por status (valor IGUAL, sem diferenciar maiúsc./acento/espaços):
+   EM ROTA / COLETA / EM VIAGEM = cinza negrito-itálico · OFICINA = vermelho negrito */
+function destStatusClass(v){
+  const d = norm(v).replace(/\s+/g, ' ');
+  if(d === 'EM ROTA' || d === 'COLETA' || d === 'EM VIAGEM') return 'dest-move';
+  if(d === 'OFICINA') return 'dest-oficina';
+  return '';
+}
 function plateSegs(p){ return String(p||'').split('/').map(x=>normPlaca(x)).filter(Boolean); }
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function num(v){
@@ -1797,6 +1822,10 @@ function tableForecast(section, row){
 /* Previsão COM negociação: Valor Frete manual > Neg?=Sim (VlrKg×Peso) > tabela (+10% margem no valor previsto).
    Cargas negociadas (Valor Frete manual ou Neg? = Sim) NÃO recebem a margem. */
 function calcularFrete(section, row){
+  // Frotas SEM Nº Carga = veículo parado (sem rota): frete-val ZERADO (R$ 0,00)
+  if(section === 'frotas' && !rowTemCarga(row)){
+    return {frota: row.frotaCalc || selecionarFrota(row.peso), total: 0, modo:'', modoCell:'', semCarga:true};
+  }
   const frota = row.frotaCalc || selecionarFrota(row.peso);
   // Sem frota (peso > 17.000 kg) e sem tabela negociada -> N/A (mesma regra do Python)
   if(!frota) return {frota:'N/A', total:0};
@@ -1825,6 +1854,21 @@ function calcularFrete(section, row){
 }
 
 /* ================= Linhas: build / registry / merge / enforce ================= */
+/* tripulação padrão por placa de Frotas: preenche motorista/ajudante quando VAZIOS;
+   se o motorista salvo for um TRUNCAMENTO do nome do cadastro (limite antigo de 20),
+   completa o nome inteiro (ex.: "SEBASTIÃO FELIX DE B" -> "SEBASTIÃO FELIX DE BRITO") */
+function frotaTripulacaoOf(placa){
+  const k = plateSegs(placa)[0] || '';
+  return k ? (DEFAULT_FROTA_TRIPULACAO[k] || null) : null;
+}
+function applyFrotaTripulacao(row){
+  const t = frotaTripulacaoOf(row.placa);
+  if(!t) return;
+  const m = String(row.motorista==null?'':row.motorista).trim();
+  if(!m) row.motorista = clampMotorista(t.motorista);
+  else if(t.motorista.length > m.length && t.motorista.startsWith(m)) row.motorista = t.motorista;
+  if(!String(row.ajudantes==null?'':row.ajudantes).trim() && t.ajudante) row.ajudantes = t.ajudante;
+}
 function applyRegistry(row){
   const k = plateSegs(row.placa)[0] || '';
   const reg = k ? REGISTRY[k] : null;
@@ -1878,6 +1922,7 @@ function buildRowFromImport(raw, section){
   };
   applyRegistry(row);
   applyRotas(row); // diárias automáticas pela rota (Nº Carga/destino) cadastrada
+  applyFrotaTripulacao(row); // motorista/ajudante padrão por placa de Frotas (quando vazios)
   return row;
 }
 function enforceFixedFrotas(){
@@ -1892,6 +1937,23 @@ function enforceFixedFrotas(){
   }
   if(moved) toast('🚛 ' + moved + ' carga(s) com placa fixa movida(s) para FROTAS', 'warn');
   return moved;
+}
+/* garante que TODO veículo fixo apareça em FROTAS, mesmo sem carga no dia
+   (linha vazia com placa + tripulação padrão; autoMerge funde com a carga importada) */
+function ensureFixedFrotas(){
+  const fs = fixedSet();
+  const have = new Set();
+  for(const r of DATA.frotas) for(const p of plateSegs(r.placa)) have.add(p);
+  let added = 0;
+  for(const k of fs){
+    if(have.has(k)) continue;
+    const row = emptyRow();
+    row.placa = k;
+    applyFrotaTripulacao(row);
+    DATA.frotas.push(row);
+    added++;
+  }
+  return added;
 }
 function autoMergeByPlate(){
   let vehicles = 0;
@@ -1997,8 +2059,11 @@ function cellHtml(sec, r, c, x){
         '<button class="btn mini" data-act="del" title="Remover linha">' + MIC.trash + '</button></td>';
     case 'placa':
       return '<td class="td-placa"><input type="text" class="mono" data-field="placa" value="'+esc(r.placa)+'" placeholder="placa"></td>';
-    case 'destino':
-      return '<td><input type="text" data-field="destino" value="'+esc(r.destino)+'" placeholder="destino"></td>';
+    case 'destino': {
+      // FROTAS: cor do texto por status do destino (EM ROTA/COLETA/EM VIAGEM = cinza negrito-itálico · OFICINA = vermelho negrito)
+      const dcls = (sec === 'frotas') ? destStatusClass(r.destino) : '';
+      return '<td><input type="text" data-field="destino"'+(dcls? ' class="'+dcls+'"' : '')+' value="'+esc(r.destino)+'" placeholder="destino"></td>';
+    }
     case 'carga':
       return '<td><input type="text" class="mono" data-field="carga" value="'+esc(r.carga)+'" placeholder="nº">' + ((sec==='capital' && r.kmPortaria) ? kmPortBadge(r) : '') + '</td>';
     case 'peso':
@@ -2008,7 +2073,7 @@ function cellHtml(sec, r, c, x){
       return '<td class="center"'+dc+'><input type="text" inputmode="numeric" class="numin" data-field="entregas" value="'+esc(r.entregas)+'" placeholder="0"></td>';
     case 'motorista':
       // limite de 20 caracteres (Frotas, Capital e Interior)
-      return '<td><input type="text" data-field="motorista" maxlength="20" value="'+esc(clampMotorista(r.motorista))+'" placeholder="motorista"></td>';
+      return '<td><input type="text" data-field="motorista" maxlength="32" value="'+esc(clampMotorista(r.motorista))+'" placeholder="motorista"></td>';
     case 'transp':
       if(sec === 'frotas'){
         // FROTAS: duas linhas, ambas para ajudante
@@ -2036,7 +2101,7 @@ function cellHtml(sec, r, c, x){
     case 'frete': {
       const val = x.frete ? x.frete.total : 0;
       // tipo do veículo só com o tipo: "Caminhão HR" → "HR"
-      const frotaBadge = x.frete? ' <span class="badge" title="tipo do veículo">'+esc(String(x.frete.frota).replace(/^Caminhão\s+/,''))+'</span>' : '';
+      const frotaBadge = (x.frete && !x.frete.semCarga)? ' <span class="badge" title="tipo do veículo">'+esc(String(x.frete.frota).replace(/^Caminhão\s+/,''))+'</span>' : '';
       const modo = x.frete ? x.frete.modo : '';
       const modoCell = x.frete ? (x.frete.modoCell || '') : '';
       const custoDiv = (sec !== 'frotas')
@@ -2104,7 +2169,7 @@ function rowHtml(sec, r, cols){
 
 function tfootHtml(sec, cols){
   const rows = DATA[sec];
-  const n = rows.length;
+  const n = countCargas(rows, sec); // Frotas sem Nº Carga não conta como carga/veículo
   const peso = rows.reduce((a,r)=> a + numVal(r.peso), 0);
   const ent  = rows.reduce((a,r)=> a + numVal(r.entregas), 0);
   let freteTotal = 0, hasFrete = false;
@@ -2134,7 +2199,7 @@ function renderSection(sec){
   const el = document.getElementById('sec-' + sec);
   const cols = sectionCols(sec);
   const rows = DATA[sec];
-  $('#count-' + sec).textContent = rows.length ? (rows.length + ' carga(s)') : '';
+  $('#count-' + sec).textContent = rows.length ? (countCargas(rows, sec) + ' carga(s)') : '';
   const ths = cols.map(c=>{
     let cls = (c.center?'center ':'') + (c.num?'num':'');
     let attr = '';
@@ -2179,7 +2244,7 @@ function renderPool(){
 
 function renderFooter(){
   const all = [...DATA.frotas, ...DATA.capital, ...DATA.interior];
-  const n = all.length;
+  const n = countCargas(DATA.frotas, 'frotas') + DATA.capital.length + DATA.interior.length; // Frotas sem Nº Carga não conta como carga/veículo
   const peso = all.reduce((a,r)=> a + numVal(r.peso), 0);
   const ent  = all.reduce((a,r)=> a + numVal(r.entregas), 0);
   let ft = 0, fp = 0;
@@ -2408,6 +2473,7 @@ function restoreFocus(f){
 function renderAll(opts){
   opts = opts || {};
   enforceFixedFrotas();   // 1º: placas fixas -> FROTAS (sempre)
+  ensureFixedFrotas();    // 1.5º: todo veículo fixo aparece em FROTAS, mesmo sem carga
   autoMergeByPlate();     // 2º: mescla automática por veículo
   renderPool();
   renderSection('frotas');
@@ -2486,7 +2552,7 @@ async function loadMapForDate(dateStr){
     POOL = [];
     dtEntrega = '';
   }
-  for(const sec of SECTIONS) DATA[sec] = DATA[sec].map(r=>{ const o = Object.assign({dias:1, tabela:'agregado', ajudante2:'', _sel:false}, r); if(o.motorista) o.motorista = clampMotorista(o.motorista); return o; });
+  for(const sec of SECTIONS) DATA[sec] = DATA[sec].map(r=>{ const o = Object.assign({dias:1, tabela:'agregado', ajudante2:'', _sel:false}, r); if(o.motorista) o.motorista = clampMotorista(o.motorista); applyFrotaTripulacao(o); return o; });
   const f = $('#faturamento'); if(f) f.value = dateStr;
   const d = $('#dtEntrega'); if(d) d.value = dtEntrega;
 }
@@ -2688,7 +2754,7 @@ async function restoreBackup(file){
       };
       POOL = obj.map.pool || [];
       dtEntrega = obj.map.dtEntrega || '';
-      for(const sec of SECTIONS) DATA[sec] = DATA[sec].map(r=>{ const o = Object.assign({dias:1, tabela:'agregado', ajudante2:'', _sel:false}, r); if(o.motorista) o.motorista = clampMotorista(o.motorista); return o; });
+      for(const sec of SECTIONS) DATA[sec] = DATA[sec].map(r=>{ const o = Object.assign({dias:1, tabela:'agregado', ajudante2:'', _sel:false}, r); if(o.motorista) o.motorista = clampMotorista(o.motorista); applyFrotaTripulacao(o); return o; });
       await saveMapForDate(currentMapDate);
     }
     $('#faturamento').value = currentMapDate;
@@ -2790,10 +2856,11 @@ function buildCapPrint(mode, orient){
       : '<tr><td colspan="'+cols.length+'" class="cap-empty">Nenhuma carga.</td></tr>';
     const pesoTot = rows.reduce((a,r)=> a+numVal(r.peso), 0);
     const entTot  = rows.reduce((a,r)=> a+numVal(r.entregas), 0);
-    const tot = '<tr><td class="total-label">Totais ('+rows.length+')</td>' + cols.slice(1).map(c=>
+    const nCargas = countCargas(rows, sec); // Frotas sem Nº Carga não conta como carga/veículo
+    const tot = '<tr><td class="total-label">Totais ('+nCargas+')</td>' + cols.slice(1).map(c=>
       '<td class="'+(c.num?'cap-num':'')+'">'+ (c.key==='peso' && pesoTot>0 ? fmtPeso2(pesoTot)+' kg' : c.key==='entregas' && entTot>0 ? fmtNum(entTot) : '') +'</td>'
     ).join('') + '</tr>';
-    html += '<div class="section" data-sec="'+sec+'"><div class="sec-head"><h2>' + secIcon[sec] + ' ' + title + '</h2><span class="sec-count">' + rows.length + ' carga(s)</span></div>' +
+    html += '<div class="section" data-sec="'+sec+'"><div class="sec-head"><h2>' + secIcon[sec] + ' ' + title + '</h2><span class="sec-count">' + nCargas + ' carga(s)</span></div>' +
       '<table class="map-table" style="width:' + sumW + 'px;font-size:' + fs + 'px">' + colgroup +
       '<thead><tr>'+ths+'</tr></thead><tbody>'+trs+'</tbody><tfoot>'+tot+'</tfoot></table></div>';
   }
@@ -2801,7 +2868,8 @@ function buildCapPrint(mode, orient){
   const all = [...DATA.frotas, ...DATA.capital, ...DATA.interior];
   const pesoAll = all.reduce((a,r)=>a+numVal(r.peso),0);
   const entAll  = all.reduce((a,r)=>a+numVal(r.entregas),0);
-  const cards = '<div class="sum-card">' + MIC.box + '<div><span class="sum-k">Cargas</span><span class="sum-v">'+all.length+'</span></div></div>' +
+  const nAll = countCargas(DATA.frotas, 'frotas') + DATA.capital.length + DATA.interior.length;
+  const cards = '<div class="sum-card">' + MIC.box + '<div><span class="sum-k">Cargas</span><span class="sum-v">'+nAll+'</span></div></div>' +
     '<div class="sum-card">' + MIC.weight + '<div><span class="sum-k">Peso total</span><span class="sum-v">'+(pesoAll>0?fmtPeso2(pesoAll)+' kg':'—')+'</span></div></div>' +
     '<div class="sum-card">' + MIC.pkg + '<div><span class="sum-k">Entregas</span><span class="sum-v">'+(entAll>0?fmtNum(entAll):'—')+'</span></div></div>';
   html += '<div class="cap-summary">'+cards+'</div>';
@@ -2908,7 +2976,7 @@ async function planAgg(start, end){
       a.e += rows.reduce((x,r)=> x + numVal(r.entregas), 0);
       a.p += rows.reduce((x,r)=> x + numVal(r.peso), 0);
     }
-    agg.frotas += (rec.data.frotas || []).length;
+    agg.frotas += (rec.data.frotas || []).filter(rowTemCarga).length;
     const entD = (d === currentMapDate) ? (dtEntrega || '') : (rec.dtEntrega || '');
     if(entD){ if(!agg.entMin || entD < agg.entMin) agg.entMin = entD; if(!agg.entMax || entD > agg.entMax) agg.entMax = entD; }
     const m = metricsFromData(rec.data);
@@ -3278,18 +3346,18 @@ function xlsMapCompleto(){
   for(const sec of SECTIONS){
     const rows = DATA[sec];
     const titulo = sec==='frotas' ? 'FROTAS' : sec==='capital' ? 'CAPITAL' : 'INTERIOR';
-    aoa.push([titulo + ' (' + rows.length + ' carga(s))']);
+    aoa.push([titulo + ' (' + countCargas(rows, sec) + ' carga(s))']);
     aoa.push(['Placa','Destino','Nº Carga','Peso (kg)','T.Entrega','Motorista', sec==='frotas' ? 'Ajud.' : 'Transportador']);
     for(const r of rows){
       const aux = sec==='frotas' ? [r.ajudantes, r.ajudante2].map(x=> String(x||'').trim()).filter(Boolean).join(', ') : (r.transportadora||'');
       aoa.push([r.placa||'', r.destino||'', r.carga||'', numVal(r.peso), numVal(r.entregas), r.motorista||'', aux]);
     }
-    aoa.push(['Totais (' + rows.length + ')','','', rows.reduce((a,r)=>a+numVal(r.peso),0), rows.reduce((a,r)=>a+numVal(r.entregas),0), '', '']);
+    aoa.push(['Totais (' + countCargas(rows, sec) + ')','','', rows.reduce((a,r)=>a+numVal(r.peso),0), rows.reduce((a,r)=>a+numVal(r.entregas),0), '', '']);
     aoa.push([]);
   }
   const all = [...DATA.frotas, ...DATA.capital, ...DATA.interior];
   aoa.push(['RESUMO']);
-  aoa.push(['Cargas', all.length]);
+  aoa.push(['Cargas', countCargas(DATA.frotas, 'frotas') + DATA.capital.length + DATA.interior.length]);
   aoa.push(['Peso total (kg)', all.reduce((a,r)=>a+numVal(r.peso),0)]);
   aoa.push(['Entregas', all.reduce((a,r)=>a+numVal(r.entregas),0)]);
   const ws = XLSX.utils.aoa_to_sheet(aoa);
@@ -3482,7 +3550,7 @@ function relRowHtml(it){
     '<td class="num">' + inp('dias', String(c.diarias), 'numin') + '</td>' +
     '<td class="num" data-c="total" title="' + esc(c.modo) + (c.frota ? ' · ' + esc(c.frota) : '') + '">' + fmtBRL(c.total) + '</td>' +
     '<td class="num" data-c="media">' + relFmtMedia(c.media) + '</td>' +
-    '<td class="w-mot">' + inp('motorista', r.motorista || '', '', ' maxlength="20"') + '</td>' +
+    '<td class="w-mot">' + inp('motorista', r.motorista || '', '', ' maxlength="32"') + '</td>' +
     '<td class="w-transp">' + inp('transportadora', r.transportadora || '') + '</td>' +
     '<td>' + (relIsFech(r)
         ? '<span class="st-badge fech" title="Fechado para pagamento' + (r.fechId ? ' no fechamento ' + esc(r.fechId) : '') + '">Fechado</span>' +
@@ -5165,7 +5233,7 @@ function printMap(){
 }
 function printEtiquetas(){
   if(!(SESSION && SESSION.level >= 2)){ toast('🔒 Seu nível de acesso não permite o mapa', 'err'); return; }
-  const rows = [...DATA.frotas, ...DATA.capital, ...DATA.interior];
+  const rows = [...DATA.frotas.filter(rowTemCarga), ...DATA.capital, ...DATA.interior]; // uma etiqueta por CARGA
   if(!rows.length){ toast('Nenhuma carga para gerar etiquetas', 'err'); return; }
   const wrap = $('#etiq-print');
   if(!wrap) return;
@@ -5276,6 +5344,7 @@ function metricsFromData(data){
   const m = {cargas:0, peso:0, ent:0,
     capSem:0, intSem:0, capCom:0, intCom:0, capPeso:0, intPeso:0, frotasPeso:0, frotasCusto:0, frotasCargas:0, neg:0};
   const acc = (sec, r) => {
+    if(sec === 'frotas' && !rowTemCarga(r)) return; // Frotas sem Nº Carga = veículo parado: não conta como carga/veículo
     m.cargas++;
     m.peso += numVal(r.peso);
     m.ent += numVal(r.entregas);
@@ -6327,6 +6396,7 @@ function bindStatic(){
     if(field === 'placa'){
       row.placa = t.value;
       applyRegistry(row);
+      applyFrotaTripulacao(row); // motorista/ajudante padrão por placa de Frotas (quando vazios)
     } else if(field === 'carga'){
       row.carga = t.value;
       applyRotas(row); // diárias automáticas pela rota (Nº Carga ou nome)
@@ -6338,7 +6408,7 @@ function bindStatic(){
     } else if(field === 'km'){
       row.km = (t.value === '') ? '' : Math.max(0, Math.floor(num(t.value))); // km sempre inteiro e nunca negativo
     } else if(field === 'motorista'){
-      row.motorista = clampMotorista(t.value); // limite: 20 caracteres
+      row.motorista = clampMotorista(t.value); // limite: 32 caracteres
     } else if(['entregas','valorkg','custoKg','pctFrete','valorFrete','dias'].includes(field)){
       row[field] = (t.value === '') ? '' : num(t.value);
     } else {
@@ -6428,6 +6498,19 @@ function bindStatic(){
       const tr = btn.closest('tr[data-id]');
       const secEl = tr.closest('.section');
       const sec = secEl.dataset.sec;
+      const row0 = DATA[sec].find(r=> r.id === tr.dataset.id);
+      // veículo fixo de Frotas: a linha SEMPRE aparece (mesmo sem carga) —
+      // o "remover" limpa os dados do dia e mantém placa + tripulação padrão
+      if(row0 && sec === 'frotas' && isFixedPlate(row0.placa)){
+        if(!confirm('Veículo fixo de Frotas: a linha permanece no mapa (mesmo sem carga). Limpar os dados do dia?')) return;
+        const fresh = emptyRow();
+        fresh.placa = row0.placa;
+        applyFrotaTripulacao(fresh);
+        DATA[sec][DATA[sec].indexOf(row0)] = fresh;
+        renderAll();
+        toast('🧹 Dados do dia limpos — veículo fixo permanece em Frotas', 'ok');
+        return;
+      }
       if(!confirm('Remover esta linha?')) return;
       DATA[sec] = DATA[sec].filter(r=> r.id !== tr.dataset.id);
       renderAll();
@@ -7031,7 +7114,7 @@ async function init(){
 /* AUTO-CHECK DE VERSAO: avisa (somente quando roda em github.io) se a aba estiver com
    copia antiga em cache — compara o selo APP_V local com o do arquivo publicado no repo.
    Falha de rede/offline = silencioso; nunca bloqueia o uso. */
-const APP_V = '2026-09-18d';
+const APP_V = '2026-09-22c';
 (function(){
   // Selo de versão VISÍVEL no canto da tela: qualquer print/print-screen mostra qual código
   // está rodando no aparelho (cópia antiga = selo antigo/ausente). Não entra nas capturas.
