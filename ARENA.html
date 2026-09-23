@@ -140,9 +140,11 @@ tr.row-unavailable .td-placa input{background:#fee2e2;color:#b91c1c;font-weight:
 .frete-mini select{width:auto;min-width:62px;font-size:11px;padding:2px 4px}
 .frete-mini input{width:54px;min-width:44px;font-size:11px;padding:2px 4px}
 .frete-val{font-weight:700;font-size:13px;white-space:nowrap}
-/* Destino (FROTAS) por status: EM ROTA/COLETA/EM VIAGEM = cinza negrito-itálico · OFICINA = vermelho negrito */
-.dest-move{color:#6b7280;font-weight:700;font-style:italic}
-.dest-oficina{color:#dc2626;font-weight:700}
+/* Destino (FROTAS) por status: EM ROTA/COLETA/EM VIAGEM = cinza negrito-itálico · OFICINA = vermelho negrito
+   Especificidade: .map-table input{color:var(--ink)} (e o visual do mapa .map-table input{color:#0b3d78})
+   venciam .dest-move/.dest-oficina e anulavam cor/negrito/itálico. */
+.map-table input.dest-move{color:#6b7280;font-weight:700;font-style:italic}
+.map-table input.dest-oficina{color:#dc2626;font-weight:700}
 .frete-modo{font-size:10.5px;color:#92400e;background:#fef3c7;border-radius:6px;padding:1px 6px;display:inline-block;margin-top:3px;white-space:nowrap}
 .badge{display:inline-block;background:#e0f2fe;color:#075985;border-radius:999px;padding:1px 8px;font-size:10.5px;font-weight:600;margin-left:5px;white-space:nowrap}
 .custo-cell{white-space:nowrap;font-family:var(--mono);font-size:12.5px;color:#0f766e;font-weight:600}
@@ -2242,7 +2244,7 @@ function renderPool(){
 
 function renderFooter(){
   const all = [...DATA.frotas, ...DATA.capital, ...DATA.interior];
-  const n = all.length;
+  const n = countCargas(DATA.frotas, 'frotas') + DATA.capital.length + DATA.interior.length; // Frotas sem Nº Carga não conta como carga/veículo
   const peso = all.reduce((a,r)=> a + numVal(r.peso), 0);
   const ent  = all.reduce((a,r)=> a + numVal(r.entregas), 0);
   let ft = 0, fp = 0;
@@ -7112,7 +7114,7 @@ async function init(){
 /* AUTO-CHECK DE VERSAO: avisa (somente quando roda em github.io) se a aba estiver com
    copia antiga em cache — compara o selo APP_V local com o do arquivo publicado no repo.
    Falha de rede/offline = silencioso; nunca bloqueia o uso. */
-const APP_V = '2026-09-22b';
+const APP_V = '2026-09-22c';
 (function(){
   // Selo de versão VISÍVEL no canto da tela: qualquer print/print-screen mostra qual código
   // está rodando no aparelho (cópia antiga = selo antigo/ausente). Não entra nas capturas.
