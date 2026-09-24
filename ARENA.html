@@ -3085,20 +3085,33 @@ async function ftLogin(user, pass){
   if(!res.ok || !data.access_token) throw new Error((data && (data.error_description || data.msg || data.error)) || 'login FricoTrack falhou (' + res.status + ')');
   return {token: data.access_token, userId: (data.user && data.user.id) || null};
 }
+/* O FricoTrack recebe somente veículos com Ordem (Nº Carga) real.
+   —, 0 e vazio são marcadores de ausência de carga e nunca devem ser enviados. */
+function ftTemOrdemValida(carga){
+  const ordem = String(carga == null ? '' : carga)
+    .normalize('NFKC').replace(/[\u200B-\u200D\uFEFF]/g, '').trim();
+  if(!ordem) return false;
+  const compacta = ordem.replace(/\s+/g, '');
+  // Trata como ausência o travessão e suas variantes comuns, além de zero numérico formatado.
+  if(/^[-\u2010-\u2015\u2212]+$/.test(compacta)) return false;
+  if(/^[+\-\u2212]?0+(?:[.,]0+)?$/.test(compacta)) return false;
+  return true;
+}
 /* linhas do dia aberto -> payload veiculos_esperados (mesmos campos do site) */
 function buildFtRows(dateIso){
   const rows = [];
   for(const sec of SECTIONS){
     for(const r of (DATA[sec] || [])){
       const placa = String(r.placa || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
-      if(!placa) continue;
+      const carga = String(r.carga == null ? '' : r.carga).trim();
+      if(!placa || !ftTemOrdemValida(carga)) continue;
       const aj = sec === 'frotas' ? [r.ajudantes, r.ajudante2].filter(x=> x && String(x).trim()).join(' / ') : '';
       rows.push({
         data_referencia: dateIso,
         grupo: FT_GRUPO,
         placa: placa,
         destino: String(r.destino || '').trim() || null,
-        carga_id: String(r.carga || '').trim() || null,
+        carga_id: carga,
         peso: numVal(r.peso) > 0 ? numVal(r.peso) : null,
         qtd_entregas: numVal(r.entregas) > 0 ? Math.round(numVal(r.entregas)) : null,
         motorista: String(r.motorista || '').trim() || null,
@@ -3112,24 +3125,27 @@ function buildFtRows(dateIso){
   return rows;
 }
 async function ftSendDay(dateIso, rows, token, userId){
-  const datas = [...new Set(rows.map(r=> r.data_referencia))];
+  // Segunda validação na fronteira da API: nunca apaga/substitui nem envia ordens inválidas.
+  const sendRows = (rows || []).filter(r=> r && ftTemOrdemValida(r.carga_id));
+  if(!sendRows.length) return 0;
+  const datas = [...new Set(sendRows.map(r=> r.data_referencia))];
   for(const d of datas){
     const r1 = await fetch(FT_SUPA + '/rest/v1/veiculos_esperados?data_referencia=eq.' + encodeURIComponent(d), {method:'DELETE', headers: ftHeaders(token)});
     if(!r1.ok) throw new Error('delete dia ' + d + ': ' + r1.status);
   }
-  const ids = [...new Set(rows.map(r=> r.carga_id).filter(c=> c))];
+  const ids = [...new Set(sendRows.map(r=> r.carga_id).filter(c=> c))];
   if(ids.length){
     const q = '?carga_id=in.(' + ids.map(x=> encodeURIComponent('"' + x + '"')).join(',') + ')&walk_in=eq.false&conferido=eq.false&status_autorizacao=neq.recusado';
     const r2 = await fetch(FT_SUPA + '/rest/v1/veiculos_esperados' + q, {method:'DELETE', headers: ftHeaders(token)});
     if(!r2.ok) throw new Error('delete cargas: ' + r2.status);
   }
-  const payload = rows.map(r=> Object.assign({}, r, {criado_por: userId}));
+  const payload = sendRows.map(r=> Object.assign({}, r, {criado_por: userId}));
   const r3 = await fetch(FT_SUPA + '/rest/v1/veiculos_esperados', {method:'POST', headers: ftHeaders(token), body: JSON.stringify(payload)});
   if(!r3.ok){
     const e = await r3.json().catch(()=> ({}));
     throw new Error((e && (e.message || e.details || e.hint)) || ('insert ' + r3.status));
   }
-  return rows.length;
+  return sendRows.length;
 }
 let FT_STATE = null;
 function ftClose(){ const m=$('#ft-mask'); if(m) m.remove(); }
@@ -3148,9 +3164,9 @@ function ftOpenConfirm(){
     '<div class="modal modal-edc ft-modal">' +
       '<div class="fech-head"><h3>📤 FricoTrack — enviar faturamento de ' + fmtBR(currentMapDate) + '</h3><button class="x" type="button" id="ft-x" title="Cancelar">✕</button></div>' +
       '<p class="ft-chips">' + chip('Frotas', cnt.frotas) + chip('Capital', cnt.capital) + chip('Interior', cnt.interior) + chip('Total de veículos', rows.length) + '</p>' +
-      '<p class="hint">Envia os veículos do dia aberto para a lista de <b>esperados</b> da portaria no FricoTrack, com placa, rota/destino, ordem, peso, entregas, motorista, transportador/ajudantes e tipo de veículo. <b>Como no site:</b> o envio substitui a lista desta data lá — reenviar corrige. Sem planilha e sem bot.</p>' +
+      '<p class="hint">Envia para a lista de <b>esperados</b> da portaria no FricoTrack somente veículos com placa e Nº Carga válida. Ordens <b>—</b>, <b>0</b> ou vazias são ignoradas. Inclui rota/destino, peso, entregas, motorista, transportador/ajudantes e tipo de veículo. <b>Como no site:</b> o envio substitui a lista desta data lá — reenviar corrige. Sem planilha e sem bot.</p>' +
       '<div class="ft-scroll"><table class="ft-tbl"><thead><tr><th>Placa</th><th>Destino / Rota</th><th>Ordem</th><th class="num">Peso (kg)</th><th class="num">Entregas</th><th>Motorista</th><th>Transportador / Ajudantes</th><th>Veículo</th></tr></thead><tbody>' +
-      (rows.length? rows.map(r=> '<tr><td class="mono"><b>' + esc(r.placa) + '</b></td><td>' + esc(r.destino || '—') + '</td><td class="mono">' + esc(r.carga_id || '—') + '</td><td class="num">' + (r.peso? fmtPeso2(r.peso):'—') + '</td><td class="num">' + (r.qtd_entregas || '—') + '</td><td>' + esc(r.motorista || '—') + '</td><td>' + esc(r.transportadora || r.ajudantes || '—') + '</td><td>' + esc(r.tipo_veiculo || '—') + '</td></tr>').join('') : '<tr><td colspan="8">Nenhuma carga com placa no dia aberto.</td></tr>') +
+      (rows.length? rows.map(r=> '<tr><td class="mono"><b>' + esc(r.placa) + '</b></td><td>' + esc(r.destino || '—') + '</td><td class="mono">' + esc(r.carga_id || '—') + '</td><td class="num">' + (r.peso? fmtPeso2(r.peso):'—') + '</td><td class="num">' + (r.qtd_entregas || '—') + '</td><td>' + esc(r.motorista || '—') + '</td><td>' + esc(r.transportadora || r.ajudantes || '—') + '</td><td>' + esc(r.tipo_veiculo || '—') + '</td></tr>').join('') : '<tr><td colspan="8">Nenhum veículo com placa e Nº Carga válida no dia aberto.</td></tr>') +
       '</tbody></table></div>' +
       '<div class="ft-creds">' +
         '<label>Usuário FricoTrack (e-mail)<input type="text" id="ft-user" autocomplete="username" placeholder="seu@email.com"></label>' +
@@ -7114,7 +7130,7 @@ async function init(){
 /* AUTO-CHECK DE VERSAO: avisa (somente quando roda em github.io) se a aba estiver com
    copia antiga em cache — compara o selo APP_V local com o do arquivo publicado no repo.
    Falha de rede/offline = silencioso; nunca bloqueia o uso. */
-const APP_V = '2026-09-22c';
+const APP_V = '2026-09-24a';
 (function(){
   // Selo de versão VISÍVEL no canto da tela: qualquer print/print-screen mostra qual código
   // está rodando no aparelho (cópia antiga = selo antigo/ausente). Não entra nas capturas.
