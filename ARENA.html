@@ -1280,28 +1280,33 @@ html.gerencial-request #settings{display:none!important}
   </section>
 
   <section id="sec-users">
-    <h3>👥 Usuários &amp; permissões</h3>
-    <p class="hint">Nível 1 = Indicadores · 2 = Mapa sem custo/valores · 3 = Visualização completa (sem edição) · 4 = Administrador. O administrador é <b>único</b> (FricoLog): não é possível criar outro nível 4, nem editar/excluir o próprio admin.</p>
-    <div class="reg-head" style="grid-template-columns:1fr 1.3fr 34px 34px"><span>Usuário</span><span>Nível</span><span></span><span></span></div>
-    <div id="users-rows" class="reg-rows"></div>
-    <div class="reg-add users-add">
-      <input id="user-add-name" class="mono" placeholder="usuário" maxlength="24">
-      <select id="user-add-level">
-        <option value="1">1 · Indicadores</option>
-        <option value="2">2 · Mapa s/ custo</option>
-        <option value="3">3 · Visão completa</option>
-      </select>
-      <input id="user-add-pass" type="password" placeholder="senha (mín. 6)" maxlength="64">
-      <button class="btn mini" id="btn-user-add" title="Criar usuário">＋</button>
+    <div id="users-mgmt-block">
+      <h3>👥 Usuários &amp; permissões</h3>
+      <p class="hint">Nível 1 = Indicadores · 2 = Mapa sem custo/valores · 3 = Visualização completa (sem edição) · 4 = Administrador (único) · 5 = Roteirização. O administrador é <b>único</b> (FricoLog): não é possível criar outro nível 4, nem editar/excluir o próprio admin.</p>
+      <div class="reg-head" style="grid-template-columns:1fr 1.3fr 34px 34px"><span>Usuário</span><span>Nível</span><span></span><span></span></div>
+      <div id="users-rows" class="reg-rows"></div>
+      <div class="reg-add users-add">
+        <input id="user-add-name" class="mono" placeholder="usuário" maxlength="24">
+        <select id="user-add-level">
+          <option value="1">1 · Indicadores</option>
+          <option value="2">2 · Mapa s/ custo</option>
+          <option value="3">3 · Visão completa</option>
+          <option value="5">5 · Roteirização</option>
+        </select>
+        <input id="user-add-pass" type="password" placeholder="senha (mín. 6)" maxlength="64">
+        <button class="btn mini" id="btn-user-add" title="Criar usuário">＋</button>
+      </div>
+      <label class="lbl" style="margin-top:12px">Alterar minha senha</label>
+      <div class="reg-add users-pass">
+        <input id="user-cur-pass" type="password" placeholder="senha atual">
+        <input id="user-new-pass" type="password" placeholder="nova senha (mín. 6)" maxlength="64">
+        <button class="btn mini" id="btn-user-pass" title="Alterar minha senha">🔑</button>
+      </div>
     </div>
-    <label class="lbl" style="margin-top:12px">Alterar minha senha</label>
-    <div class="reg-add users-pass">
-      <input id="user-cur-pass" type="password" placeholder="senha atual">
-      <input id="user-new-pass" type="password" placeholder="nova senha (mín. 6)" maxlength="64">
-      <button class="btn mini" id="btn-user-pass" title="Alterar minha senha">🔑</button>
+    <div id="sec-audit-block">
+      <h3 style="margin-top:12px">📜 Registro de auditoria (últimas ações)</h3>
+      <div id="audit-rows" class="audit-rows" style="margin-top:6px"></div>
     </div>
-    <label class="lbl" style="margin-top:12px">📜 Registro de auditoria (últimas ações)</label>
-    <div id="audit-rows" class="audit-rows"></div>
   </section>
 </aside>
 
@@ -2754,8 +2759,8 @@ function snapshotMap(){
 function scheduleSave(){
   // O Painel Gerencial é uma guia de consulta: nunca agenda gravação da página de relatório.
   if(GERENCIAL_PAGE) return;
-  // AUDITORIA: apenas o administrador edita — demais níveis não geram escrita no storage
-  if(!(SESSION && SESSION.level === 4)) return;
+  // AUDITORIA: apenas nível 4 (admin) e 5 (roteirização) editam — demais níveis não geram escrita no storage
+  if(!canEditOperational()) return;
   dirty = true;
   setSaveState('saving');
   clearTimeout(saveTimer);
@@ -2809,7 +2814,7 @@ async function switchToDate(dateStr){
   if(!dateStr || dateStr === currentMapDate){ renderAll(); return; }
   clearTimeout(saveTimer);
   // A guia gerencial é somente leitura: não pode sobrescrever o mapa ao trocar a data.
-  if(!GERENCIAL_PAGE && SESSION && SESSION.level === 4) await saveMapForDate(currentMapDate);
+  if(!GERENCIAL_PAGE && canEditOperational()) await saveMapForDate(currentMapDate);
   currentMapDate = dateStr;
   await loadMapForDate(currentMapDate);
   renderAll();
@@ -2877,7 +2882,7 @@ function saveSettings(){
 
 /* ================= Importação de planilha ================= */
 async function importPlanilha(file){
-  if(!requireEdit()) return;
+  if(!requireOperational()) return;
   if(typeof XLSX === 'undefined'){ toast('❌ Biblioteca XLSX não carregada (sem internet para o CDN?)', 'err'); return; }
   try{
     const buf = await file.arrayBuffer();
@@ -2938,7 +2943,7 @@ async function importPlanilha(file){
 
 /* ================= Backup / Restaurar ================= */
 function backup(){
-  if(!requireAdmin()) return;
+  if(!requireOperational()) return;
   const obj = {
     app:'mapa-carregamento', version:1, exportedAt:new Date().toISOString(),
     mapDate: currentMapDate,
@@ -2960,7 +2965,7 @@ function backup(){
   toast('💾 Backup gerado (' + a.download + ')', 'ok');
 }
 async function restoreBackup(file){
-  if(!requireAdmin()) return;
+  if(!requireDayDeletion()) return;
   try{
     const obj = JSON.parse(await file.text());
     if(!obj || obj.app !== 'mapa-carregamento'){ toast('❌ Arquivo de backup inválido', 'err'); return; }
@@ -3399,6 +3404,7 @@ async function ftSendDay(dateIso, rows, token, userId){
 let FT_STATE = null;
 function ftClose(){ const m=$('#ft-mask'); if(m) m.remove(); }
 function ftOpenConfirm(){
+  if(!requireOperational()) return;
   ftClose();
   const rows = buildFtRows(currentMapDate);
   const cnt = {frotas:0, capital:0, interior:0};
@@ -3433,6 +3439,7 @@ function ftOpenConfirm(){
   $('#ft-ok').addEventListener('click', ftDoSend);
 }
 async function ftDoSend(){
+  if(!requireOperational()) return;
   const btn=$('#ft-ok'); if(btn){ btn.disabled = true; btn.textContent = '⏳ Enviando…'; }
   try{
     const u = String(($('#ft-user')||{}).value || '').trim();
@@ -3558,6 +3565,7 @@ function kpOpenPreview(){
   $('#kp-ok').addEventListener('click', ()=> kpApply());
 }
 async function kpApply(){
+  if(!requireOperational()) return;
   const st=KP_STATE; if(!st) return;
   // REGRAS: o scan já deixa FECHADAS de fora; negociadas entram só p/ atualizar o KM
   // (o valor negociado não depende do KM no calcularFrete — permanece intacto)
@@ -3587,6 +3595,7 @@ async function kpApply(){
   toast('✅ KM real aplicado em ' + n + ' carga(s) não fechada(s)' + (st.scan.fechSkipped? ' · ' + st.scan.fechSkipped + ' fechada(s) intocada(s)' : '') + ' · sigla KM verde = ajustada', 'ok');
 }
 function kmPortStart(file){
+  if(!requireOperational()) return;
   portariaParseFile(file).then(async (parsed)=>{
     if(parsed.stats.header<0){ toast('❌ Planilha sem as colunas "Carga" e "KM Rodado"', 'err'); return; }
     if(!parsed.map.size){ toast('❌ Nenhum KM válido (>0) na planilha', 'err'); return; }
@@ -3692,7 +3701,7 @@ function relNormalizeRec(rec){
   return rec;
 }
 async function relLoad(start, end){
-  if(!isAdmin()) return false;
+  if(!canEditOperational()) return false;
   start = String(start || ''); end = String(end || '');
   if(!/^\d{4}-\d{2}-\d{2}$/.test(start) || !/^\d{4}-\d{2}-\d{2}$/.test(end) || start > end){
     toast('Período inválido — verifique as datas', 'err'); return false;
@@ -3796,7 +3805,7 @@ function relApplyFilters(){
 
 /* ---- renderização ---- */
 function relRowHtml(it){
-  const r = it.row, c = it.calc, dis = (isAdmin() && !relIsFech(r)) ? '' : ' disabled';
+  const r = it.row, c = it.calc, dis = (canEditOperational() && !relIsFech(r)) ? '' : ' disabled';
   const inp = (field, value, cls, extra) =>
     '<input type="text" class="' + (cls || '') + '" data-field="' + field + '" value="' + esc(value) + '"' + (extra || '') + dis + ' autocomplete="off">';
   const pesoTxt = (r.peso === '' || r.peso == null) ? '' : fmtPeso2(r.peso);
@@ -3965,7 +3974,7 @@ function bindRelTable(){
   body.addEventListener('input', e=>{
     const t = e.target;
     if(!t || !t.dataset || !t.dataset.field) return;
-    if(!isAdmin()) return;                       // trava de segurança (defesa em profundidade)
+    if(!canEditOperational()) return;            // trava de segurança (defesa em profundidade)
     const tr = t.closest('tr[data-key]'); if(!tr) return;
     const it = relFindItem(tr.getAttribute('data-key')); if(!it) return;
     if(relIsFech(it.row)){ toast('🔒 Carga FECHADA não pode ser editada — use o ↺ da linha (ou o histórico) p/ reabrir', 'err'); return; }
@@ -4069,7 +4078,7 @@ function relWriteXlsx(items, start, end, filtrado){
 }
 
 async function relDownload(filtrado){
-  if(!requireAdmin()) return;
+  if(!requireOperational()) return;
   if(!REL.loaded){ toast('Carregue um período antes de baixar', 'err'); return; }
   await relFlush();                                  // o Excel sai com o que já foi gravado
   for(const it of REL.items) it.calc = relCalc(it.sec, it.row, it.d, it.entrega);
@@ -4080,14 +4089,14 @@ async function relDownload(filtrado){
 }
 /* atalho mantido por compatibilidade: baixa TUDO do período sem abrir a tela */
 async function xlsRelatorio(start, end){
-  if(!requireAdmin()) return;
+  if(!requireOperational()) return;
   if(!(await relLoad(start, end))) return;
   relWriteXlsx(REL.items, REL.start, REL.end, false);
 }
 
 /* ---- abrir / fechar ---- */
 async function openReportXls(){
-  if(!requireAdmin()) return;
+  if(!requireOperational()) return;
   const s = relEl('rx-start'), e = relEl('rx-end');
   if(s && !s.value && currentMapDate) s.value = currentMapDate;
   if(e && !e.value && currentMapDate) e.value = currentMapDate;
@@ -4231,7 +4240,7 @@ async function fechCopyOpenZap(g, gs, pos){
 /* ---- janela ✏️: edita os campos da carga direto no mapa do dia dela ---- */
 let EDC_KEY = null;
 function abrirEdicaoCarga(key){
-  if(!requireAdmin()) return;
+  if(!requireOperational()) return;
   const it = relFindItem(key); if(!it) return;
   if(relIsFech(it.row)){ toast('🔒 Carga FECHADA não pode ser editada — use o ↺ da linha (ou o histórico) p/ reabrir', 'err'); return; }
   EDC_KEY = key;
@@ -4323,7 +4332,7 @@ async function salvarEdicaoCarga(){
 }
 /* alterna as marcadas entre PENDENTE <-> EM ANÁLISE (antes de pagar, p/ poder editar/incluir/excluir) */
 async function fechToggleAnalise(){
-  if(!requireAdmin()) return;
+  if(!requireOperational()) return;
   const sel = fechGroups().map(g=> Object.assign({g: g}, fechGroupSel(g))).filter(x=> x.itens.length);
   if(!sel.length){ toast('Marque ao menos uma carga antes de mudar o status', 'err'); return; }
   const todas = sel.every(x=> x.itens.every(it=> it.row.stFech === 'analise'));
@@ -4339,7 +4348,7 @@ async function fechToggleAnalise(){
 }
 let FECH_COPY_IDX = 0;
 function fechCopyNext(){
-  if(!requireAdmin()) return;
+  if(!requireOperational()) return;
   const alvos = fechGroups().map(g=> Object.assign({g: g}, fechGroupSel(g))).filter(x=> x.itens.length && (TRANSP_ZAP[x.g.key] || ''));
   if(!alvos.length){ toast('Nenhuma transportadora MARCADA com WhatsApp cadastrado', 'err'); return; }
   if(FECH_COPY_IDX >= alvos.length){ FECH_COPY_IDX = 0; toast('✅ Ciclo dos marcados completo — recomeçando do primeiro', 'ok'); }
@@ -4397,7 +4406,7 @@ async function fechCopyPng(g, gs){
 }
 /* percorre os grupos marcados COM whatsapp e manda o print + resumo de cada um */
 async function waAutoSendAll(){
-  if(!requireAdmin()) return;
+  if(!requireOperational()) return;
   if(typeof fetch === 'undefined'){ toast('❌ Navegador sem fetch p/ chamar a API', 'err'); return; }
   const alvos = fechGroups().map(g=> Object.assign({g: g}, fechGroupSel(g))).filter(x=> x.itens.length && (TRANSP_ZAP[x.g.key] || ''));
   if(!alvos.length){ toast('Nenhuma transportadora MARCADA com WhatsApp cadastrado', 'err'); return; }
@@ -4538,7 +4547,7 @@ function fechPrintPng(g, gs){
 }
 function openFech(){
   FECH_COPY_IDX = 0;
-  if(!requireAdmin()) return;
+  if(!requireOperational()) return;
   if(!REL.loaded){ toast('Carregue um período no relatório antes de fechar', 'err'); return; }
   FECH_SEL = {};
   FECH_ST = '';
@@ -4946,7 +4955,7 @@ function fechRefAsk(nCargas, total){
 
 /* ---- confirmar o fechamento ---- */
 async function fechConfirm(){
-  if(!requireAdmin()) return;
+  if(!requireOperational()) return;
   const sel = fechGroups().map(g=> Object.assign({g: g}, fechGroupSel(g))).filter(x=> x.itens.length);
   if(!sel.length){ toast('Marque ao menos uma carga para fechar', 'err'); return; }
   // pergunta a referência de quinzena (só 4 opções: mês anterior/atual · Q1/Q2)
@@ -5336,7 +5345,7 @@ function fhResumoTexto(rows){
 }
 let FH_RES_ROWS = [];
 function openFhResumo(){
-  if(!requireAdmin()) return;
+  if(!requireOperational()) return;
   const keys = fhResumoKeysSel();
   if(!keys.length){ toast('Marque ao menos uma quinzena (checkbox no cabeçalho de cada mês) p/ resumir', 'err'); return; }
   const rows = fhResumoRows(keys);
@@ -5431,10 +5440,10 @@ function retRender(){
     : '<div class="empty">Nenhuma carga fechada nos critérios escolhidos.</div>';
   relEl('ret-ok').disabled = !list.length;
 }
-function openRet(){ if(!requireAdmin()) return; relEl('ret-mask').hidden = false; retRender(); }
+function openRet(){ if(!requireOperational()) return; relEl('ret-mask').hidden = false; retRender(); }
 function closeRet(){ relEl('ret-mask').hidden = true; }
 async function retConfirm(){
-  if(!requireAdmin()) return;
+  if(!requireOperational()) return;
   const st = relEl('ret-st').value;
   const cbs = Array.from(relEl('ret-list').querySelectorAll('input[type="checkbox"]:checked'));
   if(!cbs.length){ toast('Marque ao menos uma carga para retornar', 'err'); return; }
@@ -5470,7 +5479,7 @@ function abrirMenuReopenRow(btn, it){
   }, 0);
 }
 async function fechReopenSel(id, st, keys){
-  if(!requireAdmin()) return;
+  if(!requireOperational()) return;
   const f = FECHAMENTOS.find(x=> x.id === id); if(!f) return;
   if(!keys || !keys.size){ toast('Marque ao menos uma carga para reabrir', 'err'); return; }
   const datas = new Set(); keys.forEach(k=> datas.add(k.split('|')[0]));
@@ -5533,7 +5542,7 @@ function renderTranspCodes(){
 }
 /* Todas as cargas de Capital + Interior de um período (com valores) + resumo por dia */
 function openPeriodXls(){
-  if(!requireAdmin()) return;
+  if(!requireOperational()) return;
   const ym = (currentMapDate || '').slice(0,7);
   const s = $('#px-start'), e = $('#px-end');
   if(s && ym.length === 7) s.value = ym + '-01';
@@ -5542,7 +5551,7 @@ function openPeriodXls(){
   if(mask) mask.hidden = false;
 }
 async function xlsPeriodo(start, end){
-  if(!requireAdmin()) return;
+  if(!requireOperational()) return;
   if(typeof XLSX === 'undefined'){ toast('❌ Biblioteca XLSX não carregada (sem internet para o CDN?)', 'err'); return; }
   start = String(start||''); end = String(end||'');
   if(!/^\d{4}-\d{2}-\d{2}$/.test(start) || !/^\d{4}-\d{2}-\d{2}$/.test(end) || start > end){ toast('Período inválido — verifique as datas', 'err'); return; }
@@ -6144,7 +6153,7 @@ async function abrirPainelGerencial(){
   try{ const s = sessionStorage.getItem('mapa:session'); if(s) novaGuia.sessionStorage.setItem('mapa:session', s); }catch(e){}
   try{ novaGuia.document.title = 'Abrindo Painel Gerencial…'; }catch(e){}
   try{
-    if(SESSION.level === 4 && dirty){ clearTimeout(saveTimer); await saveMapForDate(currentMapDate); }
+    if(canEditOperational() && dirty){ clearTimeout(saveTimer); await saveMapForDate(currentMapDate); }
     novaGuia.location.replace(url.toString());
   }catch(err){
     try{ novaGuia.close(); }catch(e){}
@@ -6523,7 +6532,7 @@ function renderDashDaily(){
     '</div>';
   const dailyEl = $('#dash-daily');
   const rowsDesc = [...DASH.days].reverse();
-  const admCol = isAdmin();
+  const admCol = canDeleteDay();
   if(dailyEl) dailyEl.innerHTML = rowsDesc.length ?
     '<table class="dash-table"><thead><tr>' +
     '<th>Data</th><th>Cargas'+(showFrotas?'':' (Cap.+Int.)')+'</th><th>Peso (kg)'+(showFrotas?'':' (Cap.+Int.)')+'</th><th>Capital (R$)</th><th>Peso Cap. (kg)</th><th>Custo/kg Cap.</th><th>Interior (R$)</th><th>Peso Int. (kg)</th><th>Custo/kg Int.</th><th>Sem neg. (R$)</th><th>Economia (R$)</th><th>Econ. %</th>' +
@@ -6623,7 +6632,8 @@ const PERM = {
   1: {label:'Indicadores',              map:false, cost:false, edit:false, admin:false},
   2: {label:'Mapa (sem custo/valores)', map:true,  cost:false, edit:false, admin:false},
   3: {label:'Visualização completa',    map:true,  cost:true,  edit:false, admin:false},
-  4: {label:'Administrador',            map:true,  cost:true,  edit:true,  admin:true}
+  4: {label:'Administrador',            map:true,  cost:true,  edit:true,  admin:true},
+  5: {label:'Roteirização',             map:true,  cost:true,  edit:true,  admin:false}
 };
 /* ===== Autenticação real (Supabase Auth) =====
    AUDITORIA: substitui o antigo sistema de login caseiro (hash local, por
@@ -6812,16 +6822,62 @@ async function checkSessionExpiry(){
   }
 }
 
-/* --- Permissões (fonte única de verdade) --- */
+/* --- Permissões e capacidades explícitas (fonte única de verdade) --- */
 function perm(){ return (SESSION && PERM[SESSION.level]) || PERM[1]; }
-function isAdmin(){ return !!SESSION && SESSION.level === 4; }
+
+// 1. Edição operacional: Níveis 4 (Administrador) e 5 (Roteirização)
+function canEditOperational(){
+  return !!SESSION && (SESSION.level === 4 || SESSION.level === 5);
+}
+function requireEdit(){
+  if(!canEditOperational()){ toast('🔒 Seu nível de acesso é somente leitura', 'err'); return false; }
+  return true;
+}
+function requireOperational(){
+  if(!canEditOperational()){ audit('acao-bloqueada', 'sem permissão operacional', false); toast('🔒 Ação restrita à operação (Roteirização / Administrador)', 'err'); return false; }
+  return true;
+}
+
+// 2. Gestão de usuários e senhas: estritamente Nível 4 (Administrador único)
+function canManageUsers(){
+  return !!SESSION && SESSION.level === 4;
+}
+function requireUserManagement(){
+  if(!canManageUsers()){ audit('acao-bloqueada', 'sem permissão de gestão de usuários', false); toast('🔒 Gestão de usuários e senhas restrita ao administrador', 'err'); return false; }
+  return true;
+}
+
+// 3. Exclusão, limpeza e restauração de dias: estritamente Nível 4 (Administrador único)
+function canDeleteDay(){
+  return !!SESSION && SESSION.level === 4;
+}
+function requireDayDeletion(){
+  if(!canDeleteDay()){ audit('historico-bloqueado', 'sem permissão de exclusão de dia', false); toast('🔒 Exclusão, limpeza ou restauração de dias restrita ao administrador', 'err'); return false; }
+  return true;
+}
+
+// Administrador pleno do sistema (nível 4 único)
+function isAdmin(){
+  return !!SESSION && SESSION.level === 4;
+}
 function requireAdmin(){
   if(!isAdmin()){ audit('acao-bloqueada', 'sem permissão de admin', false); toast('🔒 Ação restrita ao administrador', 'err'); return false; }
   return true;
 }
-function requireEdit(){
-  if(!(SESSION && SESSION.level === 4)){ toast('🔒 Seu nível de acesso é somente leitura', 'err'); return false; }
-  return true;
+
+function canViewTopbarButton(id){
+  if(!SESSION) return false;
+  // Apenas Administrador único (nível 4) pode limpar ou restaurar backup (ações destrutivas do dia)
+  if(id === 'btn-clear' || id === 'btn-restore') return canDeleteDay();
+  // Ferramentas operacionais: Administrador (4) e Roteirização (5)
+  if(['btn-import','btn-kmport','btn-ftrack','btn-backup','btn-xls-per','btn-ff','btn-reclass','btn-settings'].includes(id)){
+    return canEditOperational();
+  }
+  // Indicadores: nível 3+ (3, 4, 5)
+  if(id === 'btn-dash') return SESSION.level >= 3;
+  // Visualização e exportações básicas do mapa: nível 2+
+  const min = TOPBAR_BTN_MIN[id] || 2;
+  return SESSION.level >= min;
 }
 
 /* --- Aplica a sessão ao layout (nível de acesso visível na UI) --- */
@@ -6829,8 +6885,8 @@ function applySession(){
   const body = document.body;
   if(!body) return;
   body.classList.toggle('logged-in', !!SESSION);
-  body.classList.toggle('readonly', !!SESSION && SESSION.level < 4);
-  ['lvl-1','lvl-2','lvl-3','lvl-4'].forEach(c=> body.classList.remove(c));
+  body.classList.toggle('readonly', !canEditOperational());
+  ['lvl-1','lvl-2','lvl-3','lvl-4','lvl-5'].forEach(c=> body.classList.remove(c));
   if(SESSION) body.classList.add('lvl-' + SESSION.level);
   const chip = $('#user-chip'); if(chip) chip.hidden = !SESSION;
   if(SESSION){
@@ -6852,8 +6908,8 @@ function applySession(){
   gerencialAccessState();
   updateGerencialHead();
   if(GERENCIAL_PAGE) renderGerencialMap();
-  const ss = $('#save-state'); if(ss) ss.style.display = (SESSION && SESSION.level === 4) ? '' : 'none';
-  const dt = $('#dtEntrega'); if(dt) dt.disabled = !(SESSION && SESSION.level === 4);
+  const ss = $('#save-state'); if(ss) ss.style.display = canEditOperational() ? '' : 'none';
+  const dt = $('#dtEntrega'); if(dt) dt.disabled = !canEditOperational();
   const cr = $('#capture-root');
   if(cr){
     const noCost = !!SESSION && SESSION.level === 2;
@@ -6862,14 +6918,16 @@ function applySession(){
   }
   for(const id of Object.keys(TOPBAR_BTN_MIN)){
     const el = document.getElementById(id);
-    if(el) el.style.display = (SESSION && SESSION.level >= TOPBAR_BTN_MIN[id]) ? '' : 'none';
+    if(el) el.style.display = canViewTopbarButton(id) ? '' : 'none';
   }
+  const umb = $('#users-mgmt-block');
+  if(umb) umb.hidden = !canManageUsers();
   disableForLevel();
   renderUsers();
   renderAudit();
 }
 function disableForLevel(){
-  const canEdit = !!(SESSION && SESSION.level === 4);
+  const canEdit = canEditOperational();
   const root = $('#capture-root');
   if(root && typeof root.querySelectorAll === 'function'){
     const els = root.querySelectorAll('input,select,textarea');
@@ -6881,6 +6939,7 @@ function disableForLevel(){
 /* --- Gerência de usuários (via Edge Function admin-users, com service_role
    seguro no servidor — a senha nunca é validada/manipulada só no navegador) --- */
 async function callAdminUsers(action, payload){
+  if(!canManageUsers()) return {ok:false, msg:'Apenas o administrador pode gerenciar usuários.'};
   if(!SESSION || !SESSION.access_token) return {ok:false, msg:'Sem sessão.'};
   try{
     const res = await fetch(SUPA_FUNCTIONS + '/admin-users', {
@@ -6899,13 +6958,13 @@ function validateNewUser(nameRaw, pass, level){
   const name = String(nameRaw==null?'':nameRaw).trim();
   if(!validUsername(name)) return {ok:false, msg:'Usuário inválido (2–24 caracteres; letras, números, ponto, espaço, @, _ ou -).'};
   const lv = parseInt(level, 10);
-  if(![1,2,3].includes(lv)) return {ok:false, msg:'Só é possível criar níveis 1 a 3 (o administrador é único).'};
+  if(![1,2,3,5].includes(lv)) return {ok:false, msg:'Só é possível criar níveis 1, 2, 3 e 5 (o administrador é único).'};
   if(typeof pass !== 'string' || pass.length < 6) return {ok:false, msg:'Senha com mínimo de 6 caracteres.'};
   if(pass.length > 64) return {ok:false, msg:'Senha muito longa (máx. 64).'};
   return {ok:true, key: normUser(name), name, level: lv};
 }
 async function doAddUser(nameRaw, pass, level){
-  if(!requireAdmin()) return {ok:false, msg:'Sem permissão.'};
+  if(!requireUserManagement()) return {ok:false, msg:'Sem permissão.'};
   const v = validateNewUser(nameRaw, pass, level);
   if(!v.ok){ audit('user-criacao-recusada', v.msg, false); return v; }
   const r = await callAdminUsers('create_user', {username: v.key, password: pass, level: v.level, name: v.name});
@@ -6915,15 +6974,15 @@ async function doAddUser(nameRaw, pass, level){
   return {ok:true};
 }
 async function doEditUserLevel(userId, level){
-  if(!requireAdmin()) return {ok:false, msg:'Sem permissão.'};
+  if(!requireUserManagement()) return {ok:false, msg:'Sem permissão.'};
   const lv = parseInt(level, 10);
-  if(![1,2,3].includes(lv)) return {ok:false, msg:'Não é possível promover a Administrador (nível 4 é exclusivo).'};
+  if(![1,2,3,5].includes(lv)) return {ok:false, msg:'Não é possível promover a Administrador (nível 4 é exclusivo).'};
   const r = await callAdminUsers('set_level', {userId, level: lv});
   if(r.ok){ const u = USERS[userId]; audit('user-editado', (u ? u.name : userId) + ' → nível ' + lv); await renderUsers(); }
   return r;
 }
 async function doDeleteUser(userId){
-  if(!requireAdmin()) return {ok:false, msg:'Sem permissão.'};
+  if(!requireUserManagement()) return {ok:false, msg:'Sem permissão.'};
   const u = USERS[userId];
   if(u && SESSION && userId === SESSION.id) return {ok:false, msg:'Você não pode excluir a si mesmo.'};
   const r = await callAdminUsers('delete_user', {userId});
@@ -6931,6 +6990,7 @@ async function doDeleteUser(userId){
   return r;
 }
 async function doChangeMyPassword(curPass, newPass){
+  if(!requireUserManagement()) return {ok:false, msg:'Usuários de Roteirização não têm permissão para alterar senhas pela interface.'};
   if(!SESSION) return {ok:false, msg:'Sessão inválida.'};
   if(typeof newPass !== 'string' || newPass.length < 6 || newPass.length > 64) return {ok:false, msg:'Nova senha com 6 a 64 caracteres.'};
   const okCur = await verifyCurrentPassword(curPass);
@@ -6950,7 +7010,7 @@ async function doChangeMyPassword(curPass, newPass){
   return {ok:true};
 }
 async function doResetUserPassword(targetId, newPass){
-  if(!requireAdmin()) return {ok:false, msg:'Sem permissão.'};
+  if(!requireUserManagement()) return {ok:false, msg:'Sem permissão.'};
   if(typeof newPass !== 'string' || newPass.length < 6 || newPass.length > 64) return {ok:false, msg:'Senha com 6 a 64 caracteres.'};
   const r = await callAdminUsers('reset_password', {userId: targetId, newPassword: newPass});
   if(r.ok){ const u = USERS[targetId]; audit('senha-redefinida', u ? u.name : targetId); }
@@ -6958,7 +7018,7 @@ async function doResetUserPassword(targetId, newPass){
 }
 async function renderUsers(){
   const wrap = $('#users-rows');
-  if(!wrap || !isAdmin()) return; // só o admin carrega a lista (a Edge Function também exige nível 4)
+  if(!wrap || !canManageUsers()) return; // só o admin carrega a lista (a Edge Function também exige nível 4)
   const r = await callAdminUsers('list_users', {});
   if(!r.ok || !Array.isArray(r.users)){ wrap.innerHTML = '<div class="empty">Não foi possível carregar os usuários.</div>'; return; }
   USERS = {};
@@ -6967,7 +7027,7 @@ async function renderUsers(){
   if(!list.length){ wrap.innerHTML = '<div class="empty">Nenhum usuário.</div>'; return; }
   wrap.innerHTML = list.map(u=>{
     const isAdm = u.level === 4;
-    const opts = [1,2,3].map(n=> '<option value="'+n+'"'+(u.level===n?' selected':'')+'>Nível '+n+' · '+PERM[n].label+'</option>').join('') +
+    const opts = [1,2,3,5].map(n=> '<option value="'+n+'"'+(u.level===n?' selected':'')+'>Nível '+n+' · '+PERM[n].label+'</option>').join('') +
       (isAdm ? '<option value="4" selected>Nível 4 · Administrador (único)</option>' : '');
     return '<div class="reg-row users-row" data-user="'+esc(u.id)+'">' +
       '<span class="user-name" title="nível ' + u.level + ' · ' + PERM[u.level].label + '">' + (isAdm ? '🔒 ' : '') + esc(u.name) + '</span>' +
@@ -7085,7 +7145,7 @@ function choiceModal(opts){
 
 /* --- Exclusão de histórico de dias (admin + confirmação por senha) --- */
 async function deleteHistoryCore(dateStr, pass){
-  if(!isAdmin()) { audit('historico-bloqueado', String(dateStr||'') + ' (sem permissão)', false); return {ok:false, msg:'Apenas o administrador pode excluir histórico.'}; }
+  if(!canDeleteDay()) { audit('historico-bloqueado', String(dateStr||'') + ' (sem permissão)', false); return {ok:false, msg:'Apenas o administrador pode excluir histórico.'}; }
   if(!/^\d{4}-\d{2}-\d{2}$/.test(String(dateStr||''))) return {ok:false, msg:'Data inválida.'};
   if(dateStr === currentMapDate) return {ok:false, msg:'Não é possível excluir o dia que está em edição agora.'};
   if(!(await verifyCurrentPassword(pass))){ audit('historico-exclusao-falhou', fmtBR(dateStr) + ' (senha incorreta)', false); return {ok:false, msg:'Senha incorreta.'}; }
@@ -7102,7 +7162,7 @@ async function deleteHistoryCore(dateStr, pass){
   return {ok:true};
 }
 async function deleteHistoryDay(dateStr){
-  if(!requireAdmin()) return;
+  if(!requireDayDeletion()) return;
   if(dateStr === currentMapDate){ toast('Não é possível excluir o dia que está em edição agora', 'err'); return; }
   const r = await confirmModal({
     title: '🗑 Excluir histórico',
@@ -7192,10 +7252,10 @@ function bindStatic(){
     });
   }
 
-  /* edição de campos (inputs) — somente admin (inputs de outros níveis ficam disabled) */
+  /* edição de campos (inputs) — admin / roteirização (inputs de outros níveis ficam disabled) */
   captureRoot.addEventListener('input', e=>{
     const t = e.target;
-    if(!(SESSION && SESSION.level === 4)) return; // trava de segurança (defense in depth)
+    if(!canEditOperational()) return; // trava de segurança (defense in depth)
     if(t.tagName === 'SELECT') return; // selects tratados no 'change'
     const tr = t.closest('tr[data-id]');
     if(!tr) return;
@@ -7265,7 +7325,7 @@ function bindStatic(){
   /* selects / checkboxes */
   captureRoot.addEventListener('change', e=>{
     const t = e.target;
-    if(!(SESSION && SESSION.level === 4)) return; // somente leitura
+    if(!canEditOperational()) return; // somente leitura
     const tr = t.closest('tr[data-id]');
     if(!tr) return;
     const secEl = tr.closest('.section');
@@ -7290,7 +7350,7 @@ function bindStatic(){
 
   /* cliques (remover, pool) */
   captureRoot.addEventListener('click', e=>{
-    if(!(SESSION && SESSION.level === 4)) return; // somente leitura
+    if(!canEditOperational()) return; // somente leitura
     // setas ▲▼ dos campos de dinheiro (Vlr Kg / Valor Frete): ±0,01 na última casa
     const arrow = e.target.closest('.money-arrow');
     if(arrow){
@@ -7386,9 +7446,9 @@ function bindStatic(){
     logout();
   });
 
-  /* gestão de usuários (somente admin) */
+  /* gestão de usuários (somente admin nível 4) */
   $('#btn-user-add').addEventListener('click', async ()=>{
-    if(!requireAdmin()) return;
+    if(!requireUserManagement()) return;
     const name = $('#user-add-name').value;
     const pass = $('#user-add-pass').value;
     const level = parseInt($('#user-add-level').value, 10);
@@ -7399,14 +7459,14 @@ function bindStatic(){
   });
   $('#users-rows').addEventListener('change', async e=>{
     const t = e.target;
-    if(!requireAdmin()) return;
+    if(!requireUserManagement()) return;
     const rowEl = t.closest ? t.closest('[data-user]') : null;
     if(!rowEl || t.dataset.userf !== 'level') return;
     const r = await doEditUserLevel(rowEl.dataset.user, t.value);
     if(!r.ok) toast('❌ ' + r.msg, 'err');
   });
   $('#users-rows').addEventListener('click', async e=>{
-    if(!requireAdmin()) return;
+    if(!requireUserManagement()) return;
     const btn = e.target.closest ? e.target.closest('[data-act]') : null;
     if(!btn) return;
     const rowEl = btn.closest('[data-user]');
@@ -7431,6 +7491,7 @@ function bindStatic(){
     }
   });
   $('#btn-user-pass').addEventListener('click', async ()=>{
+    if(!requireUserManagement()) return;
     const r = await doChangeMyPassword($('#user-cur-pass').value, $('#user-new-pass').value);
     if(!r.ok){ toast('❌ ' + r.msg, 'err'); return; }
     $('#user-cur-pass').value = ''; $('#user-new-pass').value = '';
@@ -7438,18 +7499,20 @@ function bindStatic(){
   });
 
   /* topbar */
-  $('#btn-ftrack').addEventListener('click', ()=> ftOpenConfirm());
-  $('#btn-kmport').addEventListener('click', ()=> $('#file-kmport').click());
-  $('#file-kmport').addEventListener('change', e=>{ const f=e.target.files[0]; e.target.value=''; if(f) kmPortStart(f); });
-  $('#btn-import').addEventListener('click', ()=> $('#file-import').click());
+  $('#btn-ftrack').addEventListener('click', ()=>{ if(!requireOperational()) return; ftOpenConfirm(); });
+  $('#btn-kmport').addEventListener('click', ()=>{ if(!requireOperational()) return; $('#file-kmport').click(); });
+  $('#file-kmport').addEventListener('change', e=>{ if(!requireOperational()) return; const f=e.target.files[0]; e.target.value=''; if(f) kmPortStart(f); });
+  $('#btn-import').addEventListener('click', ()=>{ if(!requireOperational()) return; $('#file-import').click(); });
   $('#file-import').addEventListener('change', async e=>{
+    if(!requireOperational()) return;
     const f = e.target.files[0];
     if(f) await importPlanilha(f);
     e.target.value = '';
   });
-  $('#btn-backup').addEventListener('click', backup);
-  $('#btn-restore').addEventListener('click', ()=> $('#file-restore').click());
+  $('#btn-backup').addEventListener('click', ()=>{ if(!requireOperational()) return; backup(); });
+  $('#btn-restore').addEventListener('click', ()=>{ if(!requireDayDeletion()) return; $('#file-restore').click(); });
   $('#file-restore').addEventListener('change', async e=>{
+    if(!requireDayDeletion()) return;
     const f = e.target.files[0];
     if(f) await restoreBackup(f);
     e.target.value = '';
@@ -7513,14 +7576,14 @@ function bindStatic(){
   $('#report-xls-mask').addEventListener('mousedown', e=>{ if(e.target.id === 'report-xls-mask') closeReportXls(); });
   $('#btn-reclass').addEventListener('click', reclassifyAll);
   $('#btn-clear').addEventListener('click', ()=>{
-    if(!requireEdit()) return;
+    if(!requireDayDeletion()) return;
     if(!confirm('Limpar TODAS as cargas do dia ' + fmtBR(currentMapDate) + '?\n(Regras, palavras-chave e cadastros de placa NÃO são apagados.)')) return;
     DATA = {frotas:[], capital:[], interior:[]};
     POOL = [];
     renderAll();
     toast('🧹 Mapa do dia limpo', 'ok');
   });
-  $('#btn-settings').addEventListener('click', ()=>{ if(!requireAdmin()) return; $('#settings').classList.toggle('open'); });
+  $('#btn-settings').addEventListener('click', ()=>{ if(!canEditOperational()) return; $('#settings').classList.toggle('open'); });
   $('#btn-close-settings').addEventListener('click', ()=> $('#settings').classList.remove('open'));
   /* painel de indicadores: níveis 3+ (nível 2 não vê custo) */
   const dashGuard = ()=> { if(!(SESSION && SESSION.level >= 3)){ toast('🔒 Seu nível de acesso não permite os indicadores', 'err'); return false; } return true; };
@@ -7540,7 +7603,7 @@ function bindStatic(){
     if(!d || d === currentMapDate) return;
     clearTimeout(saveTimer);
     // AUDITORIA: somente leitura não tem alterações pendentes — não reescreve o storage
-    if(SESSION && SESSION.level === 4) await saveMapForDate(currentMapDate);
+    if(canEditOperational()) await saveMapForDate(currentMapDate);
     currentMapDate = d;                      // troca o dia atual
     await loadMapForDate(currentMapDate);   // carrega o novo dia (vazio se não existir)
     renderAll();
@@ -7550,9 +7613,9 @@ function bindStatic(){
   $('#dtEntrega').addEventListener('change', e=>{ dtEntrega = e.target.value; scheduleSave(); });
   $('#hist').addEventListener('change', e=>{ if(e.target.value) switchToDate(e.target.value); });
 
-  /* configurações */
-  $('#btn-save-fixed').addEventListener('click', ()=>{
+  /* configurações operacionais */
   $('#btn-save-margem').addEventListener('click', async ()=>{
+    if(!requireOperational()) return;
     const v = Math.max(0, Math.min(100, Number(($('#margem-frete')||{}).value) || 0));
     MARGEM_FRETE = v;
     try{ await Stor.set('margem-frete', v); }catch(e){}
@@ -7560,14 +7623,15 @@ function bindStatic(){
     audit('margem-frete', v + '%');
     toast(v ? '✅ Margem salva: +' + v + '% sobre não negociadas' : '✅ Margem salva: sem percentual (0%)', 'ok');
   });
-    if(!requireAdmin()) return;
+  $('#btn-save-fixed').addEventListener('click', ()=>{
+    if(!requireOperational()) return;
     FIXED_FROTAS = $('#fixed-frotas').value.split(/[,;\n]/).map(s=> s.trim()).filter(Boolean);
     saveSettings();
     renderAll();
     toast('Placas fixas atualizadas (' + FIXED_FROTAS.length + ' + padrão)', 'ok');
   });
   $('#btn-save-kw').addEventListener('click', ()=>{
-    if(!requireAdmin()) return;
+    if(!requireOperational()) return;
     CAPITAL_KEYWORDS = dedupeKw([...DEFAULT_CAPITAL_KEYWORDS, ...$('#kw-capital').value.split(/[,;\n]/).map(s=> s.trim()).filter(Boolean)]);
     INTERIOR_KEYWORDS = dedupeKw([...DEFAULT_INTERIOR_KEYWORDS, ...$('#kw-interior').value.split(/[,;\n]/).map(s=> s.trim()).filter(Boolean)]);
     saveSettings();
@@ -7576,13 +7640,13 @@ function bindStatic(){
     toast('Palavras-chave atualizadas', 'ok');
   });
   $$('.hc-chk').forEach(c => c.addEventListener('change', ()=>{
-    if(!requireAdmin()) return;
+    if(!requireOperational()) return;
     HIDDEN_COLS = $$('.hc-chk').filter(x=> x.checked).map(x=> x.dataset.col);
     saveSettings();
     renderAll();
   }));
   $('#chips').addEventListener('click', e=>{
-    if(!requireEdit()) return;
+    if(!requireOperational()) return;
     const c = e.target.closest('[data-chip]');
     if(!c) return;
     const k = c.dataset.chip;
@@ -7591,7 +7655,7 @@ function bindStatic(){
     renderAll();
   });
   $('#btn-reg-add').addEventListener('click', ()=>{
-    if(!requireAdmin()) return;
+    if(!requireOperational()) return;
     const k = normPlaca($('#reg-add-placa').value);
     if(!k){ toast('Informe a placa do cadastro', 'err'); return; }
     const v = Object.assign({}, REGISTRY[k] || {});
@@ -7608,7 +7672,7 @@ function bindStatic(){
     toast('📇 Placa ' + k + ' cadastrada', 'ok');
   });
   $('#registry-rows').addEventListener('change', e=>{
-    if(!requireAdmin()) return;
+    if(!requireOperational()) return;
     const t = e.target;
     const rowEl = t.closest('[data-key]');
     if(!rowEl) return;
@@ -7626,7 +7690,7 @@ function bindStatic(){
     renderAll();
   });
   $('#registry-rows').addEventListener('click', e=>{
-    if(!requireAdmin()) return;
+    if(!requireOperational()) return;
     if(!e.target.closest('[data-act="reg-del"]')) return;
     const rowEl = e.target.closest('[data-key]');
     if(rowEl){
@@ -7639,7 +7703,7 @@ function bindStatic(){
 
   /* dias por rota */
   $('#btn-rotas-add').addEventListener('click', ()=>{
-    if(!requireAdmin()) return;
+    if(!requireOperational()) return;
     const k = normRotaKey($('#rotas-add-rota').value);
     const d = Math.round(num($('#rotas-add-dias').value) || 0);
     if(!k){ toast('Informe o Nº Carga ou nome da rota', 'err'); return; }
@@ -7651,7 +7715,7 @@ function bindStatic(){
     toast('📇 Rota ' + k + ' = ' + d + ' dia(s) cadastrada', 'ok');
   });
   $('#rotas-rows').addEventListener('change', e=>{
-    if(!requireAdmin()) return;
+    if(!requireOperational()) return;
     const t = e.target;
     const rowEl = t.closest('[data-key]');
     if(!rowEl) return;
@@ -7675,7 +7739,7 @@ function bindStatic(){
     renderRotas();
   });
   $('#rotas-rows').addEventListener('click', e=>{
-    if(!requireAdmin()) return;
+    if(!requireOperational()) return;
     if(!e.target.closest('[data-act="rota-del"]')) return;
     const rowEl = e.target.closest('[data-key]');
     if(rowEl){
@@ -7693,14 +7757,14 @@ function bindStatic(){
   for(const [id] of WA_FIELDS){
     const el = relEl(id);
     if(el) el.addEventListener('change', ()=>{
-      if(!requireAdmin()) return;
+      if(!requireOperational()) return;
       for(const [id2, k2] of WA_FIELDS){ const e2 = relEl(id2); if(e2) WA_AUTO[k2] = String(e2.value || '').trim(); }
       saveSettings();
       toast('🤖 Configuração de envio automático salva', 'ok');
     });
   }
   $('#btn-wa-test').addEventListener('click', async ()=>{
-    if(!requireAdmin()) return;
+    if(!requireOperational()) return;
     const num = String((relEl('wa-test-num') || {}).value || '').trim();
     if(!num){ toast('Informe o número de teste', 'err'); return; }
     try{
@@ -7737,7 +7801,7 @@ function bindStatic(){
 
   /* códigos/whatsapp de transportadora p/ fechamento (mesmo padrão do cadastro de rotas) */
   $('#btn-transp-add').addEventListener('click', ()=>{
-    if(!requireAdmin()) return;
+    if(!requireOperational()) return;
     const nome = normKw($('#transp-add-nome').value);
     const cod = String($('#transp-add-cod').value || '').trim();
     const zap = String($('#transp-add-zap').value || '').trim();
@@ -7751,7 +7815,7 @@ function bindStatic(){
     toast('📇 ' + nome + ' cadastrada' + (cod ? ' (código ' + cod + ')' : '') + (zap ? ' (💬 ' + zap + ')' : ''), 'ok');
   });
   $('#transp-rows').addEventListener('change', e=>{
-    if(!requireAdmin()) return;
+    if(!requireOperational()) return;
     const t = e.target;
     const rowEl = t.closest('[data-key]');
     if(!rowEl) return;
@@ -7773,7 +7837,7 @@ function bindStatic(){
     renderTranspCodes();
   });
   $('#transp-rows').addEventListener('click', e=>{
-    if(!requireAdmin()) return;
+    if(!requireOperational()) return;
     if(!e.target.closest('[data-act="transp-del"]')) return;
     const rowEl = e.target.closest('[data-key]');
     if(rowEl){
@@ -7891,14 +7955,18 @@ function bindStatic(){
   if(gmPEnd) gmPEnd.addEventListener('change', ()=> onCustomPeriodFrom('#gm-period-start', '#gm-period-end'));
   $('#dash-daily').addEventListener('click', e=>{
     const delBtn = e.target.closest('[data-del-date]');
-    if(delBtn && delBtn.dataset.delDate){ deleteHistoryDay(delBtn.dataset.delDate); return; }
+    if(delBtn && delBtn.dataset.delDate){
+      if(!requireDayDeletion()) return;
+      deleteHistoryDay(delBtn.dataset.delDate);
+      return;
+    }
     const tr = e.target.closest('tr[data-date]');
     if(tr && tr.dataset.date) switchToDate(tr.dataset.date);
   });
 
-  /* salvar antes de fechar (somente admin edita; demais níveis não geram alteração) */
+  /* salvar antes de fechar (somente admin/roteirização edita; demais níveis não geram alteração) */
   window.addEventListener('beforeunload', ()=>{
-    if(!(SESSION && SESSION.level === 4)) return;
+    if(!canEditOperational()) return;
     if(!dirty) return;
     try{
       const s = JSON.stringify(snapshotMap());
@@ -7957,7 +8025,7 @@ async function init(){
 /* AUTO-CHECK DE VERSAO: avisa (somente quando roda em github.io) se a aba estiver com
    copia antiga em cache — compara o selo APP_V local com o do arquivo publicado no repo.
    Falha de rede/offline = silencioso; nunca bloqueia o uso. */
-const APP_V = '2026-09-25c';
+const APP_V = '2026-09-25d';
 (function(){
   // Selo de versão VISÍVEL no canto da tela: qualquer print/print-screen mostra qual código
   // está rodando no aparelho (cópia antiga = selo antigo/ausente). Não entra nas capturas.
