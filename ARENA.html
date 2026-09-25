@@ -820,10 +820,12 @@ html.gerencial-request #etiq-print,
 html.gerencial-request #cap-print,
 html.gerencial-request #plan-print,
 html.gerencial-request #settings{display:none!important}
-.gerencial-head{max-width:1500px;margin:14px auto 12px;padding:14px 18px;border-radius:12px;background:linear-gradient(120deg,#0f172a,#1e3a8a);color:#fff;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;box-shadow:0 3px 12px rgba(15,23,42,.16)}
+/* Mesmo azul do banner do Mapa de Carregamento; seções e cards seguem as cores
+   Frotas/Capital/Interior do mapa e dos KPIs do Painel de Indicadores. */
+.gerencial-head{max-width:1500px;margin:14px auto 12px;padding:14px 18px;border-radius:12px;background:linear-gradient(120deg,#0d54a8 0%,#1268c9 55%,#0d54a8 100%);color:#fff;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;box-shadow:0 3px 12px rgba(15,23,42,.16);print-color-adjust:exact;-webkit-print-color-adjust:exact}
 .gerencial-head[hidden],#gerencial-page[hidden],#gerencial-access-note[hidden]{display:none!important}
 .gerencial-head h1{font-size:20px;letter-spacing:.2px}
-.gerencial-head p{margin:3px 0 0;color:#cbd5e1;font-size:12.5px}
+.gerencial-head p{margin:3px 0 0;color:#bcd9f7;font-size:12.5px}
 .gerencial-head-actions{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
 .gerencial-head-actions [hidden]{display:none!important}
 .gerencial-head-actions .btn{background:#fff;color:#0f172a;border-color:#cbd5e1}
@@ -844,34 +846,45 @@ html.gerencial-request #settings{display:none!important}
 .gm-summary-title h2,.gm-section-title h2{font-size:15px;letter-spacing:.35px}
 .gm-summary-title small{font-size:11.5px;color:var(--muted)}
 .gm-summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:8px}
-.gm-card{min-width:0;border:1px solid #e2e8f0;border-radius:9px;padding:8px 10px;background:#f8fafc}
+.gm-card{min-width:0;border:1px solid #e2e8f0;border-radius:9px;padding:8px 10px;background:#f8fafc;print-color-adjust:exact;-webkit-print-color-adjust:exact}
 .gm-card-k{display:block;font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.35px}
 .gm-card-v{display:block;margin-top:3px;font:700 15px/1.3 var(--mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#0f172a}
-/* AUDITORIA: resumos nas cores das seções dos indicadores (Frotas=--frotas, Capital=--cap,
-   Interior=--int; Geral no azul do total do painel) */
-.gm-geral .gm-card{background:#eff6ff;border-color:#bfdbfe}
-.gm-geral .gm-card-k{color:#1d4ed8}
-.gm-frotas .gm-card{background:#f0f9ff;border-color:#bae6fd}
+/* Mesmos gradientes dos KPIs em destaque do Painel de Indicadores: total,
+   frota, Capital e Interior (as faixas abaixo seguem o Mapa de Carregamento). */
+.gm-geral .gm-card{background:linear-gradient(135deg,#1d4ed8,#7c3aed);border-color:#7c3aed}
+.gm-geral .gm-card-k{color:#dbeafe}
+.gm-geral .gm-card-v{color:#fff}
+.gm-frotas .gm-card{background:linear-gradient(135deg,#ecfeff,#cffafe);border-color:#a5f3fc}
 .gm-frotas .gm-card-k{color:#0369a1}
-.gm-capital .gm-card{background:#f5f3ff;border-color:#ddd6fe}
+.gm-capital .gm-card{background:linear-gradient(135deg,#eef2ff,#e0e7ff);border-color:#c7d2fe}
 .gm-capital .gm-card-k{color:#6d28d9}
-.gm-interior .gm-card{background:#fffbeb;border-color:#fde68a}
+.gm-interior .gm-card{background:linear-gradient(135deg,#fff7ed,#ffedd5);border-color:#fed7aa}
 .gm-interior .gm-card-k{color:#b45309}
+/* AUDITORIA: após as cores das seções, a economia sobrepõe o fundo dos cards de
+   Geral, Capital e Interior. Verde = economia; vermelho = acréscimo (como nos Indicadores). */
+.gm-card.gm-econ-pos{background:#ecfdf5;border-color:#bbf7d0}
+.gm-card.gm-econ-pos .gm-card-v{color:#15803d}
+.gm-card.gm-econ-neg{background:#fef2f2;border-color:#fecaca}
+.gm-card.gm-econ-neg .gm-card-v{color:#b91c1c}
+.gm-card.gm-econ-pos .gm-card-k,.gm-card.gm-econ-neg .gm-card-k{color:#64748b}
+.gm-card.gm-econ-pos .gm-card-v,.gm-card.gm-econ-neg .gm-card-v{white-space:normal;overflow-wrap:anywhere}
+.gm-card.gm-econ-pos,.gm-card.gm-econ-neg{cursor:help}
 /* AUDITORIA: títulos de seção do Mapa Gerencial usam os mesmos fundos do Mapa de Carregamento */
 .gm-section-title{display:flex;align-items:center;gap:8px;margin:0 0 10px;padding:8px 14px;border-radius:10px;color:#fff;print-color-adjust:exact;-webkit-print-color-adjust:exact}
 .gm-section-title .gm-section-count{margin-left:auto;color:rgba(255,255,255,.92);font-size:12px;font-weight:700;white-space:nowrap}
 .gm-frotas .gm-section-title{background:linear-gradient(120deg,#1976d2,#2196f3)}
 .gm-capital .gm-section-title{background:linear-gradient(120deg,#6d3fd4,#8b5cf6)}
 .gm-interior .gm-section-title{background:linear-gradient(120deg,#ef6c00,#fb8c00)}
-.gm-table-wrap{overflow:auto;border:1px solid #cbd5e1;border-radius:9px;background:#fff}
+/* Cabeçalho, zebrado e totais nas cores da tabela do Mapa de Carregamento. */
+.gm-table-wrap{overflow:auto;border:1px solid #b9d7f2;border-radius:9px;background:#fff}
 .gm-table{border-collapse:collapse;width:100%;min-width:1330px;font-size:12px}
-.gm-table th{position:sticky;top:0;z-index:1;background:#1e3a8a;color:#fff;padding:7px 8px;text-align:left;white-space:nowrap;border-right:1px solid #334e8c}
+.gm-table th{position:sticky;top:0;z-index:1;background:#1259a7;color:#fff;padding:7px 8px;text-align:left;white-space:nowrap;border-right:1px solid #0d4a8c;print-color-adjust:exact;-webkit-print-color-adjust:exact}
 .gm-table th.num,.gm-table td.num{text-align:right}
-.gm-table td{padding:6px 8px;border-bottom:1px solid #e2e8f0;border-right:1px solid #edf2f7;vertical-align:middle;white-space:nowrap}
-.gm-table tbody tr:nth-child(even) td{background:#f8fafc}
-.gm-table tbody tr:hover td{background:#eff6ff}
+.gm-table td{padding:6px 8px;border-bottom:1px solid #b9d7f2;border-right:1px solid #b9d7f2;vertical-align:middle;white-space:nowrap;color:#0b3d78}
+.gm-table tbody tr:nth-child(even) td{background:#e8f2fd}
+.gm-table tbody tr:hover td{background:#dbeafe}
 .gm-table td.num{font-family:var(--mono)}
-.gm-table tfoot td{background:#e2e8f0;border-top:2px solid #94a3b8;font-weight:800}
+.gm-table tfoot td{background:#cfe4fa;border-top:2px solid #9cc3ea;font-weight:800;print-color-adjust:exact;-webkit-print-color-adjust:exact}
 .gm-empty{text-align:center!important;color:#64748b;padding:16px!important}
 .gm-section-note{margin:7px 0 0;font-size:11px;color:#64748b}
 @media(max-width:760px){
@@ -885,11 +898,11 @@ html.gerencial-request #settings{display:none!important}
   html.gerencial-request #painel,html.gerencial-request #gerencial-head .no-print{display:none!important}
   html.gerencial-request #gerencial-page{max-width:none;margin:0;padding:0}
   html.gerencial-request .gm-summary-block,html.gerencial-request .gm-section{box-shadow:none;break-inside:avoid;margin-bottom:8px;padding:8px}
-  html.gerencial-request .gm-table-wrap{overflow:visible;border-color:#64748b}
+  html.gerencial-request .gm-table-wrap{overflow:visible;border-color:#b9d7f2}
   html.gerencial-request .gm-table{min-width:0;width:100%;table-layout:fixed;font-size:8px}
   html.gerencial-request .gm-table th,html.gerencial-request .gm-table td{padding:4px 4px;white-space:normal;overflow-wrap:anywhere}
   html.gerencial-request .gm-table td.num{white-space:nowrap;font-size:7.5px}
-  html.gerencial-request .gm-table th{position:static;background:#e2e8f0!important;color:#0f172a;border-color:#94a3b8}
+  html.gerencial-request .gm-table th{position:static;background:#1259a7!important;color:#fff;border-color:#0d4a8c}
   html.gerencial-request .gm-table tr{break-inside:avoid}
   html.gerencial-request .gm-card{padding:5px 7px}
   html.gerencial-request .gm-card-v{font-size:11px}
@@ -1096,6 +1109,7 @@ html.gerencial-request #settings{display:none!important}
         <li><b>Motorista limitado a 32 caracteres</b> em Frotas, Capital e Interior (campo, digitação, importação e dados já salvos).</li>
         <li><b>📥 Excel Mapa</b>: exporta o mapa do dia em .xlsx no MESMO formato do print (seções FROTAS/CAPITAL/INTERIOR, colunas, totais e resumo — sem valores).</li>
         <li><b>📥 Excel Período</b> (admin): exporta TODAS as cargas de Capital e Interior de um período (com Vlr Kg, Neg?, Previsão, Custo/kg e Valor Frete) + aba Resumo por dia. Frotas não entra.</li>
+        <li><b>💰 Economia com negociação no resumo do Mapa Gerencial</b>: tabela (+ margem) − frete efetivo, em Geral (só Capital + Interior) e em cada seção contratada. Verde = economia; vermelho = acréscimo; Frotas sem negociação.</li>
         <li><b>Margem configurável (padrão +10%)</b> no valor previsto de cargas não negociadas — em Configurações dá p/ poner 0 ou qualquer X%; negociadas (Valor Frete manual ou Neg? = Sim) mantêm o valor fechado.</li>
         <li><b>Custo Geral</b> e <b>Peso / Custo por kg</b> de Capital e Interior em <b>evidência</b> (KPIs em destaque).</li>
         <li><b>Gráfico de evolução do custo</b> com granularidade <b>Diário / Mensal / Anual</b> (Capital × Interior empilhado), com tooltip (custo, peso e custo/kg).</li>
@@ -5932,7 +5946,9 @@ function gerencialResumoSec(sec, entries){
     entregas: rows.reduce((a,r)=> a + numVal(r.entregas), 0),
     previsao: 0,
     vlrFrete: sec === 'frotas' ? null : 0,
-    custoMedio: null
+    custoMedio: null,
+    economia: null,
+    pctEcon: null
   };
   let custoTotal = 0, pesoCusto = 0;
   for(const r of rows){
@@ -5947,7 +5963,12 @@ function gerencialResumoSec(sec, entries){
   }
   // Em Frotas é custo estimado/kg só das cargas reais; em Capital/Interior é frete efetivo/kg.
   out.custoMedio = pesoCusto > 0 && custoTotal > 0 ? custoTotal / pesoCusto : null;
-  if(sec !== 'frotas') out.vlrFrete = custoTotal;
+  if(sec !== 'frotas'){
+    out.vlrFrete = custoTotal;
+    // Mesma regra dos Indicadores: tabela (+ margem) menos frete efetivo.
+    out.economia = out.previsao - custoTotal;
+    out.pctEcon = out.previsao > 0 ? out.economia / out.previsao * 100 : null;
+  }
   return out;
 }
 function gerencialCardsHtml(m, tipo){
@@ -5961,8 +5982,23 @@ function gerencialCardsHtml(m, tipo){
     [isGeral ? 'Vlr Frete real (Cap.+Int.)' : 'Vlr Frete', m.vlrFrete == null ? '—' : fmtBRL(m.vlrFrete)],
     [isFrotas ? 'Custo médio estimado' : isGeral ? 'Custo médio real (Cap.+Int.)' : 'Custo médio', m.custoMedio != null ? fmtBRL(m.custoMedio) + '/kg' : '—']
   ];
+  if(!isFrotas){
+    const econPos = m.economia >= 0;
+    const econValue = (econPos ? '' : '− ') + fmtBRL(Math.abs(m.economia)) +
+      (m.pctEcon != null ? ' (' + m.pctEcon.toLocaleString('pt-BR',{maximumFractionDigits:1}) + '%)' : '');
+    cards.push([
+      isGeral ? 'Economia com negociação (Cap.+Int.)' : econPos ? 'Economia com negociação' : 'Acréscimo com negociação',
+      econValue,
+      econPos ? 'gm-econ-pos' : 'gm-econ-neg',
+      'Previsão pela tabela (+ margem configurada) − Vlr Frete efetivo. ' +
+        (isGeral ? 'Somente Capital + Interior: Frotas não tem frete contratado. ' : '') +
+        'Verde = economia; vermelho = acréscimo.'
+    ]);
+  }
   return '<div class="gm-summary-grid">' + cards.map(c=>
-    '<div class="gm-card"><span class="gm-card-k">' + esc(c[0]) + '</span><span class="gm-card-v">' + esc(c[1]) + '</span></div>'
+    '<div class="gm-card' + (c[2] ? ' ' + esc(c[2]) : '') + '"' +
+      (c[3] ? ' title="' + esc(c[3]) + '"' : '') + '>' +
+      '<span class="gm-card-k">' + esc(c[0]) + '</span><span class="gm-card-v">' + esc(c[1]) + '</span></div>'
   ).join('') + '</div>';
 }
 function gerencialTabelaHtml(sec, entries, resumo){
@@ -5995,7 +6031,7 @@ function gerencialTabelaHtml(sec, entries, resumo){
     gerencialCardsHtml(resumo, sec) +
     '<p class="gm-section-note">' + (sec === 'frotas'
       ? 'Frotas: previsão e custo/kg são estimativas da rota; frete real não se aplica à frota própria.'
-      : 'Previsão mostra o valor normal da rota; Vlr Frete mostra o valor efetivo, incluindo negociação quando houver.') + '</p>' +
+      : 'Previsão = tabela (+ margem configurada); Vlr Frete = valor efetivo. Economia (verde) ou acréscimo (vermelho) = Previsão − Vlr Frete.') + '</p>' +
     '<div class="gm-table-wrap"><table class="gm-table"><thead><tr>' +
       '<th>Faturamento</th><th>Placa</th><th>Destino</th><th>Nº Carga</th><th class="num">Peso (kg)</th><th class="num">T.Entrega</th><th>Motorista</th><th>' + (sec === 'frotas' ? 'Ajudantes' : 'Transportador') + '</th><th class="num">Custo kg</th><th class="num">Previsão de frete</th><th class="num">Vlr Frete</th>' +
     '</tr></thead><tbody>' + body + '</tbody><tfoot><tr>' +
@@ -6008,19 +6044,23 @@ function gerencialTabelaHtml(sec, entries, resumo){
     '</tr></tfoot></table></div>' +
   '</section>';
 }
-/* Resumo Geral do Mapa Gerencial: o frete efetivo (Vlr Frete real) e o custo médio real
-   consideram somente Capital + Interior (Frotas é frota própria, sem frete contratado);
-   a previsão inclui as três seções (rota normal + margem configurada, com a estimativa de Frotas). */
+/* Resumo Geral do Mapa Gerencial: frete efetivo, custo médio e economia consideram
+   somente Capital + Interior (Frotas é frota própria, sem frete contratado);
+   a previsão exibida inclui as três seções (com a estimativa de Frotas). */
 function gerencialResumoGeral(res){
   const pesoTerceiros = res.capital.peso + res.interior.peso;
   const vlrReal = res.capital.vlrFrete + res.interior.vlrFrete;
+  const prevTerceiros = res.capital.previsao + res.interior.previsao;
+  const economia = prevTerceiros - vlrReal;
   return {
     cargas: res.frotas.cargas + res.capital.cargas + res.interior.cargas,
     peso: res.frotas.peso + pesoTerceiros,
     entregas: res.frotas.entregas + res.capital.entregas + res.interior.entregas,
-    previsao: res.frotas.previsao + res.capital.previsao + res.interior.previsao,
+    previsao: res.frotas.previsao + prevTerceiros,
     vlrFrete: vlrReal,
-    custoMedio: pesoTerceiros > 0 && vlrReal > 0 ? vlrReal / pesoTerceiros : null
+    custoMedio: pesoTerceiros > 0 && vlrReal > 0 ? vlrReal / pesoTerceiros : null,
+    economia: economia,
+    pctEcon: prevTerceiros > 0 ? economia / prevTerceiros * 100 : null
   };
 }
 /* Visão ativa da guia gerencial (botões do cabeçalho): Mapa Gerencial ⇄ Painel de
@@ -6078,7 +6118,7 @@ function renderGerencialMap(){
   root.innerHTML =
     '<div class="gm-summary-block gm-geral"><div class="gm-summary-title"><h2>🗺️ Mapa Gerencial · Resumo Geral</h2><small>Faturamento: ' + esc(gerencialPeriodoLabel()) + ' · ' + fmtInt(dias.length) + ' dia(s)</small></div>' +
       gerencialCardsHtml(geral, 'geral') +
-      '<p class="gm-section-note">A previsão inclui os valores normais de rota (com a margem configurada), inclusive a estimativa de Frotas. Vlr Frete real e custo médio geral consideram Capital + Interior; Frotas é frota própria e não tem frete real contratado.</p>' +
+      '<p class="gm-section-note">A previsão inclui as rotas pela tabela (+ margem configurada), inclusive a estimativa de Frotas. Vlr Frete real, custo médio geral e economia com negociação consideram só Capital + Interior: economia = previsão desses fretes − valor efetivo. Verde = economizou; vermelho = acréscimo. Frotas é frota própria, sem frete contratado.</p>' +
     '</div>' +
     gerencialTabelaHtml('frotas', ent.frotas, res.frotas) +
     gerencialTabelaHtml('capital', ent.capital, res.capital) +
@@ -7917,7 +7957,7 @@ async function init(){
 /* AUTO-CHECK DE VERSAO: avisa (somente quando roda em github.io) se a aba estiver com
    copia antiga em cache — compara o selo APP_V local com o do arquivo publicado no repo.
    Falha de rede/offline = silencioso; nunca bloqueia o uso. */
-const APP_V = '2026-09-25b';
+const APP_V = '2026-09-25c';
 (function(){
   // Selo de versão VISÍVEL no canto da tela: qualquer print/print-screen mostra qual código
   // está rodando no aparelho (cópia antiga = selo antigo/ausente). Não entra nas capturas.
