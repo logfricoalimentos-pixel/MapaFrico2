@@ -793,6 +793,14 @@ html.gerencial-request #settings{display:none!important}
 .gerencial-head-actions .btn{background:#fff;color:#0f172a;border-color:#cbd5e1}
 .gerencial-date-control{display:flex;align-items:center;gap:7px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);border-radius:8px;padding:5px 8px;font-size:12px}
 .gerencial-date-control input{border:1px solid #cbd5e1;border-radius:6px;padding:4px 6px;font:inherit;color:#0f172a;background:#fff}
+/* AUDITORIA: guia gerencial — alternância de painel (Mapa ⇄ Indicadores) e presets de período
+   no cabeçalho; o filtro é o mesmo DASH.period/preset do Painel de Indicadores & Fechamento. */
+.gm-view-switch{display:flex;align-items:center;gap:4px}
+.gerencial-head-actions .btn.active{background:#2563eb;border-color:#1d4ed8;color:#fff}
+.gm-period-ctl{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+.gerencial-head-actions .btn.gm-chip{background:rgba(255,255,255,.14);color:#f8fafc;border-color:rgba(255,255,255,.4);padding:4px 9px;font-size:12px}
+.gerencial-head-actions .btn.gm-chip:hover{background:rgba(255,255,255,.3)}
+.gerencial-head-actions .btn.gm-chip.active{background:#fff;color:#0f172a;border-color:#fff}
 #gerencial-access-note{max-width:1500px;margin:0 auto 12px;padding:10px 14px;border:1px solid #fbbf24;border-radius:9px;background:#fffbeb;color:#92400e;font-size:13px}
 #gerencial-page{max-width:1500px;margin:0 auto 18px;padding:0 0 4px}
 .gm-summary-block,.gm-section{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:14px;box-shadow:0 1px 3px rgba(15,23,42,.06)}
@@ -803,10 +811,24 @@ html.gerencial-request #settings{display:none!important}
 .gm-card{min-width:0;border:1px solid #e2e8f0;border-radius:9px;padding:8px 10px;background:#f8fafc}
 .gm-card-k{display:block;font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.35px}
 .gm-card-v{display:block;margin-top:3px;font:700 15px/1.3 var(--mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#0f172a}
-.gm-section-title{display:flex;align-items:center;gap:8px;margin:0 0 9px;padding-bottom:8px;border-bottom:1px solid var(--line)}
-.gm-section-title .gm-section-count{margin-left:auto;color:#475569;font-size:12px;font-weight:700;white-space:nowrap}
+/* AUDITORIA: resumos nas cores das seções dos indicadores (Frotas=--frotas, Capital=--cap,
+   Interior=--int; Geral no azul do total do painel) */
+.gm-geral .gm-card{background:#eff6ff;border-color:#bfdbfe}
+.gm-geral .gm-card-k{color:#1d4ed8}
+.gm-frotas .gm-card{background:#f0f9ff;border-color:#bae6fd}
+.gm-frotas .gm-card-k{color:#0369a1}
+.gm-capital .gm-card{background:#f5f3ff;border-color:#ddd6fe}
+.gm-capital .gm-card-k{color:#6d28d9}
+.gm-interior .gm-card{background:#fffbeb;border-color:#fde68a}
+.gm-interior .gm-card-k{color:#b45309}
+/* AUDITORIA: títulos de seção do Mapa Gerencial usam os mesmos fundos do Mapa de Carregamento */
+.gm-section-title{display:flex;align-items:center;gap:8px;margin:0 0 10px;padding:8px 14px;border-radius:10px;color:#fff;print-color-adjust:exact;-webkit-print-color-adjust:exact}
+.gm-section-title .gm-section-count{margin-left:auto;color:rgba(255,255,255,.92);font-size:12px;font-weight:700;white-space:nowrap}
+.gm-frotas .gm-section-title{background:linear-gradient(120deg,#1976d2,#2196f3)}
+.gm-capital .gm-section-title{background:linear-gradient(120deg,#6d3fd4,#8b5cf6)}
+.gm-interior .gm-section-title{background:linear-gradient(120deg,#ef6c00,#fb8c00)}
 .gm-table-wrap{overflow:auto;border:1px solid #cbd5e1;border-radius:9px;background:#fff}
-.gm-table{border-collapse:collapse;width:100%;min-width:1240px;font-size:12px}
+.gm-table{border-collapse:collapse;width:100%;min-width:1330px;font-size:12px}
 .gm-table th{position:sticky;top:0;z-index:1;background:#1e3a8a;color:#fff;padding:7px 8px;text-align:left;white-space:nowrap;border-right:1px solid #334e8c}
 .gm-table th.num,.gm-table td.num{text-align:right}
 .gm-table td{padding:6px 8px;border-bottom:1px solid #e2e8f0;border-right:1px solid #edf2f7;vertical-align:middle;white-space:nowrap}
@@ -910,11 +932,26 @@ html.gerencial-request #settings{display:none!important}
 <!-- ============ PAINEL GERENCIAL (abre em guia própria) ============ -->
 <div id="gerencial-head" class="gerencial-head" hidden>
   <div>
-    <h1>📊 Painel Gerencial</h1>
-    <p>Usuário: <b id="gerencial-user">—</b> · Data de entrega: <b id="gerencial-delivery">—</b></p>
+    <h1 id="gerencial-head-title">📊 Painel Gerencial</h1>
+    <p>Usuário: <b id="gerencial-user">—</b> · Faturamento: <b id="gerencial-period-text">—</b></p>
   </div>
   <div class="gerencial-head-actions no-print">
-    <label class="gerencial-date-control">Faturamento<input type="date" id="gerencial-date"></label>
+    <!-- AUDITORIA: navegação por botões — somente um painel (e seu título) fica visível por vez -->
+    <div class="gm-view-switch" role="group" aria-label="Alternar painel">
+      <button class="btn no-print" type="button" id="btn-gerencial-view-map" aria-pressed="true" title="Mostrar o Mapa Gerencial (resumos e tabelas por veículo)">🗺️ Mapa</button>
+      <button class="btn no-print" type="button" id="btn-gerencial-view-dash" aria-pressed="false" title="Mostrar o Painel de Indicadores &amp; Fechamento">📊 Indicadores</button>
+    </div>
+    <!-- AUDITORIA: filtro de período do Mapa Gerencial — mesmos presets/intervalo (De/Até) dos
+         Indicadores & Fechamento; ambos gravam no mesmo período compartilhado (DASH.period/preset) -->
+    <div class="gm-period-ctl" role="group" aria-label="Período do Mapa Gerencial (sincronizado com os Indicadores)">
+      <button class="btn gm-chip chip-preset no-print" type="button" data-preset="7d">Últimos 7 dias</button>
+      <button class="btn gm-chip chip-preset no-print" type="button" data-preset="month">Este mês</button>
+      <button class="btn gm-chip chip-preset no-print" type="button" data-preset="lastmonth">Mês passado</button>
+      <button class="btn gm-chip chip-preset no-print" type="button" data-preset="quarter">Este trimestre</button>
+      <label class="gerencial-date-control">De <input type="date" id="gm-period-start"></label>
+      <label class="gerencial-date-control">Até <input type="date" id="gm-period-end"></label>
+      <label class="gerencial-date-control" title="Dia de referência: âncora dos presets de período"><span title="Dia de referência: âncora dos presets de período">Faturamento</span><input type="date" id="gerencial-date"></label>
+    </div>
     <button class="btn no-print" type="button" id="btn-gerencial-refresh">🔄 Atualizar</button>
     <button class="btn no-print" type="button" id="btn-gerencial-print">🖨 Imprimir mapa</button>
     <button class="btn no-print" type="button" id="btn-gerencial-back">↩ Voltar ao mapa</button>
@@ -5490,8 +5527,37 @@ function gerencialValoresLinha(sec, r){
   const custoKg = peso > 0 && baseCusto != null && baseCusto > 0 ? baseCusto / peso : null;
   return {peso, previsao, vlrFrete, custoKg};
 }
-function gerencialResumoSec(sec){
-  const rows = DATA[sec] || [];
+/* Dias do período compartilhado (mesma fonte dos Indicadores & Fechamento: DASH.raw),
+   restritos a DASH.period; o dia em edição usa sempre os dados vivos (DATA). */
+function gerencialDiasPeriodo(){
+  const p = DASH.period;
+  if(!p) return [];
+  const dias = (DASH.raw || [])
+    .filter(d=> d && d.date && d.date >= p.start && d.date <= p.end)
+    .map(d=> ({date: d.date, data: (d.date === currentMapDate ? DATA : d.data) || {}}));
+  // dia corrente ainda não salvo no histórico: entra apenas se estiver dentro do período
+  if(currentMapDate >= p.start && currentMapDate <= p.end && !dias.some(d=> d.date === currentMapDate)){
+    dias.push({date: currentMapDate, data: DATA});
+    dias.sort((a,b)=> a.date.localeCompare(b.date));
+  }
+  return dias;
+}
+/* Linhas da seção em todos os dias do período: [{date, r}] — cada linha carrega a
+   própria data de faturamento (coluna Faturamento das tabelas do Mapa Gerencial). */
+function gerencialEntradas(sec){
+  const out = [];
+  for(const d of gerencialDiasPeriodo()){
+    for(const r of ((d.data && d.data[sec]) || [])) out.push({date: d.date, r: r});
+  }
+  return out;
+}
+function gerencialPeriodoLabel(){
+  const p = DASH.period;
+  if(!p) return '—';
+  return p.start === p.end ? fmtBR(p.start) : fmtBR(p.start) + ' a ' + fmtBR(p.end);
+}
+function gerencialResumoSec(sec, entries){
+  const rows = (entries || []).map(e=> e.r);
   const out = {
     cargas: countCargas(rows, sec),
     peso: rows.reduce((a,r)=> a + numVal(r.peso), 0),
@@ -5531,16 +5597,17 @@ function gerencialCardsHtml(m, tipo){
     '<div class="gm-card"><span class="gm-card-k">' + esc(c[0]) + '</span><span class="gm-card-v">' + esc(c[1]) + '</span></div>'
   ).join('') + '</div>';
 }
-function gerencialTabelaHtml(sec, resumo){
-  const rows = DATA[sec] || [];
+function gerencialTabelaHtml(sec, entries, resumo){
   const titles = {frotas:'FROTAS', capital:'CAPITAL', interior:'INTERIOR'};
-  const body = rows.length ? rows.map(r=>{
+  const body = entries.length ? entries.map(en=>{
+    const r = en.r;
     const v = gerencialValoresLinha(sec, r);
     const transp = sec === 'frotas'
       ? joinSkip([r.ajudantes, r.ajudante2], ' / ')
       : String(r.transportadora || '').trim();
     const entregas = numVal(r.entregas);
     return '<tr>' +
+      '<td class="mono">' + esc(fmtBR(en.date) || '—') + '</td>' +
       '<td class="mono">' + esc(String(r.placa || '').trim() || '—') + '</td>' +
       '<td>' + esc(String(r.destino || '').trim() || '—') + '</td>' +
       '<td class="mono">' + esc(String(r.carga == null ? '' : r.carga).trim() || '—') + '</td>' +
@@ -5552,7 +5619,7 @@ function gerencialTabelaHtml(sec, resumo){
       '<td class="num">' + (v.previsao > 0 ? fmtBRL(v.previsao) : '—') + '</td>' +
       '<td class="num">' + (v.vlrFrete == null ? '—' : fmtBRL(v.vlrFrete)) + '</td>' +
     '</tr>';
-  }).join('') : '<tr><td colspan="10" class="gm-empty">Nenhum veículo nesta seção.</td></tr>';
+  }).join('') : '<tr><td colspan="11" class="gm-empty">Nenhum veículo nesta seção no período.</td></tr>';
   const custoPeso = resumo.custoMedio != null ? fmtBRL(resumo.custoMedio) + '/kg' : '—';
   const realTotal = resumo.vlrFrete == null ? '—' : fmtBRL(resumo.vlrFrete);
   return '<section class="gm-section gm-' + sec + '">' +
@@ -5562,9 +5629,9 @@ function gerencialTabelaHtml(sec, resumo){
       ? 'Frotas: previsão e custo/kg são estimativas da rota; frete real não se aplica à frota própria.'
       : 'Previsão mostra o valor normal da rota; Vlr Frete mostra o valor efetivo, incluindo negociação quando houver.') + '</p>' +
     '<div class="gm-table-wrap"><table class="gm-table"><thead><tr>' +
-      '<th>Placa</th><th>Destino</th><th>Nº Carga</th><th class="num">Peso (kg)</th><th class="num">T.Entrega</th><th>Motorista</th><th>' + (sec === 'frotas' ? 'Ajudantes' : 'Transportador') + '</th><th class="num">Custo kg</th><th class="num">Previsão de frete</th><th class="num">Vlr Frete</th>' +
+      '<th>Faturamento</th><th>Placa</th><th>Destino</th><th>Nº Carga</th><th class="num">Peso (kg)</th><th class="num">T.Entrega</th><th>Motorista</th><th>' + (sec === 'frotas' ? 'Ajudantes' : 'Transportador') + '</th><th class="num">Custo kg</th><th class="num">Previsão de frete</th><th class="num">Vlr Frete</th>' +
     '</tr></thead><tbody>' + body + '</tbody><tfoot><tr>' +
-      '<td colspan="3">Totais (' + fmtInt(resumo.cargas) + ')</td>' +
+      '<td colspan="4">Totais (' + fmtInt(resumo.cargas) + ')</td>' +
       '<td class="num">' + fmtPeso2(resumo.peso) + ' kg</td>' +
       '<td class="num">' + fmtNum(resumo.entregas) + '</td><td colspan="2"></td>' +
       '<td class="num">' + custoPeso + '</td>' +
@@ -5573,26 +5640,13 @@ function gerencialTabelaHtml(sec, resumo){
     '</tr></tfoot></table></div>' +
   '</section>';
 }
-function updateGerencialHead(){
-  if(!GERENCIAL_PAGE) return;
-  const date = $('#gerencial-date'); if(date) date.value = currentMapDate || '';
-  const delivery = $('#gerencial-delivery'); if(delivery) delivery.textContent = fmtBR(dtEntrega) || '—';
-  const user = $('#gerencial-user'); if(user) user.textContent = SESSION ? SESSION.name : '—';
-  const print = $('#btn-gerencial-print'); if(print) print.hidden = !(SESSION && SESSION.level >= 3);
-  if(SESSION && GERENCIAL_PAGE) document.title = 'Painel Gerencial — ' + fmtBR(currentMapDate);
-}
-function renderGerencialMap(){
-  const root = $('#gerencial-map');
-  if(!root) return;
-  if(!GERENCIAL_PAGE || !(SESSION && SESSION.level >= 3)){ root.innerHTML = ''; return; }
-  const res = {
-    frotas: gerencialResumoSec('frotas'),
-    capital: gerencialResumoSec('capital'),
-    interior: gerencialResumoSec('interior')
-  };
+/* Resumo Geral do Mapa Gerencial: o frete efetivo (Vlr Frete real) e o custo médio real
+   consideram somente Capital + Interior (Frotas é frota própria, sem frete contratado);
+   a previsão inclui as três seções (rota normal + margem configurada, com a estimativa de Frotas). */
+function gerencialResumoGeral(res){
   const pesoTerceiros = res.capital.peso + res.interior.peso;
   const vlrReal = res.capital.vlrFrete + res.interior.vlrFrete;
-  const geral = {
+  return {
     cargas: res.frotas.cargas + res.capital.cargas + res.interior.cargas,
     peso: res.frotas.peso + pesoTerceiros,
     entregas: res.frotas.entregas + res.capital.entregas + res.interior.entregas,
@@ -5600,14 +5654,67 @@ function renderGerencialMap(){
     vlrFrete: vlrReal,
     custoMedio: pesoTerceiros > 0 && vlrReal > 0 ? vlrReal / pesoTerceiros : null
   };
+}
+/* Visão ativa da guia gerencial (botões do cabeçalho): Mapa Gerencial ⇄ Painel de
+   Indicadores & Fechamento — somente um painel (e o título correspondente) por vez. */
+let GM_VIEW = 'map';
+function gerencialViewKind(){
+  // nível 1 só tem acesso aos indicadores; o mapa detalhado (valores por veículo) exige nível 3+
+  return (GERENCIAL_PAGE && SESSION && SESSION.level >= 3 && GM_VIEW === 'map') ? 'map' : 'dash';
+}
+function applyGerencialView(){
+  if(!GERENCIAL_PAGE) return;
+  const kind = gerencialViewKind();
+  const gp = $('#gerencial-page'); if(gp) gp.hidden = !(SESSION && kind === 'map');
+  const p = $('#painel');
+  if(p){
+    const showDash = !!SESSION && kind === 'dash' && (SESSION.level === 1 || SESSION.level >= 3);
+    p.hidden = !showDash;
+    dashVisible = showDash;
+  }
+  const head = $('#gerencial-head-title'); if(head) head.textContent = kind === 'map' ? '🗺️ Mapa Gerencial' : '📊 Painel de Indicadores & Fechamento';
+  if(SESSION) document.title = (kind === 'map' ? 'Mapa Gerencial' : 'Painel de Indicadores & Fechamento') + ' — ' + gerencialPeriodoLabel();
+  const bm = $('#btn-gerencial-view-map'); if(bm){ bm.hidden = !(SESSION && SESSION.level >= 3); bm.classList.toggle('active', kind === 'map'); bm.setAttribute('aria-pressed', String(kind === 'map')); }
+  const bd = $('#btn-gerencial-view-dash'); if(bd){ bd.classList.toggle('active', kind === 'dash'); bd.setAttribute('aria-pressed', String(kind === 'dash')); }
+  // "Imprimir mapa" só faz sentido com o Mapa Gerencial visível (na visão de indicadores o print sairia vazio)
+  const print = $('#btn-gerencial-print'); if(print) print.hidden = !(SESSION && SESSION.level >= 3 && kind === 'map');
+}
+function setGerencialView(view){
+  GM_VIEW = view === 'dash' ? 'dash' : 'map';
+  applyGerencialView();
+}
+function updateGerencialHead(){
+  if(!GERENCIAL_PAGE) return;
+  const date = $('#gerencial-date'); if(date) date.value = currentMapDate || '';
+  const per = $('#gerencial-period-text'); if(per) per.textContent = gerencialPeriodoLabel();
+  const user = $('#gerencial-user'); if(user) user.textContent = SESSION ? SESSION.name : '—';
+  applyGerencialView();
+}
+function renderGerencialMap(){
+  const root = $('#gerencial-map');
+  if(!root) return;
+  if(!GERENCIAL_PAGE || !(SESSION && SESSION.level >= 3)){ root.innerHTML = ''; return; }
+  if(!DASH.period){ root.innerHTML = '<div class="gm-summary-block gm-geral"><p class="gm-empty">Carregando dados do período…</p></div>'; return; }
+  const dias = gerencialDiasPeriodo();
+  const ent = {
+    frotas: gerencialEntradas('frotas'),
+    capital: gerencialEntradas('capital'),
+    interior: gerencialEntradas('interior')
+  };
+  const res = {
+    frotas: gerencialResumoSec('frotas', ent.frotas),
+    capital: gerencialResumoSec('capital', ent.capital),
+    interior: gerencialResumoSec('interior', ent.interior)
+  };
+  const geral = gerencialResumoGeral(res);
   root.innerHTML =
-    '<div class="gm-summary-block"><div class="gm-summary-title"><h2>🗺️ Mapa Gerencial · Resumo Geral</h2><small>Faturamento: ' + esc(fmtBR(currentMapDate)) + '</small></div>' +
+    '<div class="gm-summary-block gm-geral"><div class="gm-summary-title"><h2>🗺️ Mapa Gerencial · Resumo Geral</h2><small>Faturamento: ' + esc(gerencialPeriodoLabel()) + ' · ' + fmtInt(dias.length) + ' dia(s)</small></div>' +
       gerencialCardsHtml(geral, 'geral') +
       '<p class="gm-section-note">A previsão inclui os valores normais de rota (com a margem configurada), inclusive a estimativa de Frotas. Vlr Frete real e custo médio geral consideram Capital + Interior; Frotas é frota própria e não tem frete real contratado.</p>' +
     '</div>' +
-    gerencialTabelaHtml('frotas', res.frotas) +
-    gerencialTabelaHtml('capital', res.capital) +
-    gerencialTabelaHtml('interior', res.interior);
+    gerencialTabelaHtml('frotas', ent.frotas, res.frotas) +
+    gerencialTabelaHtml('capital', ent.capital, res.capital) +
+    gerencialTabelaHtml('interior', ent.interior, res.interior);
 }
 function gerencialAccessState(){
   const note = $('#gerencial-access-note');
@@ -5643,10 +5750,11 @@ async function atualizarPainelGerencial(){
     if(SESSION.level >= 3){
       await loadMapForDate(currentMapDate);
       renderAll();
-      updateGerencialHead();
-      renderGerencialMap();
     }
+    // recarrega TODOS os dias do período compartilhado (DASH.raw) — os indicadores e o
+    // Mapa Gerencial passam a refletir os mesmos dados; loadDashboard re-renderiza o mapa
     await loadDashboard();
+    if(SESSION.level >= 3){ updateGerencialHead(); renderGerencialMap(); }
   }catch(err){
     console.error(err);
     toast('❌ Falha ao atualizar o Painel Gerencial', 'err');
@@ -5694,6 +5802,8 @@ async function loadDashboard(){
   DASH.raw = raw;
   if(!DASH.period) DASH.period = periodFromPreset(DASH.preset, currentMapDate) || {start: dateAddDays(currentMapDate,-6), end: currentMapDate};
   dashRecompute(); // aplica filtros de status/datas SEM recarregar do banco
+  // dados do período atualizados → o Mapa Gerencial (mesma fonte) redesenha junto
+  if(GERENCIAL_PAGE && SESSION && SESSION.level >= 3){ updateGerencialHead(); renderGerencialMap(); }
 }
 /* Recalcula os indicadores a partir dos dias já carregados (DASH.raw) com os
    filtros atuais (status + datas de fechamento) — instantâneo, sem rede. */
@@ -5897,6 +6007,10 @@ function renderDash(){
   const s = $('#period-start'), e = $('#period-end');
   if(s) s.value = DASH.period.start;
   if(e) e.value = DASH.period.end;
+  // mesmo período compartilhado refletido nos controles (De/Até) do Mapa Gerencial
+  const gs = $('#gm-period-start'), ge = $('#gm-period-end');
+  if(gs) gs.value = DASH.period.start;
+  if(ge) ge.value = DASH.period.end;
   $$('.chip-preset').forEach(c=> c.classList.toggle('active', c.dataset.preset === DASH.preset));
   $$('.gran-btn').forEach(b=> b.classList.toggle('active', b.dataset.gran === (DASH.granularity || 'daily')));
 }
@@ -6317,11 +6431,16 @@ function applySession(){
   }
   const tb = $('#topbar'); if(tb) tb.style.display = (GERENCIAL_PAGE || (SESSION && SESSION.level === 1)) ? 'none' : '';
   // O nível 1 conserva os indicadores autorizados; níveis 3+ veem o painel completo apenas na guia gerencial.
-  const showDash = !!(SESSION && (SESSION.level === 1 || (GERENCIAL_PAGE && SESSION.level >= 3)));
-  const p = $('#painel'); if(p) p.hidden = !showDash;
-  dashVisible = showDash;
   const gh = $('#gerencial-head'); if(gh) gh.hidden = !(GERENCIAL_PAGE && SESSION);
-  const gp = $('#gerencial-page'); if(gp) gp.hidden = !(GERENCIAL_PAGE && SESSION && SESSION.level >= 3);
+  const gp = $('#gerencial-page'); const p = $('#painel');
+  if(GERENCIAL_PAGE){
+    applyGerencialView(); // navegação por botões: somente um painel (e seu título) visível por vez
+  } else {
+    if(gp) gp.hidden = true;
+    const showDash = !!(SESSION && SESSION.level === 1);
+    if(p) p.hidden = !showDash;
+    dashVisible = showDash;
+  }
   gerencialAccessState();
   updateGerencialHead();
   if(GERENCIAL_PAGE) renderGerencialMap();
@@ -6841,7 +6960,9 @@ function bindStatic(){
       if(pu) pu.value = ''; if(pp) pp.value = '';
       toast('👤 Olá, ' + SESSION.name + ' (' + PERM[SESSION.level].label + ')', 'ok');
       if(SESSION.level === 1) await loadDashboard(); // nível 1 vê apenas indicadores
-      else if(dashVisible) await loadDashboard();
+      // a guia gerencial precisa dos dados do painel mesmo com o painel oculto: o Mapa
+      // Gerencial passa a ler o período de DASH.raw (mesma fonte dos indicadores)
+      else if(dashVisible || (GERENCIAL_PAGE && SESSION.level >= 3)) await loadDashboard();
     } else {
       if(err) err.textContent = r.msg;
       const pp = $('#login-pass');
@@ -6994,6 +7115,9 @@ function bindStatic(){
   $('#btn-gerencial-print').addEventListener('click', ()=>{ if(SESSION && SESSION.level >= 3) window.print(); });
   $('#btn-gerencial-back').addEventListener('click', fecharPainelGerencial);
   $('#btn-gerencial-logout').addEventListener('click', logout);
+  // navegação Mapa Gerencial ⇄ Painel de Indicadores & Fechamento (um painel por vez)
+  const gmViewMap = $('#btn-gerencial-view-map'); if(gmViewMap) gmViewMap.addEventListener('click', ()=> setGerencialView('map'));
+  const gmViewDash = $('#btn-gerencial-view-dash'); if(gmViewDash) gmViewDash.addEventListener('click', ()=> setGerencialView('dash'));
   $('#gerencial-date').addEventListener('change', e=>{ if(e.target.value) switchToDate(e.target.value); });
 
   /* datas */
@@ -7318,23 +7442,33 @@ function bindStatic(){
       renderDash();
     });
   }
-  $$('.chip-preset').forEach(c=> c.addEventListener('click', ()=>{
-    DASH.preset = c.dataset.preset;
+  /* Filtro de período COMPARTILHADO: os presets do Painel de Indicadores e do Mapa
+     Gerencial gravam no mesmo DASH.period/preset e atualizam os dois painéis. */
+  const onPresetPeriod = preset=>{
+    DASH.preset = preset;
     const p = periodFromPreset(DASH.preset, currentMapDate);
-    if(p){ DASH.period = p; dashRecompute(); } // refaz métricas + lista de datas do período
-  }));
+    if(p){ DASH.period = p; dashRecompute(); if(GERENCIAL_PAGE){ updateGerencialHead(); renderGerencialMap(); } } // refaz métricas + lista de datas do período + mapa
+  };
+  $$('.chip-preset').forEach(c=> c.addEventListener('click', ()=> onPresetPeriod(c.dataset.preset)));
   $$('.gran-btn').forEach(b=> b.addEventListener('click', ()=>{
     DASH.granularity = b.dataset.gran;
     $$('.gran-btn').forEach(x=> x.classList.toggle('active', x===b));
     renderEvolucao();
   }));
-  const onCustomPeriod = ()=>{
+  /* Intervalo personalizado (De/Até): tanto o par do Painel de Indicadores quanto o par
+     do Mapa Gerencial gravam no mesmo período compartilhado e atualizam os dois painéis. */
+  const onCustomPeriodFrom = (idStart, idEnd)=>{
+    const si = $(idStart), ei = $(idEnd);
+    if(!si || !ei) return;
     DASH.preset = 'custom';
-    const s = $('#period-start').value, e = $('#period-end').value;
-    if(s && e && s <= e){ DASH.period = {start:s, end:e}; dashRecompute(); } // refaz métricas + lista de datas do período
+    const s = si.value, e = ei.value;
+    if(s && e && s <= e){ DASH.period = {start:s, end:e}; dashRecompute(); if(GERENCIAL_PAGE){ updateGerencialHead(); renderGerencialMap(); } } // refaz métricas + lista de datas do período + mapa
   };
-  $('#period-start').addEventListener('change', onCustomPeriod);
-  $('#period-end').addEventListener('change', onCustomPeriod);
+  $('#period-start').addEventListener('change', ()=> onCustomPeriodFrom('#period-start', '#period-end'));
+  $('#period-end').addEventListener('change', ()=> onCustomPeriodFrom('#period-start', '#period-end'));
+  const gmPStart = $('#gm-period-start'), gmPEnd = $('#gm-period-end');
+  if(gmPStart) gmPStart.addEventListener('change', ()=> onCustomPeriodFrom('#gm-period-start', '#gm-period-end'));
+  if(gmPEnd) gmPEnd.addEventListener('change', ()=> onCustomPeriodFrom('#gm-period-start', '#gm-period-end'));
   $('#dash-daily').addEventListener('click', e=>{
     const delBtn = e.target.closest('[data-del-date]');
     if(delBtn && delBtn.dataset.delDate){ deleteHistoryDay(delBtn.dataset.delDate); return; }
@@ -7403,7 +7537,7 @@ async function init(){
 /* AUTO-CHECK DE VERSAO: avisa (somente quando roda em github.io) se a aba estiver com
    copia antiga em cache — compara o selo APP_V local com o do arquivo publicado no repo.
    Falha de rede/offline = silencioso; nunca bloqueia o uso. */
-const APP_V = '2026-09-24b';
+const APP_V = '2026-09-25a';
 (function(){
   // Selo de versão VISÍVEL no canto da tela: qualquer print/print-screen mostra qual código
   // está rodando no aparelho (cópia antiga = selo antigo/ausente). Não entra nas capturas.
