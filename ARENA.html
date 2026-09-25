@@ -646,6 +646,11 @@ body.readonly .sec-actions{display:none}
 .fech-det-table td.num{text-align:right;font-family:var(--mono)}
 .fech-det-table td.mono{font-family:var(--mono);letter-spacing:.4px}
 .fech-det-table tr.off td{color:#94a3b8;background:#f1f5f9}
+/* AUDITORIA: linha da rota com status CONCLUÍDA fica verde claro (mesmo desmarcada p/ fechar) */
+.fech-det-table tr.fech-row-concl td:nth-child(n){background:#dcfce7}
+/* filtro de status do painel de fechamento (Concluída/Pendente) */
+.fech-tools{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:2px 0 8px;font-size:12.5px;color:#475569}
+.fech-tools select{padding:3px 8px;border:1px solid var(--line);border-radius:7px;font:inherit}
 .zap-link{color:#15803d;text-decoration:none;font-family:var(--mono);font-size:11.5px;white-space:nowrap}
 .zap-link:hover{text-decoration:underline}
 .fech-nozap{color:#cbd5e1}
@@ -668,6 +673,32 @@ body.readonly .sec-actions{display:none}
 @media (min-width:1600px){ .modal-fech{width:min(1780px,97vw)} }
 @media (max-width:760px){ .modal-fech{width:100vw;max-height:100vh;height:100vh;border-radius:0} #fech-mask{padding:0} }
 .st-badge.anal{background:#fef3c7;color:#92400e;border:1px solid #fde68a}
+/* status CONCLUÍDA (carga entregue, aguardando fechamento) */
+.st-badge.concl{background:#bbf7d0;color:#166534;border:1px solid #86efac}
+/* Fechamentos anteriores por mês/quinzena: grupos + filtro ano/mês/intervalo */
+.fh-group{border:1px solid #fde68a;border-radius:9px;background:#fffdf5;margin:6px 0;padding:6px 10px}
+.fh-g-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;cursor:pointer;font-size:13px;padding:2px 0 4px;border-bottom:1px dashed #fcd34d;margin-bottom:2px;color:#7c2d12}
+.fh-g-head .fh-g-tot{font-size:11.5px;color:#92400e}
+.fh-filter{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12.5px;color:#475569;margin:4px 0 8px}
+.fh-filter label{display:flex;align-items:center;gap:4px}
+.fh-filter select,.fh-filter input{padding:3px 7px;border:1px solid var(--line);border-radius:7px;font:inherit;font-size:12.5px}
+.fh-sep{color:#b45309;font-weight:700}
+/* modal de resumo das quinzenas (Fechamentos anteriores) */
+.fh-res-table{border-collapse:collapse;width:100%;font-size:12.5px;background:#fff}
+.fh-res-table th{background:#1e3a8a;color:#fff;padding:6px 9px;text-align:left;white-space:nowrap;border-right:1px solid #334e8c}
+.fh-res-table th.num,.fh-res-table td.num{text-align:right}
+.fh-res-table td{padding:5px 9px;border-bottom:1px solid #e2e8f0;border-right:1px solid #edf2f7;white-space:nowrap}
+.fh-res-table td.num{font-family:var(--mono)}
+.fh-res-table tr.fh-sub td{background:#fef3c7;font-weight:700;border-top:1px solid #fcd34d}
+.fh-res-table tr.fh-tot td{background:#dcfce7;font-weight:800;border-top:2px solid #16a34a}
+/* modal da referência de quinzena (pergunta ao fechar) */
+.ref-list{display:flex;flex-direction:column;gap:6px;margin:8px 0 4px}
+.ref-opt{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:9px;padding:8px 12px;cursor:pointer;font-size:13.5px;flex-wrap:wrap}
+.ref-opt:hover{background:#f8fafc}
+.ref-opt input{margin:0}
+.ref-opt .ref-faixa{font-size:11.5px;color:#64748b}
+.ref-opt .ref-dup{font-size:11px;color:#b45309;background:#fef3c7;border:1px solid #fde68a;border-radius:999px;padding:1px 8px}
+.ref-opt.sel{border-color:#2563eb;background:#eff6ff}
 .fech-conf{white-space:nowrap;text-align:center}
 #edc-mask, #ret-mask, #plan-mask, #kp-mask, #ft-mask{position:fixed;inset:0;z-index:470;background:rgba(15,23,42,.6);display:flex;align-items:center;justify-content:center;padding:16px}
 #edc-mask[hidden], #ret-mask[hidden], #plan-mask[hidden]{display:none}
@@ -748,6 +779,11 @@ body.readonly .sec-actions{display:none}
 .map-table th:nth-child(2),.map-table td:nth-child(2){position:sticky;left:var(--wcol1,34px);z-index:2}
 .map-table tbody td:nth-child(1),.map-table tbody td:nth-child(2){background:#fff}
 .map-table tbody tr:nth-child(even) td:nth-child(1),.map-table tbody tr:nth-child(even) td:nth-child(2){background:#e8f2fd}
+/* AUDITORIA: carga CONCLUÍDA — linha inteira em verde claro no mapa (só na tela; as capturas
+   A4/prints usam tabelas próprias e não herdam a cor). O :nth-child(n) iguala a
+   especificidade do zebrado acima e vence pela ordem. */
+.map-table tbody tr.row-concluida td:nth-child(n){background:#e7f9ec}
+.map-table tbody tr.row-concluida:hover td:nth-child(n){background:#d7f3df}
 .map-table tfoot td:nth-child(1),.map-table tfoot td:nth-child(2){background:#cfe4fa}
 .map-table td:nth-child(2){box-shadow:1px 0 0 #b9d7f2}
 /* Controles nítidos: checkbox azul centralizado e lista suspensa com borda/fundo */
@@ -1089,6 +1125,7 @@ html.gerencial-request #settings{display:none!important}
       <div class="sec-actions">
         <button class="btn mini" data-add="frotas">＋ Linha</button>
         <button class="btn mini" data-merge="frotas" title="Mescla as linhas marcadas com ✓ (placas podem ser diferentes)">⇄ Mesclar</button>
+        <button class="btn mini" data-conclui="frotas" title="Marca as linhas ✓ como CONCLUÍDA (entrega finalizada) — a linha fica verde claro. Se todas as marcadas já estiverem Concluída, volta tudo p/ Pendente">✔ Concluir</button>
       </div>
     </div>
     <div class="table-scroll" id="sec-frotas"></div>
@@ -1100,6 +1137,7 @@ html.gerencial-request #settings{display:none!important}
       <div class="sec-actions">
         <button class="btn mini" data-add="capital">＋ Linha</button>
         <button class="btn mini" data-merge="capital" title="Mescla as linhas marcadas com ✓ (placas podem ser diferentes)">⇄ Mesclar</button>
+        <button class="btn mini" data-conclui="capital" title="Marca as linhas ✓ como CONCLUÍDA (entrega finalizada) — a linha fica verde claro. Se todas as marcadas já estiverem Concluída, volta tudo p/ Pendente">✔ Concluir</button>
       </div>
     </div>
     <div class="table-scroll" id="sec-capital"></div>
@@ -1111,6 +1149,7 @@ html.gerencial-request #settings{display:none!important}
       <div class="sec-actions">
         <button class="btn mini" data-add="interior">＋ Linha</button>
         <button class="btn mini" data-merge="interior" title="Mescla as linhas marcadas com ✓ (placas podem ser diferentes)">⇄ Mesclar</button>
+        <button class="btn mini" data-conclui="interior" title="Marca as linhas ✓ como CONCLUÍDA (entrega finalizada) — a linha fica verde claro. Se todas as marcadas já estiverem Concluída, volta tudo p/ Pendente">✔ Concluir</button>
       </div>
     </div>
     <div class="table-scroll" id="sec-interior"></div>
@@ -1441,12 +1480,21 @@ html.gerencial-request #settings{display:none!important}
       <button class="rel-x" type="button" id="fech-x" title="Fechar (Esc)">✕</button>
     </div>
     <p class="fech-per" id="fech-per"></p>
-    <p class="modal-text" style="margin:0 0 8px">Marque as transportadoras que serão <b>pagas neste fechamento</b> — e, dentro de cada uma, <b>marque/desmarque cargas individuais</b> (clique no ▸ para ver a lista). Ao confirmar, as cargas marcadas passam de <b>Pendente</b> para <b>Fechado</b> (somem do relatório, a não ser que você marque "Exibir fechadas") e o app gera: <b>1)</b> o resumo geral para o financeiro (por transportadora, com subtotal, abatimento e preço/kg) e <b>2)</b> um Excel por transportadora com as abas <b>INTERIOR</b> e <b>CAPITAL</b> para enviar ao transportador (o 💬 abre o WhatsApp dele já com a mensagem do fechamento).</p>
+    <p class="modal-text" style="margin:0 0 8px">Marque as transportadoras que serão <b>pagas neste fechamento</b> — e, dentro de cada uma, <b>marque/desmarque cargas individuais</b> (clique no ▸ para ver a lista). O filtro <b>Status</b> exibe somente as cargas <b>Concluída</b> (linhas em verde claro) e/ou <b>Pendente</b>; a seleção e o fechamento valem apenas para o que está em exibição. Ao confirmar, o app <b>pergunta a referência da quinzena</b> (mês anterior ou atual, Quinzena 1 ou 2) e as cargas marcadas passam de <b>Pendente/Concluída</b> para <b>Fechado</b> (somem do relatório, a não ser que você marque "Exibir fechadas"). <b>Não gera Excel</b> — os arquivos de sempre ficam em 📚 Fechamentos anteriores → "Baixar de novo". O 💬 abre o WhatsApp do transportador já com a mensagem do fechamento.</p>
+    <div class="fech-tools">
+      <label title="Exibe somente as linhas das rotas com o status escolhido. Cargas 'Em análise' aparecem em 'Todas'. A seleção (✓) e o 🔒 Fechar valem só para o que está em exibição.">Status:
+        <select id="fech-st-filter">
+          <option value="">Todas</option>
+          <option value="concluida">Concluída</option>
+          <option value="pendente">Pendente</option>
+        </select>
+      </label>
+    </div>
     <div class="fech-scroll">
       <table class="fech-table" id="fech-table">
         <thead>
           <tr>
-            <th title="marcar/desmarcar TODAS as cargas de TODAS as transportadoras de uma vez"><input type="checkbox" id="fech-all" title="marcar/desmarcar TUDO de uma só vez"></th><th>Transportadora</th><th class="num">Cargas</th><th class="num">Peso (kg)</th>
+            <th title="marcar/desmarcar todas as cargas VISÍVEIS (respeita o filtro de status) de todas as transportadoras de uma vez"><input type="checkbox" id="fech-all" title="marcar/desmarcar TUDO de uma só vez (escopo: cargas visíveis)"></th><th>Transportadora</th><th class="num">Cargas</th><th class="num">Peso (kg)</th>
             <th class="num">Valor faturado (R$)</th><th>Código</th><th class="num">Abatimento (R$)</th>
             <th>Entregou NF</th><th>Boleto</th><th>WhatsApp</th>
           </tr>
@@ -1460,8 +1508,16 @@ html.gerencial-request #settings{display:none!important}
       <div id="fech-resumo"></div>
     </details>
     <details class="fech-hist" id="fech-hist">
-      <summary>📚 Fechamentos anteriores (reabrir / baixar de novo)</summary>
-      <div class="fh-filter"><label>Fechados entre <input type="date" id="fh-start"></label><label>e <input type="date" id="fh-end"></label><button class="btn mini" type="button" id="fh-clear" title="Limpa o filtro de período">limpar</button></div>
+      <summary>📚 Fechamentos anteriores (por mês/quinzena — resumo, reabrir, baixar de novo)</summary>
+      <div class="fh-filter">
+        <label title="Ano da referência (mês/quinzena) do fechamento">Ano <select id="fh-ano"><option value="">Todos</option></select></label>
+        <label title="Mês da referência; combinado ao ano (ou a todos os anos, se Ano = Todos)">Mês <select id="fh-mes"><option value="">Todos</option></select></label>
+        <span class="fh-sep">ou intervalo:</span>
+        <label title="Mês inicial do intervalo (por referência de quinzena)">De <input type="month" id="fh-mes-de"></label>
+        <label title="Mês final do intervalo">Até <input type="month" id="fh-mes-ate"></label>
+        <button class="btn mini" type="button" id="fh-clear" title="Limpa todos os filtros">limpar</button>
+        <button class="btn primary mini" type="button" id="fh-resumo" title="Resumo das quinzenas MARCADAS abaixo: Mês — Quinzena × Tipo (Capital/Interior) × Transportador, com quantidade de cargas, peso, valor e código — visualize antes de imprimir ou copiar">👁 Ver resumo</button>
+      </div>
       <div id="fech-hist-rows"></div>
     </details>
     <div class="modal-actions">
@@ -1469,7 +1525,38 @@ html.gerencial-request #settings{display:none!important}
       <button class="btn" type="button" id="fech-copy-next" title="Copia o print do resumo da próxima transportadora MARCADA (com WhatsApp) e abre a conversa vazia — lá é só Ctrl+V e Enviar">📋 Copiar e abrir próxima ➡</button>
       <button class="btn" type="button" id="fech-wa-auto" title="Manda o print + resumo por WhatsApp (API configurada) para cada transportador marcada, um a um">🤖 Enviar resumo p/ marcados</button>
       <button class="btn" type="button" id="fech-cancel">Cancelar</button>
-      <button class="btn primary" type="button" id="fech-ok" title="Marca as transportadoras marcadas como Fechado e gera os arquivos Excel">🔒 Fechar selecionadas + gerar Excel</button>
+      <button class="btn primary" type="button" id="fech-ok" title="Pergunta a referência da quinzena (mês anterior/atual · Quinzena 1/2) e marca as cargas selecionadas como Fechado — sem gerar Excel">🔒 Fechar selecionadas</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODAL: REFERÊNCIA DE QUINZENA DO FECHAMENTO ============ -->
+<div id="fech-ref-mask" class="no-print" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="fech-ref-title" style="max-width:520px">
+    <div class="fech-head"><h3 id="fech-ref-title">📅 Referência do fechamento</h3><button class="rel-x" type="button" id="fech-ref-x" title="Cancelar (Esc)">✕</button></div>
+    <p class="modal-text" style="margin:0 0 4px">Escolha a <b>referência de quinzena</b> deste fechamento (são exibidas apenas as 4 do mês anterior e do mês atual):</p>
+    <div class="ref-list" id="fech-ref-list"></div>
+    <p class="hint" id="fech-ref-hint"></p>
+    <div class="modal-actions">
+      <button class="btn" type="button" id="fech-ref-cancel">Cancelar</button>
+      <button class="btn primary" type="button" id="fech-ref-ok" title="Confirma o fechamento das cargas selecionadas na referência escolhida">🔒 Confirmar fechamento</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODAL: RESUMO DAS QUINZENAS SELECIONADAS ============ -->
+<div id="fh-res-mask" class="no-print" hidden>
+  <div class="modal modal-report" role="dialog" aria-modal="true" aria-labelledby="fh-res-title">
+    <div class="rel-head">
+      <h3 id="fh-res-title">👁 Resumo das quinzenas selecionadas</h3>
+      <button class="rel-x" type="button" id="fh-res-x" title="Fechar (Esc)">✕</button>
+    </div>
+    <p class="hint" id="fh-res-hint"></p>
+    <div class="rel-scroll" id="fh-res-body" style="max-height:55vh"></div>
+    <div class="modal-actions">
+      <button class="btn" type="button" id="fh-res-print" title="Abre o resumo em uma guia de impressão">🖨 Imprimir</button>
+      <button class="btn" type="button" id="fh-res-copy" title="Copia o resumo em texto (cola no WhatsApp/Excel)">📋 Copiar</button>
+      <button class="btn primary" type="button" id="fh-res-close">Fechar</button>
     </div>
   </div>
 </div>
@@ -2120,6 +2207,28 @@ function mergeSelected(sec){
   renderAll();
   toast('⇄ ' + sel.length + ' linhas mescladas em ' + (first.placa||'—'), 'ok');
 }
+/* Marca as linhas ✓ como CONCLUÍDA (entrega finalizada, linha verde claro).
+   Alternância: se TODAS as marcadas já estiverem Concluída, volta tudo p/ PENDENTE.
+   Cargas FECHADAS nunca são alteradas (precisam ser reabertas no fechamento). */
+function concluirSelecionadas(sec){
+  if(!requireEdit()) return;
+  const rows = DATA[sec] || [];
+  const sel = rows.filter(r=> r._sel);
+  if(!sel.length){ toast('Marque as cargas com ✓ p/ concluir', 'err'); return; }
+  const bloq = sel.filter(r=> r.stFech === 'fechado').length;
+  const livres = sel.filter(r=> r.stFech !== 'fechado');
+  if(bloq) toast('🔒 ' + bloq + ' carga(s) FECHADA(s) ignorada(s) — reabra no fechamento p/ alterar', 'warn');
+  if(!livres.length) return;
+  const desmarcar = livres.every(r=> relIsConcluida(r));
+  for(const r of livres){
+    if(desmarcar){ if(relIsConcluida(r)) delete r.stFech; }
+    else r.stFech = 'concluida';
+  }
+  sel.forEach(r=> r._sel = false);
+  audit(desmarcar ? 'cargas-reabertas' : 'cargas-concluidas', sec + ' · ' + livres.length + ' carga(s)' + (desmarcar ? ' → PENDENTE' : ' → CONCLUÍDA'));
+  renderAll();
+  toast((desmarcar ? '↩ ' : '✔ ') + livres.length + ' carga(s) ' + (desmarcar ? 'de volta a PENDENTE' : 'marcada(s) como CONCLUÍDA') + ' em ' + (sec === 'frotas' ? 'Frotas' : sec === 'capital' ? 'Capital' : 'Interior'), 'ok');
+}
 
 /* ================= Render ================= */
 function sectionCols(sec){
@@ -2170,7 +2279,7 @@ function cellHtml(sec, r, c, x){
   const dc = c.dataCol ? ' data-col="' + c.dataCol + '"' : '';
   switch(c.key){
     case 'sel':
-      return '<td class="icon"><input type="checkbox"' + (r._sel?' checked':'') + ' data-act="sel" title="marcar p/ mesclar"></td>';
+      return '<td class="icon"><input type="checkbox"' + (r._sel?' checked':'') + ' data-act="sel" title="marcar linhas (mesclar ⇄ / concluir ✔)"></td>';
     case 'move':
       return '<td class="icon">' +
         '<select data-act="move" title="mover para outra seção">' +
@@ -2283,8 +2392,11 @@ function rowHtml(sec, r, cols){
   // custo médio só quando há frete calculável (> 0) e peso > 0; senão "—"
   const custo = (frete && frete.total > 0 && numVal(r.peso) > 0) ? frete.total / numVal(r.peso) : null;
   const unav = plateSegs(r.placa).some(p => AVAILABILITY[p] === false);
+  const concl = relIsConcluida(r);
   const tds = cols.map(c=> cellHtml(sec, r, c, {frete, custo})).join('');
-  return '<tr data-id="'+r.id+'" class="'+(unav?'row-unavailable':'')+'"'+(unav?' title="Veículo indisponível"':'')+'>' + tds + '</tr>';
+  const cls = [unav ? 'row-unavailable' : '', concl ? 'row-concluida' : ''].filter(Boolean).join(' ');
+  const ttl = [unav ? 'Veículo indisponível' : '', concl ? 'Carga CONCLUÍDA ✔ (entrega finalizada — aguardando fechamento; clique ✔ Concluir p/ voltar p/ Pendente)' : ''].filter(Boolean).join(' · ');
+  return '<tr data-id="'+r.id+'"'+(cls ? ' class="'+cls+'"' : '')+(ttl ? ' title="'+ttl+'"' : '')+'>' + tds + '</tr>';
 }
 
 function tfootHtml(sec, cols){
@@ -3694,6 +3806,8 @@ function relRowHtml(it){
     '<td>' + (relIsFech(r)
         ? '<span class="st-badge fech" title="Fechado para pagamento' + (r.fechId ? ' no fechamento ' + esc(r.fechId) : '') + '">Fechado</span>' +
           ' <button class="btn mini" type="button" data-rs-row="' + esc(it.key) + '" title="Devolver SÓ esta carga p/ PENDENTE ou EM ANÁLISE (tira do fechamento)">↺</button>'
+        : relIsConcluida(r)
+          ? '<span class="st-badge concl" title="Concluída — entrega finalizada; aguarda o fechamento quinzenal">Concluída</span>'
         : relIsAnalise(r)
           ? '<span class="st-badge anal" title="Em análise — ainda dá p/ editar, incluir e excluir; marque ✔ (ok) ou ✘ (null) no painel de fechamento">Em análise</span>'
           : '<span class="st-badge pend" title="Aguardando fechamento de frete">Pendente</span>') + '</td>' +
@@ -3919,7 +4033,7 @@ function relToStyled(items, titulo, gerado){
     rows.push([sxT(fmtBR(it.d), 0), sxT(it.entrega ? fmtBR(it.entrega) : '', 0), sxT(fmtBR(c.dataFinal), 0),
       sxT(it.sec === 'capital' ? 'Capital' : 'Interior', 0), sxT(r.placa || '', 0), sxT(r.destino || '', 0), sxT(r.carga || '', 0),
       sxT(c.peso, 1), sxT(c.km, 1), sxT(c.total, 2), sxT(c.media != null ? c.media : '', 2),
-      sxT(r.motorista || '', 0), sxT(r.transportadora || '', 0), sxT(relIsFech(r) ? 'Fechado' : relIsAnalise(r) ? 'Em análise' : 'Pendente', 0)]);
+      sxT(r.motorista || '', 0), sxT(r.transportadora || '', 0), sxT(relIsFech(r) ? 'Fechado' : relIsConcluida(r) ? 'Concluída' : relIsAnalise(r) ? 'Em análise' : 'Pendente', 0)]);
   }
   rows.push([sxT('TOTAL', 8), sxT('', 8), sxT('', 8), sxT('', 8), sxT('', 8), sxT('', 8), sxT('', 8),
     sxT(tp, 9), sxT(tk, 9), sxT(tt, 10), sxT(tt > 0 && tp > 0 ? tt / tp : '', 10), sxT('', 8), sxT('', 8), sxT('', 8)]);
@@ -4002,6 +4116,9 @@ async function closeReportXls(){
    "Reabrir" devolve as cargas para PENDENTE (grava de volta nos dias correspondentes). */
 function relIsFech(r){ return !!(r && r.stFech === 'fechado'); }
 function relIsAnalise(r){ return !!(r && r.stFech === 'analise'); }
+/* CONCLUÍDA: entrega finalizada (marcada no mapa), ainda AGUARDANDO o fechamento —
+   continua "aberta" p/ edição e entra no painel de fechamento quinzenal. */
+function relIsConcluida(r){ return !!(r && r.stFech === 'concluida'); }
 function hojeIso(){ return new Date().toISOString().slice(0, 10); }
 /* tipo do veículo sem o prefixo "Caminhão " (HR, 3/4, Truck…) — coluna TIPO do transportador */
 function fechTipoFrota(sec, row){
@@ -4288,13 +4405,24 @@ let FECH_SEL = {};   // key do grupo -> {codigo, abat, nf, boleto, exp, cargas:{
 function fechSelOf(key){
   return FECH_SEL[key] || (FECH_SEL[key] = {codigo: TRANSP_CODES[key] || '', abat: '', nf: 'Não', boleto: 'Não', exp: false, cargas: {}});
 }
-/* o que está MARCADO dentro de um grupo (cargas individuais) + os totais só das marcadas */
+/* Filtro de STATUS do painel de fechamento (select do cabeçalho): '' = Todas;
+   'concluida' = somente Concluída; 'pendente' = somente Pendente (cargas EM ANÁLISE
+   aparecem em "Todas"). Vale para exibição, seleção, resumo e para o próprio fechamento. */
+let FECH_ST = '';
+function fechStMatch(r){
+  if(!FECH_ST) return true;
+  if(FECH_ST === 'concluida') return relIsConcluida(r);
+  if(FECH_ST === 'pendente') return !(r && r.stFech);
+  return true;
+}
+/* o que está MARCADO dentro de um grupo (cargas individuais), restrito ao que o filtro
+   de status deixa VISÍVEL, + os totais só das marcadas */
 function fechGroupSel(g){
   const s = fechSelOf(g.key);
-  const itens = g.itens.filter(it=> s.cargas[it.key] !== false);
+  const itens = g.itens.filter(it=> fechStMatch(it.row) && s.cargas[it.key] !== false);
   let peso = 0, fat = 0;
   for(const it of itens){ peso += it.calc.peso; fat += it.calc.total; }
-  return {s: s, itens: itens, peso: peso, fat: fat};
+  return {s: s, itens: itens, peso: peso, fat: fat, visiveis: g.itens.filter(it=> fechStMatch(it.row))};
 }
 /* resumo COMPLETO em texto (carga a carga, Interior/Capital, consolidado) — sem custo */
 function fechMsgTexto(g, gs){
@@ -4399,8 +4527,10 @@ function openFech(){
   if(!requireAdmin()) return;
   if(!REL.loaded){ toast('Carregue um período no relatório antes de fechar', 'err'); return; }
   FECH_SEL = {};
+  FECH_ST = '';
+  const stf = relEl('fech-st-filter'); if(stf) stf.value = '';
   const mask = relEl('fech-mask'); if(mask) mask.hidden = false;
-  relEl('fech-per').textContent = 'Período: ' + fechPeriodoTxt(REL) + ' (pela DATA DE ENTREGA) · entram cargas PENDENTES e EM ANÁLISE · use o ▸ p/ marcar cargas individuais · 🔍 Em Análise libera editar/incluir/excluir · use o ✏️ na lista de cargas p/ abrir a janela de edição do mapa';
+  relEl('fech-per').textContent = 'Período: ' + fechPeriodoTxt(REL) + ' (pela DATA DE ENTREGA) · entram cargas PENDENTES, CONCLUÍDAS (verde claro) e EM ANÁLISE · use o ▸ p/ marcar cargas individuais · 🔍 Em Análise libera editar/incluir/excluir · use o ✏️ na lista de cargas p/ abrir a janela de edição do mapa';
   renderFechTable();
   renderFechHist();
 }
@@ -4418,9 +4548,9 @@ function fechDetRow(g){
     '<th style="width:26px" title="include esta carga no fechamento">✓</th><th>Data</th><th>Tipo</th><th>Placa</th><th>Rota</th><th>Ordem</th>' +
     '<th class="num">Peso (kg)</th><th class="num">KM</th><th class="num">Total (R$)</th><th>Motorista</th><th class="fech-conf" title="Abre a janela de edição desta carga no mapa">Edit</th>' +
   '</tr></thead><tbody>' +
-  g.itens.map(it=>{
+  g.itens.filter(it=> fechStMatch(it.row)).map(it=>{
     const on = s.cargas[it.key] !== false;
-    return '<tr data-k="' + esc(it.key) + '" class="' + (on ? '' : 'off') + '">' +
+    return '<tr data-k="' + esc(it.key) + '" class="' + (on ? '' : 'off ') + (relIsConcluida(it.row) ? 'fech-row-concl' : '') + '"' + (relIsConcluida(it.row) ? ' title="CONCLUÍDA ✔ — entrega finalizada (aguardando fechamento)"' : '') + '>' +
       '<td style="text-align:center"><input type="checkbox" data-f="carga"' + (on ? ' checked' : '') + '></td>' +
       '<td>' + fmtBR(it.d) + '</td>' +
       '<td><span class="rel-badge ' + (it.sec === 'capital' ? 'cap' : 'int') + '">' + (it.sec === 'capital' ? 'Capital' : 'Interior') + '</span></td>' +
@@ -4440,24 +4570,36 @@ function fechDetRow(g){
 function renderFechTable(){
   const body = relEl('fech-body'), foot = relEl('fech-foot');
   if(!body) return;
-  const groups = fechGroups();
+  let groups = fechGroups();
   if(!groups.length){
     body.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:20px;color:var(--muted)">Nenhuma carga <b>PENDENTE</b> ou <b>EM ANÁLISE</b> no período ' + esc(fechPeriodoTxt(REL)) + '.</td></tr>';
     if(foot) foot.innerHTML = '';
     const ok = relEl('fech-ok'); if(ok) ok.disabled = true;
     return;
   }
+  // filtro de status (Concluída/Pendente): esconde transportadora sem carga visível
+  if(FECH_ST) groups = groups.filter(g=> g.itens.some(it=> fechStMatch(it.row)));
+  if(!groups.length){
+    body.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:20px;color:var(--muted)">Nenhuma carga com o status <b>' + (FECH_ST === 'concluida' ? 'CONCLUÍDA' : 'PENDENTE') + '</b> no período ' + esc(fechPeriodoTxt(REL)) + ' — veja "Todas".</td></tr>';
+    if(foot) foot.innerHTML = '';
+    const ok = relEl('fech-ok'); if(ok) ok.disabled = true;
+    renderFechResumo();
+    return;
+  }
   const ok = relEl('fech-ok'); if(ok) ok.disabled = false;
   let html = '';
   for(const g of groups){
     const gs = fechGroupSel(g);
-    const all = gs.itens.length === g.itens.length, some = gs.itens.length > 0;
+    const vis = gs.visiveis.length;
+    const all = vis > 0 && gs.itens.length === vis, some = gs.itens.length > 0;
+    const nConcl = g.itens.filter(it=> relIsConcluida(it.row)).length;
     const zap = TRANSP_ZAP[g.key] || '';
     const url = zap ? fechZapUrl(zap, g, gs) : '';
     html += '<tr data-g="' + esc(g.key) + '" class="' + (some ? 'fech-on' : 'fech-off') + '">' +
-      '<td style="text-align:center"><input type="checkbox" data-f="sel"' + (all ? ' checked' : '') + ' title="marcar/desmarcar todas as cargas de ' + esc(g.nome) + '"></td>' +
+      '<td style="text-align:center"><input type="checkbox" data-f="sel"' + (all ? ' checked' : '') + ' title="marcar/desmarcar as cargas VISÍVEIS de ' + esc(g.nome) + ' (respeita o filtro de status)"></td>' +
       '<td><button class="fech-exp" type="button" data-f="exp" title="ver/marcar as cargas individualmente">' + (gs.s.exp ? '▾' : '▸') + '</button>' +
-        '<b>' + esc(g.nome) + '</b><span class="fech-cnt">' + gs.itens.length + '/' + g.itens.length + '</span>' +
+        '<b>' + esc(g.nome) + '</b><span class="fech-cnt">' + gs.itens.length + '/' + vis + '</span>' +
+        (nConcl ? '<span class="st-badge concl" title="carga(s) concluída(s) — entrega finalizada, aguardando fechamento; linhas em verde claro"> ' + nConcl + ' concluída(s)</span>' : '') +
         (g.itens.some(it=> it.row.stFech === 'analise') ? '<span class="st-badge anal" title="carga(s) em análise — edição/inclusão/exclusão liberadas e conferência ✔/✘"> ' + g.itens.filter(it=> it.row.stFech === 'analise').length + ' em análise</span>' : '') + '</td>' +
       '<td class="num">' + gs.itens.length + '</td>' +
       '<td class="num">' + fmtPeso2(gs.peso) + '</td>' +
@@ -4472,21 +4614,21 @@ function renderFechTable(){
     if(gs.s.exp) html += fechDetRow(g);
   }
   body.innerHTML = html;
-  // checkbox MESTRE do cabeçalho: tudo marcado / parcial / nada
+  // checkbox MESTRE do cabeçalho: tudo marcado / parcial / nada — escopo: cargas VISÍVEIS
   const mall = relEl('fech-all');
   if(mall){
     let tot = 0, sel = 0;
-    for(const g of groups){ tot += g.itens.length; sel += fechGroupSel(g).itens.length; }
+    for(const g of groups){ const gs2 = fechGroupSel(g); tot += gs2.visiveis.length; sel += gs2.itens.length; }
     mall.checked = tot > 0 && sel === tot;
     mall.indeterminate = sel > 0 && sel < tot;
   }
-  // checkbox do grupo fica "indeterminado" quando só algumas cargas estão marcadas
+  // checkbox do grupo fica "indeterminado" quando só algumas cargas visíveis estão marcadas
   for(const tr of body.querySelectorAll('tr[data-g]')){
     const g = groups.find(x=> x.key === tr.getAttribute('data-g'));
     if(!g) continue;
     const gs = fechGroupSel(g);
     const cb = tr.querySelector('input[data-f="sel"]');
-    if(cb) cb.indeterminate = gs.itens.length > 0 && gs.itens.length < g.itens.length;
+    if(cb) cb.indeterminate = gs.itens.length > 0 && gs.itens.length < gs.visiveis.length;
   }
   renderFechFoot();
   renderFechResumo();
@@ -4616,9 +4758,9 @@ function bindFechPanel(){
       const r = groupOf(e.target); if(!r || !r.f) return;
       const s = fechSelOf(r.g);
       if(r.f === 'sel'){
-        // marca/desmarca TODAS as cargas do grupo
+        // marca/desmarca as cargas do grupo que estão VISÍVEIS (respeita o filtro de status)
         const g = fechGroups().find(x=> x.key === r.g);
-        if(g) for(const it of g.itens) s.cargas[it.key] = !!e.target.checked;
+        if(g) for(const it of g.itens){ if(fechStMatch(it.row)) s.cargas[it.key] = !!e.target.checked; }
         renderFechTable();
       } else if(r.f === 'carga'){
         const kTr = e.target.closest('tr[data-k]');
@@ -4668,6 +4810,12 @@ function bindFechPanel(){
       renderFechTable();
     });
   }
+  const stf = relEl('fech-st-filter');
+  if(stf && stf.dataset.fechBound !== '1'){
+    stf.dataset.fechBound = '1';
+    stf.value = FECH_ST;
+    stf.addEventListener('change', ()=>{ FECH_ST = stf.value; renderFechTable(); });
+  }
   const mall = relEl('fech-all');
   if(mall && mall.dataset.fechBound !== '1'){
     mall.dataset.fechBound = '1';
@@ -4675,7 +4823,7 @@ function bindFechPanel(){
       const on = mall.checked;
       for(const g of fechGroups()){
         const s = fechSelOf(g.key);
-        for(const it of g.itens) s.cargas[it.key] = on;
+        for(const it of g.itens){ if(fechStMatch(it.row)) s.cargas[it.key] = on; }
       }
       renderFechTable();
     });
@@ -4717,15 +4865,85 @@ function bindFechPanel(){
   }
 }
 
+/* ---- referência de quinzena do fechamento ----
+   Ao fechar, o app pergunta a referência: SOMENTE 4 opções (mês anterior e mês atual,
+   Quinzena 1 = dias 1–15, Quinzena 2 = dia 16 ao fim). A referência fica gravada no
+   fechamento e organiza os "Fechamentos anteriores" por mês/quinzena. */
+const MESES_NOME = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+function qp2(n){ return String(n).padStart(2, '0'); }
+function quinzenaLabel(ano, mes, q){ return (MESES_NOME[mes - 1] || 'Mês ' + mes) + ' — Quinzena ' + q; }
+/* as 4 opções exibidas na confirmação: anterior Q1/Q2 + atual Q1/Q2 (ano vira junto: jan ← dez) */
+function fechRefOptions(refDate){
+  const now = refDate ? new Date(refDate.getFullYear(), refDate.getMonth(), refDate.getDate()) : new Date();
+  const y = now.getFullYear(), m = now.getMonth() + 1;
+  const py = m === 1 ? y - 1 : y, pm = m === 1 ? 12 : m - 1;
+  const mk = (ano, mes, q)=> {
+    const ini = q === 1 ? 1 : 16, fim = q === 1 ? 15 : new Date(ano, mes, 0).getDate();
+    return {ano: ano, mes: mes, quinzena: q, label: quinzenaLabel(ano, mes, q),
+            faixa: qp2(ini) + '/' + qp2(mes) + ' a ' + qp2(fim) + '/' + qp2(mes) + '/' + ano};
+  };
+  return [mk(py, pm, 1), mk(py, pm, 2), mk(y, m, 1), mk(y, m, 2)];
+}
+/* referência de um fechamento — novos usam f.ref; os legados derivam da data do fechamento */
+function fechRefOf(f){
+  if(f && f.ref && f.ref.label) return f.ref;
+  const d = (f && (f.dataFech || (f.criadoEm ? String(f.criadoEm).slice(0, 10) : ''))) || '';
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(d)) return {ano: 0, mes: 0, quinzena: 0, label: '(sem referência)'};
+  const ano = +d.slice(0, 4), mes = +d.slice(5, 7), q = +d.slice(8, 10) <= 15 ? 1 : 2;
+  return {ano: ano, mes: mes, quinzena: q, label: quinzenaLabel(ano, mes, q)};
+}
+function fechRefKey(ano, mes, q){ return ano + '-' + qp2(mes) + '-Q' + q; }
+function closeFechRef(){
+  const m = relEl('fech-ref-mask'); if(m){ m.hidden = true; m.dataset.busy = ''; }
+}
+/* pergunta a referência (modal). Resolve null se cancelar; guarda contra duplo-disparo. */
+function fechRefAsk(nCargas, total){
+  return new Promise(resolve=>{
+    const mask = relEl('fech-ref-mask'), list = relEl('fech-ref-list'), hint = relEl('fech-ref-hint');
+    if(!mask || !list){ resolve(null); return; }
+    if(mask.dataset.busy === '1'){ resolve(null); return; }
+    mask.dataset.busy = '1';
+    const opts = fechRefOptions();
+    const hoje = new Date();
+    const defKey = fechRefKey(hoje.getFullYear(), hoje.getMonth() + 1, hoje.getDate() <= 15 ? 1 : 2);
+    list.innerHTML = opts.map(o=>{
+      const key = fechRefKey(o.ano, o.mes, o.quinzena);
+      const dup = FECHAMENTOS.filter(f=> fechRefKey(fechRefOf(f).ano, fechRefOf(f).mes, fechRefOf(f).quinzena) === key).length;
+      return '<label class="ref-opt' + (key === defKey ? ' sel' : '') + '"><input type="radio" name="fech-ref" value="' + esc(key) + '"' + (key === defKey ? ' checked' : '') + '>' +
+        '<span><b>' + esc(o.label) + '</b> <span class="ref-faixa">(' + esc(o.faixa) + ')</span></span>' +
+        (dup ? '<span class="ref-dup" title="Já existe fechamento nesta referência — este será somado a ele">já tem ' + dup + ' fechamento(s)</span>' : '') + '</label>';
+    }).join('');
+    if(hint) hint.textContent = nCargas + ' carga(s) selecionada(s) · ' + fmtBRL(total) + ' · as cargas passam a Fechado (sem gerar Excel).';
+    list.onclick = e=>{ const lb = e.target.closest('.ref-opt'); if(!lb) return; list.querySelectorAll('.ref-opt').forEach(x=> x.classList.remove('sel')); lb.classList.add('sel'); };
+    const done = v=>{ closeFechRef(); resolve(v); };
+    relEl('fech-ref-ok').onclick = ()=>{
+      const ck = list.querySelector('input[name="fech-ref"]:checked');
+      if(!ck){ toast('Escolha a referência da quinzena', 'err'); return; }
+      const p = String(ck.value).match(/^(\d{4})-(\d{2})-Q(\d)$/);
+      if(!p){ toast('Referência inválida', 'err'); return; }
+      const ano = +p[1], mes = +p[2], q = +p[3];
+      done({ano: ano, mes: mes, quinzena: q, label: quinzenaLabel(ano, mes, q)});
+    };
+    relEl('fech-ref-cancel').onclick = ()=> done(null);
+    relEl('fech-ref-x').onclick = ()=> done(null);
+    mask.hidden = false;
+  });
+}
+
 /* ---- confirmar o fechamento ---- */
 async function fechConfirm(){
   if(!requireAdmin()) return;
   const sel = fechGroups().map(g=> Object.assign({g: g}, fechGroupSel(g))).filter(x=> x.itens.length);
   if(!sel.length){ toast('Marque ao menos uma carga para fechar', 'err'); return; }
+  // pergunta a referência de quinzena (só 4 opções: mês anterior/atual · Q1/Q2)
+  const nSel = sel.reduce((a, x)=> a + x.itens.length, 0);
+  const totSel = sel.reduce((a, x)=> a + x.fat, 0);
+  const ref = await fechRefAsk(nSel, totSel);
+  if(!ref) return;
   const now = new Date();
   const id = 'f' + now.getTime().toString(36) + Math.random().toString(36).slice(2, 6);
   const fech = {id: id, criadoEm: now.toISOString(), dataFech: hojeIso(), por: (SESSION && SESSION.name) || '—',
-                start: REL.start, end: REL.end, grupos: []};
+                ref: ref, start: REL.start, end: REL.end, grupos: []};
   const datas = new Set();
   for(const x of sel){
     const g = x.g, s = x.s;
@@ -4749,12 +4967,11 @@ async function fechConfirm(){
   FECHAMENTOS.push(fech);
   await Stor.set('fechamentos', FECHAMENTOS);
   const nCargas = fech.grupos.reduce((a, g)=> a + g.cargas.length, 0);
-  audit('fechamento-criado', fech.id + ' · ' + fechPeriodoTxt(fech) + ' · ' + fech.grupos.length + ' transportadora(s) · ' + nCargas + ' carga(s) · ' + fmtBRL(fech.grupos.reduce((a, g)=> a + g.apagar, 0)));
+  audit('fechamento-criado', fech.id + ' · ' + ref.label + ' · ' + fechPeriodoTxt(fech) + ' · ' + fech.grupos.length + ' transportadora(s) · ' + nCargas + ' carga(s) · ' + fmtBRL(fech.grupos.reduce((a, g)=> a + g.apagar, 0)));
   closeFech();
   relApplyFilters(); renderRelTable();
-  fechXlsGeral(fech);
-  for(const g of fech.grupos) fechXlsTransp(fech, g);
-  toast('🔒 Fechado: ' + fech.grupos.length + ' transportadora(s) / ' + nCargas + ' carga(s) → ' + (1 + fech.grupos.length) + ' arquivo(s) Excel', 'ok');
+  // Fechar NÃO gera mais Excel — os arquivos ficam em 📚 Fechamentos anteriores → "Baixar de novo"
+  toast('🔒 Fechado na referência ' + ref.label + ': ' + fech.grupos.length + ' transportadora(s) / ' + nCargas + ' carga(s)', 'ok');
 }
 
 /* ---- Excel: resumo do financeiro ---- */
@@ -4985,28 +5202,179 @@ function fechRsPanel(id){
         fmtBR(c.d) + ' · ' + (c.sec === 'capital' ? 'Capital' : 'Interior') + ' · ' + esc(c.placa || '—') + ' · ' + esc(c.destino || '') + ' · nº ' + esc(c.ordem || '—') + ' · ' + fmtBRL(c.total) + '</label>').join('') +
       '</div>').join('');
 }
+/* ---- Fechamentos anteriores: agrupados por MÊS + QUINZENA de referência, com filtros
+   de ano, mês ou intervalo (De/Até por mês). Marcando as quinzenas dá p/ ver o resumo
+   consolidado antes de imprimir ou copiar. ---- */
+function fhControlsFill(){
+  const mesSel = relEl('fh-mes');
+  if(mesSel && mesSel.options.length <= 1){
+    for(let m = 1; m <= 12; m++) mesSel.appendChild(new Option(MESES_NOME[m - 1], String(m)));
+  }
+  const ySel = relEl('fh-ano');
+  if(ySel){
+    const anos = new Set([new Date().getFullYear()]);
+    for(const f of FECHAMENTOS){ const r = fechRefOf(f); if(r.ano) anos.add(r.ano); }
+    const keep = ySel.value;
+    const ord = Array.from(anos).sort((a, b)=> b - a);
+    if(ySel.options.length !== ord.length + 1 || Array.from(ySel.options).some((o, i)=> i > 0 && +o.value !== ord[i - 1])){
+      ySel.innerHTML = '<option value="">Todos</option>' + ord.map(a=> '<option value="' + a + '">' + a + '</option>').join('');
+    }
+    if(ord.indexOf(+keep) > -1 || keep === '') ySel.value = keep;
+  }
+}
+/* fechamentos agrupados por referência (mês/quinzena) já filtrados — em ordem cronológica */
+function fhVistos(){
+  const ano = String((relEl('fh-ano') || {}).value || '');
+  const mes = String((relEl('fh-mes') || {}).value || '');
+  const de = String((relEl('fh-mes-de') || {}).value || '');   // YYYY-MM
+  const ate = String((relEl('fh-mes-ate') || {}).value || '');
+  const grupos = new Map(); // chave YYYY-MM-Qn → {key, ref, label, am, list[], cargas, peso, valor}
+  for(const f of FECHAMENTOS){
+    const r = fechRefOf(f);
+    if(r.ano){
+      const am = r.ano + '-' + qp2(r.mes);
+      if(ano && r.ano !== +ano) continue;
+      if(mes && r.mes !== +mes) continue;
+      if(de && am < de) continue;
+      if(ate && am > ate) continue;
+    } else if(ano || mes || de || ate) continue;   // sem referência só aparece sem filtros
+    const key = r.ano ? fechRefKey(r.ano, r.mes, r.quinzena) : 'sem-ref';
+    let g = grupos.get(key);
+    if(!g){
+      g = {key: key, ano: r.ano, mes: r.mes, quinzena: r.quinzena,
+           label: r.ano ? (MESES_NOME[r.mes - 1] + '/' + r.ano + ' — Quinzena ' + r.quinzena) : '(sem referência)',
+           ord: r.ano ? (r.ano * 10000 + r.mes * 100 + r.quinzena) : -1,
+           list: [], cargas: 0, peso: 0, valor: 0};
+      grupos.set(key, g);
+    }
+    g.list.push(f);
+    g.cargas += f.grupos.reduce((a, x)=> a + x.cargas.length, 0);
+    g.peso += f.grupos.reduce((a, x)=> a + numVal(x.peso), 0);
+    g.valor += f.grupos.reduce((a, x)=> a + numVal(x.apagar), 0);
+  }
+  return Array.from(grupos.values()).sort((a, b)=> a.ord - b.ord);
+}
 function renderFechHist(){
   const wrap = relEl('fech-hist-rows'); if(!wrap) return;
+  fhControlsFill();
   if(!FECHAMENTOS.length){ wrap.innerHTML = '<div class="empty">Nenhum fechamento feito ainda.</div>'; return; }
-  const fs = String((relEl('fh-start') || {}).value || ''), fe = String((relEl('fh-end') || {}).value || '');
-  let list = FECHAMENTOS.slice().reverse();
-  if(fs || fe) list = list.filter(f=>{
-    const d = f.dataFech || (f.criadoEm ? String(f.criadoEm).slice(0, 10) : '');
-    return (!fs || d >= fs) && (!fe || d <= fe);
-  });
-  if(!list.length){ wrap.innerHTML = '<div class="empty">Nenhum fechamento entre ' + esc(fs || '…') + ' e ' + esc(fe || '…') + '.</div>'; return; }
-  wrap.innerHTML = list.map(f=>{
-    const n = f.grupos.reduce((a, g)=> a + g.cargas.length, 0);
-    const val = f.grupos.reduce((a, g)=> a + g.apagar, 0);
-    const quando = f.dataFech ? fmtBR(f.dataFech) : (f.criadoEm ? new Date(f.criadoEm).toLocaleDateString('pt-BR') : '');
-    return '<div class="fech-hist-row" data-f="' + esc(f.id) + '">' +
-      '<span class="grow"><b>' + fechPeriodoTxt(f) + '</b> · ' + f.grupos.length + ' transportadora(s) · ' + n + ' carga(s) · ' + fmtBRL(val) + ' · 🔒 Fechado em ' + esc(quando || '—') + '</span>' +
-      '<span class="mono">' + esc(f.por || '') + '</span>' +
-      '<button class="btn mini" type="button" data-act="fech-dl" title="Gera de novo o resumo + os arquivos por transportadora (com os valores da época)">📥 Baixar de novo</button>' +
-      '<button class="btn mini" type="button" data-act="fech-rs" title="Devolve as cargas escolhidas deste fechamento para PENDENTE ou EM ANÁLISE (filtre pela data de fechamento acima)">↺ Reabrir cargas</button>' +
-      '<div class="fech-rs" data-rs-panel hidden></div>' +
+  const vistos = fhVistos();
+  if(!vistos.length){ wrap.innerHTML = '<div class="empty">Nenhuma quinzena nos filtros escolhidos.</div>'; return; }
+  wrap.innerHTML = vistos.map(g=>{
+    const rows = g.list.slice().reverse().map(f=>{
+      const n = f.grupos.reduce((a, x)=> a + x.cargas.length, 0);
+      const val = f.grupos.reduce((a, x)=> a + x.apagar, 0);
+      const quando = f.dataFech ? fmtBR(f.dataFech) : (f.criadoEm ? new Date(f.criadoEm).toLocaleDateString('pt-BR') : '');
+      return '<div class="fech-hist-row" data-f="' + esc(f.id) + '">' +
+        '<span class="grow"><b>' + fechPeriodoTxt(f) + '</b> · ' + f.grupos.length + ' transportadora(s) · ' + n + ' carga(s) · ' + fmtBRL(val) + ' · 🔒 Fechado em ' + esc(quando || '—') + '</span>' +
+        '<span class="mono">' + esc(f.por || '') + '</span>' +
+        '<button class="btn mini" type="button" data-act="fech-dl" title="Gera de novo o resumo + os arquivos por transportadora (com os valores da época)">📥 Baixar de novo</button>' +
+        '<button class="btn mini" type="button" data-act="fech-rs" title="Devolve as cargas escolhidas deste fechamento para PENDENTE ou EM ANÁLISE">↺ Reabrir cargas</button>' +
+        '<div class="fech-rs" data-rs-panel hidden></div>' +
+      '</div>';
+    }).join('');
+    return '<div class="fh-group">' +
+      '<label class="fh-g-head" title="Marcar esta quinzena p/ o resumo (👁 Ver resumo)"><input type="checkbox" data-fh-g="' + esc(g.key) + '"> <b>' + esc(g.label) + '</b>' +
+      '<span class="fh-g-tot">' + g.list.length + ' fechamento(s) · ' + g.cargas + ' carga(s) · ' + fmtPeso2(g.peso) + ' kg · ' + fmtBRL(g.valor) + '</span></label>' +
+      rows +
     '</div>';
   }).join('');
+}
+/* ---- resumo das quinzenas MARCADAS: linhas Mês—Quinzena × Tipo (Capital/Interior) ×
+   Transportador (+ código) com quantidade de cargas, peso e valor; subtotal por quinzena
+   e TOTAL GERAL. Valor = valor FATURADO das cargas (o a-pagar fica no subtotal do fechamento). ---- */
+function fhResumoRows(keys){
+  const vistos = fhVistos().filter(g=> keys.indexOf(g.key) > -1);
+  const rows = []; let tq = 0, tp = 0, tv = 0;
+  for(const g of vistos){
+    const por = new Map(); // transp|sec → acumulado
+    for(const f of g.list){
+      for(const gr of f.grupos){
+        for(const c of gr.cargas){
+          const k = gr.transp + '|' + c.sec;
+          let e = por.get(k);
+          if(!e){ e = {ref: g.label, tipo: c.sec === 'capital' ? 'Capital' : 'Interior', transp: gr.transp, codigo: String(gr.codigo || ''), qtd: 0, peso: 0, valor: 0}; por.set(k, e); }
+          e.qtd++; e.peso += numVal(c.peso); e.valor += numVal(c.total);
+        }
+      }
+    }
+    const ls = Array.from(por.values()).sort((a, b)=> a.transp.localeCompare(b.transp, 'pt-BR') || (a.tipo === 'Interior' ? -1 : 1));
+    let sq = 0, sp = 0, sv = 0;
+    for(const e of ls){ rows.push(Object.assign({t: 'reg'}, e)); sq += e.qtd; sp += e.peso; sv += e.valor; }
+    if(ls.length){ rows.push({t: 'sub', ref: g.label, qtd: sq, peso: sp, valor: sv}); }
+    tq += sq; tp += sp; tv += sv;
+  }
+  if(rows.length) rows.push({t: 'tot', qtd: tq, peso: tp, valor: tv});
+  return rows;
+}
+function fhResumoKeysSel(){
+  const wrap = relEl('fech-hist-rows'); if(!wrap) return [];
+  return Array.from(wrap.querySelectorAll('input[data-fh-g]:checked')).map(cb=> cb.getAttribute('data-fh-g')).filter(Boolean);
+}
+function fhResumoTexto(rows){
+  const L = ['📚 RESUMO DE FECHAMENTOS POR QUINZENA'];
+  for(const r of rows){
+    if(r.t === 'reg') L.push(r.ref + ' · ' + r.tipo + ' · ' + r.transp + (r.codigo ? ' (cód. ' + r.codigo + ')' : '') + ' · ' + r.qtd + ' carga(s) · ' + fmtPeso2(r.peso) + ' kg · ' + fmtBRL(r.valor));
+    else if(r.t === 'sub') L.push('— Subtotal ' + r.ref + ': ' + r.qtd + ' carga(s) · ' + fmtPeso2(r.peso) + ' kg · ' + fmtBRL(r.valor));
+    else L.push('== TOTAL GERAL: ' + r.qtd + ' carga(s) · ' + fmtPeso2(r.peso) + ' kg · ' + fmtBRL(r.valor));
+  }
+  return L.join('\n');
+}
+let FH_RES_ROWS = [];
+function openFhResumo(){
+  if(!requireAdmin()) return;
+  const keys = fhResumoKeysSel();
+  if(!keys.length){ toast('Marque ao menos uma quinzena (checkbox no cabeçalho de cada mês) p/ resumir', 'err'); return; }
+  const rows = fhResumoRows(keys);
+  if(!rows.length){ toast('Nada a resumir nas quinzenas marcadas', 'err'); return; }
+  FH_RES_ROWS = rows;
+  const body = relEl('fh-res-body'), hint = relEl('fh-res-hint');
+  if(hint) hint.textContent = keys.length + ' quinzena(s) no resumo — Mês—Quinzena × Tipo × Transportador, com subtotal por quinzena e total geral.';
+  let html = '<table class="fh-res-table"><thead><tr><th>Mês — Quinzena</th><th>Tipo</th><th>Transportador</th><th>Código</th><th class="num">Qtd cargas</th><th class="num">Peso (kg)</th><th class="num">Valor (R$)</th></tr></thead><tbody>';
+  for(const r of rows){
+    if(r.t === 'reg') html += '<tr><td>' + esc(r.ref) + '</td><td>' + esc(r.tipo) + '</td><td>' + esc(r.transp) + '</td><td class="mono">' + esc(r.codigo) + '</td><td class="num">' + fmtInt(r.qtd) + '</td><td class="num">' + fmtPeso2(r.peso) + '</td><td class="num">' + fmtBRL(r.valor) + '</td></tr>';
+    else if(r.t === 'sub') html += '<tr class="fh-sub"><td colspan="4">— Subtotal ' + esc(r.ref) + '</td><td class="num">' + fmtInt(r.qtd) + '</td><td class="num">' + fmtPeso2(r.peso) + '</td><td class="num">' + fmtBRL(r.valor) + '</td></tr>';
+    else html += '<tr class="fh-tot"><td colspan="4">TOTAL GERAL</td><td class="num">' + fmtInt(r.qtd) + '</td><td class="num">' + fmtPeso2(r.peso) + '</td><td class="num">' + fmtBRL(r.valor) + '</td></tr>';
+  }
+  html += '</tbody></table>';
+  if(body) body.innerHTML = html;
+  const m = relEl('fh-res-mask'); if(m) m.hidden = false;
+}
+function closeFhRes(){ const m = relEl('fh-res-mask'); if(m) m.hidden = true; }
+function fhResCopy(){
+  if(!FH_RES_ROWS.length){ toast('Nada p/ copiar', 'err'); return; }
+  const txt = fhResumoTexto(FH_RES_ROWS);
+  const ok = ()=> toast('📋 Resumo copiado — cole (Ctrl+V) no WhatsApp/Excel', 'ok');
+  if(navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(ok, ()=> toast('Não foi possível copiar', 'err'));
+  else{
+    try{
+      const ta = document.createElement('textarea');
+      ta.value = txt; document.body.appendChild(ta); ta.select();
+      document.execCommand('copy'); ta.remove(); ok();
+    }catch(e){ toast('Não foi possível copiar', 'err'); }
+  }
+}
+function fhResPrint(){
+  if(!FH_RES_ROWS.length){ toast('Nada p/ imprimir', 'err'); return; }
+  const w = window.open('', '_blank');
+  if(!w){ toast('Permita a abertura de novas guias p/ imprimir o resumo', 'warn'); return; }
+  let lin = '';
+  for(const r of FH_RES_ROWS){
+    if(r.t === 'reg') lin += '<tr><td>' + esc(r.ref) + '</td><td>' + esc(r.tipo) + '</td><td>' + esc(r.transp) + '</td><td>' + esc(r.codigo) + '</td><td class="n">' + fmtInt(r.qtd) + '</td><td class="n">' + fmtPeso2(r.peso) + '</td><td class="n">' + fmtBRL(r.valor) + '</td></tr>';
+    else if(r.t === 'sub') lin += '<tr class="sub"><td colspan="4">— Subtotal ' + esc(r.ref) + '</td><td class="n">' + fmtInt(r.qtd) + '</td><td class="n">' + fmtPeso2(r.peso) + '</td><td class="n">' + fmtBRL(r.valor) + '</td></tr>';
+    else lin += '<tr class="tot"><td colspan="4">TOTAL GERAL</td><td class="n">' + fmtInt(r.qtd) + '</td><td class="n">' + fmtPeso2(r.peso) + '</td><td class="n">' + fmtBRL(r.valor) + '</td></tr>';
+  }
+  w.document.open();
+  w.document.write('<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><title>Resumo de fechamentos por quinzena</title>' +
+    '<style>body{font:13px system-ui,sans-serif;color:#0f172a;margin:14mm}h1{font-size:17px}table{border-collapse:collapse;width:100%}' +
+    'th{background:#1e3a8a;color:#fff;padding:6px 9px;text-align:left}td{padding:5px 9px;border-bottom:1px solid #cbd5e1}' +
+    'td.n{text-align:right;font-family:ui-monospace,monospace}tr.sub td{background:#fef3c7;font-weight:700}tr.tot td{background:#dcfce7;font-weight:800;border-top:2px solid #16a34a}' +
+    '@page{size:A4 landscape;margin:10mm}</style></head><body>' +
+    '<h1>📚 Resumo de fechamentos por quinzena</h1><p>Gerado em ' + new Date().toLocaleString('pt-BR') + '</p>' +
+    '<table><thead><tr><th>Mês — Quinzena</th><th>Tipo</th><th>Transportador</th><th>Código</th><th style="text-align:right">Qtd cargas</th><th style="text-align:right">Peso (kg)</th><th style="text-align:right">Valor (R$)</th></tr></thead><tbody>' +
+    lin + '</tbody></table></body></html>');
+  w.document.close();
+  try{ w.focus(); w.print(); }catch(e){}
 }
 function fechBaixarDeNovo(id){
   const f = FECHAMENTOS.find(x=> x.id === id); if(!f) return;
@@ -6949,6 +7317,7 @@ function bindStatic(){
   /* botões das seções */
   $$('[data-add]').forEach(b => b.addEventListener('click', ()=> addRow(b.dataset.add)));
   $$('[data-merge]').forEach(b => b.addEventListener('click', ()=> mergeSelected(b.dataset.merge)));
+  $$('[data-conclui]').forEach(b => b.addEventListener('click', ()=> concluirSelecionadas(b.dataset.conclui)));
 
   /* login / logout */
   $('#btn-login').addEventListener('click', async ()=>{
@@ -7087,9 +7456,14 @@ function bindStatic(){
   $('#fech-x').addEventListener('click', closeFech);
   $('#fech-ok').addEventListener('click', fechConfirm);
   $('#fech-mask').addEventListener('mousedown', e=>{ if(e.target.id === 'fech-mask') closeFech(); });
-  /* fecha com Esc (painel de fechamento primeiro; depois o relatório, gravando pendências) */
+  /* fecha com Esc (modais sobrepostos primeiro: referência/resumo; depois o painel de
+     fechamento e por fim o relatório, gravando pendências) */
   document.addEventListener('keydown', e=>{
     if(e.key !== 'Escape') return;
+    const frm = $('#fech-ref-mask');
+    if(frm && !frm.hidden){ const c = $('#fech-ref-cancel'); if(c) c.click(); return; }
+    const hrm = $('#fh-res-mask');
+    if(hrm && !hrm.hidden){ closeFhRes(); return; }
     const fm = $('#fech-mask');
     if(fm && !fm.hidden){ closeFech(); return; }
     const m = $('#report-xls-mask');
@@ -7312,8 +7686,14 @@ function bindStatic(){
     relEl('edc-neg').value = '';
     edcPreview();
   });
-  for(const fid of ['fh-start','fh-end']){ const fe2 = relEl(fid); if(fe2) fe2.addEventListener('change', ()=> renderFechHist()); }
-  const fhc = relEl('fh-clear'); if(fhc) fhc.addEventListener('click', ()=>{ const a2 = relEl('fh-start'), b2 = relEl('fh-end'); if(a2) a2.value = ''; if(b2) b2.value = ''; renderFechHist(); });
+  for(const fid of ['fh-ano','fh-mes','fh-mes-de','fh-mes-ate']){ const fe2 = relEl(fid); if(fe2) fe2.addEventListener('change', ()=> renderFechHist()); }
+  const fhc = relEl('fh-clear'); if(fhc) fhc.addEventListener('click', ()=>{ for(const fid of ['fh-ano','fh-mes','fh-mes-de','fh-mes-ate']){ const i2 = relEl(fid); if(i2) i2.value = ''; } renderFechHist(); });
+  const fhRes = relEl('fh-resumo'); if(fhRes) fhRes.addEventListener('click', openFhResumo);
+  const fhResClose = relEl('fh-res-close'); if(fhResClose) fhResClose.addEventListener('click', closeFhRes);
+  const fhResX = relEl('fh-res-x'); if(fhResX) fhResX.addEventListener('click', closeFhRes);
+  const fhResPrintB = relEl('fh-res-print'); if(fhResPrintB) fhResPrintB.addEventListener('click', fhResPrint);
+  const fhResCopyB = relEl('fh-res-copy'); if(fhResCopyB) fhResCopyB.addEventListener('click', fhResCopy);
+  const fhResMask = relEl('fh-res-mask'); if(fhResMask) fhResMask.addEventListener('mousedown', e=>{ if(e.target.id === 'fh-res-mask') closeFhRes(); });
 
   /* códigos/whatsapp de transportadora p/ fechamento (mesmo padrão do cadastro de rotas) */
   $('#btn-transp-add').addEventListener('click', ()=>{
@@ -7537,7 +7917,7 @@ async function init(){
 /* AUTO-CHECK DE VERSAO: avisa (somente quando roda em github.io) se a aba estiver com
    copia antiga em cache — compara o selo APP_V local com o do arquivo publicado no repo.
    Falha de rede/offline = silencioso; nunca bloqueia o uso. */
-const APP_V = '2026-09-25a';
+const APP_V = '2026-09-25b';
 (function(){
   // Selo de versão VISÍVEL no canto da tela: qualquer print/print-screen mostra qual código
   // está rodando no aparelho (cópia antiga = selo antigo/ausente). Não entra nas capturas.
