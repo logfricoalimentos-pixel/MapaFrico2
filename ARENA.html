@@ -8,6 +8,7 @@
      img-src inclui 'self' para permitir os arquivos de ícone/logo hospedados no próprio repositório
      (assets/*), mantendo o bloqueio a imagens de domínios externos/terceiros. -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'unsafe-inline'; img-src data: blob: 'self'; font-src 'self'; connect-src 'self' https:; object-src 'none'; base-uri 'none'; form-action 'none'">
+<script>try{if(new URLSearchParams(location.search).get('painel')==='gerencial')document.documentElement.classList.add('gerencial-request')}catch(e){}</script>
 <title>Mapa de Carregamento</title>
 <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
 <link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16x16.png">
@@ -776,6 +777,66 @@ body.readonly .sec-actions{display:none}
 .sum-card .ic{width:40px;height:40px;padding:8px;box-sizing:border-box;background:linear-gradient(160deg,#2f8be0,#0d54a8);border-radius:10px;color:#fff;flex:none}
 .sum-card > div{display:flex;flex-direction:column}
 .sum-v{color:#0b3d78}
+/* ===== Painel Gerencial / Mapa Gerencial ===== */
+html.gerencial-request #topbar,
+html.gerencial-request #capture-root,
+html.gerencial-request #etiq-print,
+html.gerencial-request #cap-print,
+html.gerencial-request #plan-print,
+html.gerencial-request #settings{display:none!important}
+.gerencial-head{max-width:1500px;margin:14px auto 12px;padding:14px 18px;border-radius:12px;background:linear-gradient(120deg,#0f172a,#1e3a8a);color:#fff;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;box-shadow:0 3px 12px rgba(15,23,42,.16)}
+.gerencial-head[hidden],#gerencial-page[hidden],#gerencial-access-note[hidden]{display:none!important}
+.gerencial-head h1{font-size:20px;letter-spacing:.2px}
+.gerencial-head p{margin:3px 0 0;color:#cbd5e1;font-size:12.5px}
+.gerencial-head-actions{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.gerencial-head-actions [hidden]{display:none!important}
+.gerencial-head-actions .btn{background:#fff;color:#0f172a;border-color:#cbd5e1}
+.gerencial-date-control{display:flex;align-items:center;gap:7px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);border-radius:8px;padding:5px 8px;font-size:12px}
+.gerencial-date-control input{border:1px solid #cbd5e1;border-radius:6px;padding:4px 6px;font:inherit;color:#0f172a;background:#fff}
+#gerencial-access-note{max-width:1500px;margin:0 auto 12px;padding:10px 14px;border:1px solid #fbbf24;border-radius:9px;background:#fffbeb;color:#92400e;font-size:13px}
+#gerencial-page{max-width:1500px;margin:0 auto 18px;padding:0 0 4px}
+.gm-summary-block,.gm-section{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:14px;box-shadow:0 1px 3px rgba(15,23,42,.06)}
+.gm-summary-title{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin:0 0 10px}
+.gm-summary-title h2,.gm-section-title h2{font-size:15px;letter-spacing:.35px}
+.gm-summary-title small{font-size:11.5px;color:var(--muted)}
+.gm-summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:8px}
+.gm-card{min-width:0;border:1px solid #e2e8f0;border-radius:9px;padding:8px 10px;background:#f8fafc}
+.gm-card-k{display:block;font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.35px}
+.gm-card-v{display:block;margin-top:3px;font:700 15px/1.3 var(--mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#0f172a}
+.gm-section-title{display:flex;align-items:center;gap:8px;margin:0 0 9px;padding-bottom:8px;border-bottom:1px solid var(--line)}
+.gm-section-title .gm-section-count{margin-left:auto;color:#475569;font-size:12px;font-weight:700;white-space:nowrap}
+.gm-table-wrap{overflow:auto;border:1px solid #cbd5e1;border-radius:9px;background:#fff}
+.gm-table{border-collapse:collapse;width:100%;min-width:1240px;font-size:12px}
+.gm-table th{position:sticky;top:0;z-index:1;background:#1e3a8a;color:#fff;padding:7px 8px;text-align:left;white-space:nowrap;border-right:1px solid #334e8c}
+.gm-table th.num,.gm-table td.num{text-align:right}
+.gm-table td{padding:6px 8px;border-bottom:1px solid #e2e8f0;border-right:1px solid #edf2f7;vertical-align:middle;white-space:nowrap}
+.gm-table tbody tr:nth-child(even) td{background:#f8fafc}
+.gm-table tbody tr:hover td{background:#eff6ff}
+.gm-table td.num{font-family:var(--mono)}
+.gm-table tfoot td{background:#e2e8f0;border-top:2px solid #94a3b8;font-weight:800}
+.gm-empty{text-align:center!important;color:#64748b;padding:16px!important}
+.gm-section-note{margin:7px 0 0;font-size:11px;color:#64748b}
+@media(max-width:760px){
+  .gerencial-head{margin:8px;padding:12px}
+  .gerencial-head h1{font-size:17px}
+  #gerencial-page{margin:0 8px 12px}
+  .gm-summary-block,.gm-section{padding:10px}
+  .gm-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media print{
+  html.gerencial-request #painel,html.gerencial-request #gerencial-head .no-print{display:none!important}
+  html.gerencial-request #gerencial-page{max-width:none;margin:0;padding:0}
+  html.gerencial-request .gm-summary-block,html.gerencial-request .gm-section{box-shadow:none;break-inside:avoid;margin-bottom:8px;padding:8px}
+  html.gerencial-request .gm-table-wrap{overflow:visible;border-color:#64748b}
+  html.gerencial-request .gm-table{min-width:0;width:100%;table-layout:fixed;font-size:8px}
+  html.gerencial-request .gm-table th,html.gerencial-request .gm-table td{padding:4px 4px;white-space:normal;overflow-wrap:anywhere}
+  html.gerencial-request .gm-table td.num{white-space:nowrap;font-size:7.5px}
+  html.gerencial-request .gm-table th{position:static;background:#e2e8f0!important;color:#0f172a;border-color:#94a3b8}
+  html.gerencial-request .gm-table tr{break-inside:avoid}
+  html.gerencial-request .gm-card{padding:5px 7px}
+  html.gerencial-request .gm-card-v{font-size:11px}
+  @page{size:A4 landscape;margin:8mm}
+}
 </style>
 </head>
 <body>
@@ -841,12 +902,31 @@ body.readonly .sec-actions{display:none}
     <span class="sep"></span>
     <button class="btn" id="btn-reclass" title="Refaz a classificação de todas as linhas com as regras atuais">🔄 Reclassificar</button>
     <button class="btn danger" id="btn-clear">🧹 Limpar</button>
-    <button class="btn primary" id="btn-dash">📊 Indicadores</button>
+    <button class="btn primary" id="btn-dash" title="Abre em outra guia o Painel Gerencial com indicadores, mapa e resumos">📊 Painel Gerencial ↗</button>
   </div>
   </div>
 </header>
 
-<!-- ============ PAINEL DE INDICADORES (não vai para imagem/impressão) ============ -->
+<!-- ============ PAINEL GERENCIAL (abre em guia própria) ============ -->
+<div id="gerencial-head" class="gerencial-head" hidden>
+  <div>
+    <h1>📊 Painel Gerencial</h1>
+    <p>Usuário: <b id="gerencial-user">—</b> · Data de entrega: <b id="gerencial-delivery">—</b></p>
+  </div>
+  <div class="gerencial-head-actions no-print">
+    <label class="gerencial-date-control">Faturamento<input type="date" id="gerencial-date"></label>
+    <button class="btn no-print" type="button" id="btn-gerencial-refresh">🔄 Atualizar</button>
+    <button class="btn no-print" type="button" id="btn-gerencial-print">🖨 Imprimir mapa</button>
+    <button class="btn no-print" type="button" id="btn-gerencial-back">↩ Voltar ao mapa</button>
+    <button class="btn no-print" type="button" id="btn-gerencial-logout">Sair</button>
+  </div>
+</div>
+<div id="gerencial-access-note" hidden></div>
+<section id="gerencial-page" hidden>
+  <div id="gerencial-map"></div>
+</section>
+
+<!-- ============ PAINEL DE INDICADORES (no Painel Gerencial / não vai para imagem) ============ -->
 <section id="painel" class="no-print" hidden>
   <div class="painel-head">
     <h2>📊 Painel de Indicadores &amp; Fechamento</h2>
@@ -1561,6 +1641,9 @@ let ROTAS_DIAS = {};      // rota (Nº Carga normalizado) -> dias (para automati
 let TRANSP_CODES = {};    // transportadora (normKw) -> código p/ coluna CÓDIGO do fechamento
 let TRANSP_ZAP = {};      // transportadora (normKw) -> whatsapp (link p/ mandar o relatório)
 let FECHAMENTOS = [];     // fechamentos quinzenais já feitos (status Pendente->Fechado das cargas)
+const APP_PARAMS = new URLSearchParams(location.search);
+const GERENCIAL_PAGE = APP_PARAMS.get('painel') === 'gerencial';
+const GERENCIAL_INITIAL_DATE = /^\d{4}-\d{2}-\d{2}$/.test(APP_PARAMS.get('data') || '') ? APP_PARAMS.get('data') : '';
 let currentMapDate = '';
 let dtEntrega = '';
 let dirty = false;
@@ -2486,6 +2569,7 @@ function renderAll(opts){
   updateDocHeader();
   disableForLevel(); // reaplica a trava de somente leitura após re-render (inputs novos)
   scheduleSave();
+  if(GERENCIAL_PAGE){ updateGerencialHead(); renderGerencialMap(); }
   if(opts.focus) restoreFocus(opts.focus);
 }
 
@@ -2505,6 +2589,8 @@ function snapshotMap(){
   };
 }
 function scheduleSave(){
+  // O Painel Gerencial é uma guia de consulta: nunca agenda gravação da página de relatório.
+  if(GERENCIAL_PAGE) return;
   // AUDITORIA: apenas o administrador edita — demais níveis não geram escrita no storage
   if(!(SESSION && SESSION.level === 4)) return;
   dirty = true;
@@ -2559,13 +2645,13 @@ async function loadMapForDate(dateStr){
 async function switchToDate(dateStr){
   if(!dateStr || dateStr === currentMapDate){ renderAll(); return; }
   clearTimeout(saveTimer);
-  // AUDITORIA: só salva se o usuário edita (read-only não tem alterações pendentes)
-  if(SESSION && SESSION.level === 4) await saveMapForDate(currentMapDate);
+  // A guia gerencial é somente leitura: não pode sobrescrever o mapa ao trocar a data.
+  if(!GERENCIAL_PAGE && SESSION && SESSION.level === 4) await saveMapForDate(currentMapDate);
   currentMapDate = dateStr;
   await loadMapForDate(currentMapDate);
   renderAll();
   toast('📅 Mapa de ' + fmtBR(dateStr) + ' carregado', 'ok');
-  if(dashVisible) loadDashboard();
+  if(dashVisible) await loadDashboard();
 }
 async function loadSettings(){
   const [reg, ff, ck, ik, hc, av, rd, tc, fc, tz, wa, mg] = await Promise.all([
@@ -3085,20 +3171,33 @@ async function ftLogin(user, pass){
   if(!res.ok || !data.access_token) throw new Error((data && (data.error_description || data.msg || data.error)) || 'login FricoTrack falhou (' + res.status + ')');
   return {token: data.access_token, userId: (data.user && data.user.id) || null};
 }
+/* O FricoTrack recebe somente veículos com Ordem (Nº Carga) real.
+   —, 0 e vazio são marcadores de ausência de carga e nunca devem ser enviados. */
+function ftTemOrdemValida(carga){
+  const ordem = String(carga == null ? '' : carga)
+    .normalize('NFKC').replace(/[\u200B-\u200D\uFEFF]/g, '').trim();
+  if(!ordem) return false;
+  const compacta = ordem.replace(/\s+/g, '');
+  // Trata como ausência o travessão e suas variantes comuns, além de zero numérico formatado.
+  if(/^[-\u2010-\u2015\u2212]+$/.test(compacta)) return false;
+  if(/^[+\-\u2212]?0+(?:[.,]0+)?$/.test(compacta)) return false;
+  return true;
+}
 /* linhas do dia aberto -> payload veiculos_esperados (mesmos campos do site) */
 function buildFtRows(dateIso){
   const rows = [];
   for(const sec of SECTIONS){
     for(const r of (DATA[sec] || [])){
       const placa = String(r.placa || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
-      if(!placa) continue;
+      const carga = String(r.carga == null ? '' : r.carga).trim();
+      if(!placa || !ftTemOrdemValida(carga)) continue;
       const aj = sec === 'frotas' ? [r.ajudantes, r.ajudante2].filter(x=> x && String(x).trim()).join(' / ') : '';
       rows.push({
         data_referencia: dateIso,
         grupo: FT_GRUPO,
         placa: placa,
         destino: String(r.destino || '').trim() || null,
-        carga_id: String(r.carga || '').trim() || null,
+        carga_id: carga,
         peso: numVal(r.peso) > 0 ? numVal(r.peso) : null,
         qtd_entregas: numVal(r.entregas) > 0 ? Math.round(numVal(r.entregas)) : null,
         motorista: String(r.motorista || '').trim() || null,
@@ -3112,24 +3211,27 @@ function buildFtRows(dateIso){
   return rows;
 }
 async function ftSendDay(dateIso, rows, token, userId){
-  const datas = [...new Set(rows.map(r=> r.data_referencia))];
+  // Segunda validação na fronteira da API: nunca apaga/substitui nem envia ordens inválidas.
+  const sendRows = (rows || []).filter(r=> r && ftTemOrdemValida(r.carga_id));
+  if(!sendRows.length) return 0;
+  const datas = [...new Set(sendRows.map(r=> r.data_referencia))];
   for(const d of datas){
     const r1 = await fetch(FT_SUPA + '/rest/v1/veiculos_esperados?data_referencia=eq.' + encodeURIComponent(d), {method:'DELETE', headers: ftHeaders(token)});
     if(!r1.ok) throw new Error('delete dia ' + d + ': ' + r1.status);
   }
-  const ids = [...new Set(rows.map(r=> r.carga_id).filter(c=> c))];
+  const ids = [...new Set(sendRows.map(r=> r.carga_id).filter(c=> c))];
   if(ids.length){
     const q = '?carga_id=in.(' + ids.map(x=> encodeURIComponent('"' + x + '"')).join(',') + ')&walk_in=eq.false&conferido=eq.false&status_autorizacao=neq.recusado';
     const r2 = await fetch(FT_SUPA + '/rest/v1/veiculos_esperados' + q, {method:'DELETE', headers: ftHeaders(token)});
     if(!r2.ok) throw new Error('delete cargas: ' + r2.status);
   }
-  const payload = rows.map(r=> Object.assign({}, r, {criado_por: userId}));
+  const payload = sendRows.map(r=> Object.assign({}, r, {criado_por: userId}));
   const r3 = await fetch(FT_SUPA + '/rest/v1/veiculos_esperados', {method:'POST', headers: ftHeaders(token), body: JSON.stringify(payload)});
   if(!r3.ok){
     const e = await r3.json().catch(()=> ({}));
     throw new Error((e && (e.message || e.details || e.hint)) || ('insert ' + r3.status));
   }
-  return rows.length;
+  return sendRows.length;
 }
 let FT_STATE = null;
 function ftClose(){ const m=$('#ft-mask'); if(m) m.remove(); }
@@ -3148,9 +3250,9 @@ function ftOpenConfirm(){
     '<div class="modal modal-edc ft-modal">' +
       '<div class="fech-head"><h3>📤 FricoTrack — enviar faturamento de ' + fmtBR(currentMapDate) + '</h3><button class="x" type="button" id="ft-x" title="Cancelar">✕</button></div>' +
       '<p class="ft-chips">' + chip('Frotas', cnt.frotas) + chip('Capital', cnt.capital) + chip('Interior', cnt.interior) + chip('Total de veículos', rows.length) + '</p>' +
-      '<p class="hint">Envia os veículos do dia aberto para a lista de <b>esperados</b> da portaria no FricoTrack, com placa, rota/destino, ordem, peso, entregas, motorista, transportador/ajudantes e tipo de veículo. <b>Como no site:</b> o envio substitui a lista desta data lá — reenviar corrige. Sem planilha e sem bot.</p>' +
+      '<p class="hint">Envia para a lista de <b>esperados</b> da portaria no FricoTrack somente veículos com placa e Nº Carga válida. Ordens <b>—</b>, <b>0</b> ou vazias são ignoradas. Inclui rota/destino, peso, entregas, motorista, transportador/ajudantes e tipo de veículo. <b>Como no site:</b> o envio substitui a lista desta data lá — reenviar corrige. Sem planilha e sem bot.</p>' +
       '<div class="ft-scroll"><table class="ft-tbl"><thead><tr><th>Placa</th><th>Destino / Rota</th><th>Ordem</th><th class="num">Peso (kg)</th><th class="num">Entregas</th><th>Motorista</th><th>Transportador / Ajudantes</th><th>Veículo</th></tr></thead><tbody>' +
-      (rows.length? rows.map(r=> '<tr><td class="mono"><b>' + esc(r.placa) + '</b></td><td>' + esc(r.destino || '—') + '</td><td class="mono">' + esc(r.carga_id || '—') + '</td><td class="num">' + (r.peso? fmtPeso2(r.peso):'—') + '</td><td class="num">' + (r.qtd_entregas || '—') + '</td><td>' + esc(r.motorista || '—') + '</td><td>' + esc(r.transportadora || r.ajudantes || '—') + '</td><td>' + esc(r.tipo_veiculo || '—') + '</td></tr>').join('') : '<tr><td colspan="8">Nenhuma carga com placa no dia aberto.</td></tr>') +
+      (rows.length? rows.map(r=> '<tr><td class="mono"><b>' + esc(r.placa) + '</b></td><td>' + esc(r.destino || '—') + '</td><td class="mono">' + esc(r.carga_id || '—') + '</td><td class="num">' + (r.peso? fmtPeso2(r.peso):'—') + '</td><td class="num">' + (r.qtd_entregas || '—') + '</td><td>' + esc(r.motorista || '—') + '</td><td>' + esc(r.transportadora || r.ajudantes || '—') + '</td><td>' + esc(r.tipo_veiculo || '—') + '</td></tr>').join('') : '<tr><td colspan="8">Nenhum veículo com placa e Nº Carga válida no dia aberto.</td></tr>') +
       '</tbody></table></div>' +
       '<div class="ft-creds">' +
         '<label>Usuário FricoTrack (e-mail)<input type="text" id="ft-user" autocomplete="username" placeholder="seu@email.com"></label>' +
@@ -5375,6 +5477,189 @@ function metricsFromData(data){
   return m;
 }
 
+/* ================= Mapa Gerencial (resumos + valores efetivos) ================= */
+function gerencialValoresLinha(sec, r){
+  const peso = numVal(r && r.peso);
+  // Previsão sempre usa a tabela normal da rota (margem configurada inclusa), mesmo se houver negociação.
+  const previsao = sec === 'frotas'
+    ? calcularFrete('frotas', r).total
+    : tableForecast(sec, r).total * margemMult();
+  // Frotas é veículo próprio: apresenta custo estimado, mas não tem frete real contratado.
+  const vlrFrete = sec === 'frotas' ? null : calcularFrete(sec, r).total;
+  const baseCusto = sec === 'frotas' ? previsao : vlrFrete;
+  const custoKg = peso > 0 && baseCusto != null && baseCusto > 0 ? baseCusto / peso : null;
+  return {peso, previsao, vlrFrete, custoKg};
+}
+function gerencialResumoSec(sec){
+  const rows = DATA[sec] || [];
+  const out = {
+    cargas: countCargas(rows, sec),
+    peso: rows.reduce((a,r)=> a + numVal(r.peso), 0),
+    entregas: rows.reduce((a,r)=> a + numVal(r.entregas), 0),
+    previsao: 0,
+    vlrFrete: sec === 'frotas' ? null : 0,
+    custoMedio: null
+  };
+  let custoTotal = 0, pesoCusto = 0;
+  for(const r of rows){
+    const v = gerencialValoresLinha(sec, r);
+    out.previsao += v.previsao;
+    if(sec === 'frotas'){
+      if(rowTemCarga(r)){ custoTotal += v.previsao; pesoCusto += v.peso; }
+    } else {
+      custoTotal += v.vlrFrete;
+      pesoCusto += v.peso;
+    }
+  }
+  // Em Frotas é custo estimado/kg só das cargas reais; em Capital/Interior é frete efetivo/kg.
+  out.custoMedio = pesoCusto > 0 && custoTotal > 0 ? custoTotal / pesoCusto : null;
+  if(sec !== 'frotas') out.vlrFrete = custoTotal;
+  return out;
+}
+function gerencialCardsHtml(m, tipo){
+  const isFrotas = tipo === 'frotas';
+  const isGeral = tipo === 'geral';
+  const cards = [
+    ['Cargas (veículos)', fmtInt(m.cargas)],
+    ['Peso total', fmtPeso2(m.peso) + ' kg'],
+    ['Entregas', fmtNum(m.entregas)],
+    ['Previsão frete', fmtBRL(m.previsao)],
+    [isGeral ? 'Vlr Frete real (Cap.+Int.)' : 'Vlr Frete', m.vlrFrete == null ? '—' : fmtBRL(m.vlrFrete)],
+    [isFrotas ? 'Custo médio estimado' : isGeral ? 'Custo médio real (Cap.+Int.)' : 'Custo médio', m.custoMedio != null ? fmtBRL(m.custoMedio) + '/kg' : '—']
+  ];
+  return '<div class="gm-summary-grid">' + cards.map(c=>
+    '<div class="gm-card"><span class="gm-card-k">' + esc(c[0]) + '</span><span class="gm-card-v">' + esc(c[1]) + '</span></div>'
+  ).join('') + '</div>';
+}
+function gerencialTabelaHtml(sec, resumo){
+  const rows = DATA[sec] || [];
+  const titles = {frotas:'FROTAS', capital:'CAPITAL', interior:'INTERIOR'};
+  const body = rows.length ? rows.map(r=>{
+    const v = gerencialValoresLinha(sec, r);
+    const transp = sec === 'frotas'
+      ? joinSkip([r.ajudantes, r.ajudante2], ' / ')
+      : String(r.transportadora || '').trim();
+    const entregas = numVal(r.entregas);
+    return '<tr>' +
+      '<td class="mono">' + esc(String(r.placa || '').trim() || '—') + '</td>' +
+      '<td>' + esc(String(r.destino || '').trim() || '—') + '</td>' +
+      '<td class="mono">' + esc(String(r.carga == null ? '' : r.carga).trim() || '—') + '</td>' +
+      '<td class="num">' + (v.peso > 0 ? fmtPeso2(v.peso) : '—') + '</td>' +
+      '<td class="num">' + (entregas > 0 ? fmtNum(entregas) : '—') + '</td>' +
+      '<td>' + esc(String(r.motorista || '').trim() || '—') + '</td>' +
+      '<td>' + esc(transp || '—') + '</td>' +
+      '<td class="num">' + (v.custoKg != null ? fmtBRL(v.custoKg) + '/kg' : '—') + '</td>' +
+      '<td class="num">' + (v.previsao > 0 ? fmtBRL(v.previsao) : '—') + '</td>' +
+      '<td class="num">' + (v.vlrFrete == null ? '—' : fmtBRL(v.vlrFrete)) + '</td>' +
+    '</tr>';
+  }).join('') : '<tr><td colspan="10" class="gm-empty">Nenhum veículo nesta seção.</td></tr>';
+  const custoPeso = resumo.custoMedio != null ? fmtBRL(resumo.custoMedio) + '/kg' : '—';
+  const realTotal = resumo.vlrFrete == null ? '—' : fmtBRL(resumo.vlrFrete);
+  return '<section class="gm-section gm-' + sec + '">' +
+    '<div class="gm-section-title"><h2>' + (sec === 'frotas' ? '🚚 ' : sec === 'capital' ? '🏙️ ' : '🏠 ') + titles[sec] + '</h2><span class="gm-section-count">' + fmtInt(resumo.cargas) + ' veículo(s)/carga(s)</span></div>' +
+    gerencialCardsHtml(resumo, sec) +
+    '<p class="gm-section-note">' + (sec === 'frotas'
+      ? 'Frotas: previsão e custo/kg são estimativas da rota; frete real não se aplica à frota própria.'
+      : 'Previsão mostra o valor normal da rota; Vlr Frete mostra o valor efetivo, incluindo negociação quando houver.') + '</p>' +
+    '<div class="gm-table-wrap"><table class="gm-table"><thead><tr>' +
+      '<th>Placa</th><th>Destino</th><th>Nº Carga</th><th class="num">Peso (kg)</th><th class="num">T.Entrega</th><th>Motorista</th><th>' + (sec === 'frotas' ? 'Ajudantes' : 'Transportador') + '</th><th class="num">Custo kg</th><th class="num">Previsão de frete</th><th class="num">Vlr Frete</th>' +
+    '</tr></thead><tbody>' + body + '</tbody><tfoot><tr>' +
+      '<td colspan="3">Totais (' + fmtInt(resumo.cargas) + ')</td>' +
+      '<td class="num">' + fmtPeso2(resumo.peso) + ' kg</td>' +
+      '<td class="num">' + fmtNum(resumo.entregas) + '</td><td colspan="2"></td>' +
+      '<td class="num">' + custoPeso + '</td>' +
+      '<td class="num">' + fmtBRL(resumo.previsao) + '</td>' +
+      '<td class="num">' + realTotal + '</td>' +
+    '</tr></tfoot></table></div>' +
+  '</section>';
+}
+function updateGerencialHead(){
+  if(!GERENCIAL_PAGE) return;
+  const date = $('#gerencial-date'); if(date) date.value = currentMapDate || '';
+  const delivery = $('#gerencial-delivery'); if(delivery) delivery.textContent = fmtBR(dtEntrega) || '—';
+  const user = $('#gerencial-user'); if(user) user.textContent = SESSION ? SESSION.name : '—';
+  const print = $('#btn-gerencial-print'); if(print) print.hidden = !(SESSION && SESSION.level >= 3);
+  if(SESSION && GERENCIAL_PAGE) document.title = 'Painel Gerencial — ' + fmtBR(currentMapDate);
+}
+function renderGerencialMap(){
+  const root = $('#gerencial-map');
+  if(!root) return;
+  if(!GERENCIAL_PAGE || !(SESSION && SESSION.level >= 3)){ root.innerHTML = ''; return; }
+  const res = {
+    frotas: gerencialResumoSec('frotas'),
+    capital: gerencialResumoSec('capital'),
+    interior: gerencialResumoSec('interior')
+  };
+  const pesoTerceiros = res.capital.peso + res.interior.peso;
+  const vlrReal = res.capital.vlrFrete + res.interior.vlrFrete;
+  const geral = {
+    cargas: res.frotas.cargas + res.capital.cargas + res.interior.cargas,
+    peso: res.frotas.peso + pesoTerceiros,
+    entregas: res.frotas.entregas + res.capital.entregas + res.interior.entregas,
+    previsao: res.frotas.previsao + res.capital.previsao + res.interior.previsao,
+    vlrFrete: vlrReal,
+    custoMedio: pesoTerceiros > 0 && vlrReal > 0 ? vlrReal / pesoTerceiros : null
+  };
+  root.innerHTML =
+    '<div class="gm-summary-block"><div class="gm-summary-title"><h2>🗺️ Mapa Gerencial · Resumo Geral</h2><small>Faturamento: ' + esc(fmtBR(currentMapDate)) + '</small></div>' +
+      gerencialCardsHtml(geral, 'geral') +
+      '<p class="gm-section-note">A previsão inclui os valores normais de rota (com a margem configurada), inclusive a estimativa de Frotas. Vlr Frete real e custo médio geral consideram Capital + Interior; Frotas é frota própria e não tem frete real contratado.</p>' +
+    '</div>' +
+    gerencialTabelaHtml('frotas', res.frotas) +
+    gerencialTabelaHtml('capital', res.capital) +
+    gerencialTabelaHtml('interior', res.interior);
+}
+function gerencialAccessState(){
+  const note = $('#gerencial-access-note');
+  if(!note) return;
+  if(!GERENCIAL_PAGE || !SESSION){ note.hidden = true; note.textContent = ''; return; }
+  note.hidden = SESSION.level >= 3;
+  note.textContent = SESSION.level === 1
+    ? 'Seu acesso permite consultar os indicadores. O Mapa Gerencial detalhado (com valores por veículo) exige nível 3 ou superior.'
+    : 'O Painel Gerencial exige nível 3 ou superior. Entre com um usuário autorizado para ver os valores detalhados.';
+}
+async function abrirPainelGerencial(){
+  if(!(SESSION && SESSION.level >= 3)){ toast('🔒 Seu nível de acesso não permite o Painel Gerencial', 'err'); return; }
+  const url = new URL(location.href);
+  url.searchParams.set('painel', 'gerencial');
+  url.searchParams.set('data', currentMapDate || isoDate(new Date()));
+  const novaGuia = window.open('about:blank', '_blank');
+  if(!novaGuia){ toast('Permita a abertura de novas guias para acessar o Painel Gerencial', 'warn'); return; }
+  // Copia a sessão para a nova guia (same-origin); credenciais nunca vão na URL.
+  try{ const s = sessionStorage.getItem('mapa:session'); if(s) novaGuia.sessionStorage.setItem('mapa:session', s); }catch(e){}
+  try{ novaGuia.document.title = 'Abrindo Painel Gerencial…'; }catch(e){}
+  try{
+    if(SESSION.level === 4 && dirty){ clearTimeout(saveTimer); await saveMapForDate(currentMapDate); }
+    novaGuia.location.replace(url.toString());
+  }catch(err){
+    try{ novaGuia.close(); }catch(e){}
+    toast('❌ Não foi possível abrir o Painel Gerencial: ' + err.message, 'err');
+  }
+}
+async function atualizarPainelGerencial(){
+  if(!(GERENCIAL_PAGE && SESSION && (SESSION.level === 1 || SESSION.level >= 3))) return;
+  setBusy(true);
+  try{
+    if(SESSION.level >= 3){
+      await loadMapForDate(currentMapDate);
+      renderAll();
+      updateGerencialHead();
+      renderGerencialMap();
+    }
+    await loadDashboard();
+  }catch(err){
+    console.error(err);
+    toast('❌ Falha ao atualizar o Painel Gerencial', 'err');
+  }finally{ setBusy(false); }
+}
+function fecharPainelGerencial(){
+  if(window.opener && !window.opener.closed){ window.close(); return; }
+  const url = new URL(location.href);
+  url.searchParams.delete('painel');
+  url.searchParams.delete('data');
+  location.href = url.toString();
+}
+
 async function getSavedDates(){
   const keys = await Stor.list();
   return keys.filter(k=>k.startsWith('map:')).map(k=>k.slice(4)).filter(d=>/^\d{4}-\d{2}-\d{2}$/.test(d));
@@ -6030,12 +6315,16 @@ function applySession(){
     const n = $('#user-chip-name'); if(n) n.textContent = SESSION.name;
     const l = $('#user-chip-lvl'); if(l) l.textContent = PERM[SESSION.level].label;
   }
-  const tb = $('#topbar'); if(tb) tb.style.display = (SESSION && SESSION.level === 1) ? 'none' : '';
-  // AUDITORIA: o painel (que exibe custos) NÃO pode sobreviver a um logout —
-  // resetar a visibilidade a cada sessão impede que um nível 2 veja indicadores de sessão anterior
-  const p = $('#painel');
-  if(p) p.hidden = !(SESSION && SESSION.level === 1);
-  dashVisible = !!(SESSION && SESSION.level === 1);
+  const tb = $('#topbar'); if(tb) tb.style.display = (GERENCIAL_PAGE || (SESSION && SESSION.level === 1)) ? 'none' : '';
+  // O nível 1 conserva os indicadores autorizados; níveis 3+ veem o painel completo apenas na guia gerencial.
+  const showDash = !!(SESSION && (SESSION.level === 1 || (GERENCIAL_PAGE && SESSION.level >= 3)));
+  const p = $('#painel'); if(p) p.hidden = !showDash;
+  dashVisible = showDash;
+  const gh = $('#gerencial-head'); if(gh) gh.hidden = !(GERENCIAL_PAGE && SESSION);
+  const gp = $('#gerencial-page'); if(gp) gp.hidden = !(GERENCIAL_PAGE && SESSION && SESSION.level >= 3);
+  gerencialAccessState();
+  updateGerencialHead();
+  if(GERENCIAL_PAGE) renderGerencialMap();
   const ss = $('#save-state'); if(ss) ss.style.display = (SESSION && SESSION.level === 4) ? '' : 'none';
   const dt = $('#dtEntrega'); if(dt) dt.disabled = !(SESSION && SESSION.level === 4);
   const cr = $('#capture-root');
@@ -6700,7 +6989,12 @@ function bindStatic(){
   $('#btn-close-settings').addEventListener('click', ()=> $('#settings').classList.remove('open'));
   /* painel de indicadores: níveis 3+ (nível 2 não vê custo) */
   const dashGuard = ()=> { if(!(SESSION && SESSION.level >= 3)){ toast('🔒 Seu nível de acesso não permite os indicadores', 'err'); return false; } return true; };
-  $('#btn-dash-refresh').addEventListener('click', ()=>{ if(dashGuard()) loadDashboard(); });
+  $('#btn-dash-refresh').addEventListener('click', async ()=>{ if(dashGuard()){ await loadDashboard(); if(GERENCIAL_PAGE) renderGerencialMap(); } });
+  $('#btn-gerencial-refresh').addEventListener('click', atualizarPainelGerencial);
+  $('#btn-gerencial-print').addEventListener('click', ()=>{ if(SESSION && SESSION.level >= 3) window.print(); });
+  $('#btn-gerencial-back').addEventListener('click', fecharPainelGerencial);
+  $('#btn-gerencial-logout').addEventListener('click', logout);
+  $('#gerencial-date').addEventListener('change', e=>{ if(e.target.value) switchToDate(e.target.value); });
 
   /* datas */
   $('#faturamento').addEventListener('change', async e=>{
@@ -6951,14 +7245,8 @@ function bindStatic(){
     }
   });
 
-  /* painel de indicadores */
-  $('#btn-dash').addEventListener('click', async ()=>{
-    if(!dashGuard()) return;
-    const painel = $('#painel');
-    painel.hidden = !painel.hidden;
-    dashVisible = !painel.hidden;
-    if(dashVisible) await loadDashboard();
-  });
+  /* abre os indicadores e o Mapa Gerencial em outra guia */
+  $('#btn-dash').addEventListener('click', ()=>{ if(dashGuard()) abrirPainelGerencial(); });
   for(const cid of ['cmp-gran','cmp-year','cmp-month','cmp-week']){
     const ce = relEl(cid); if(ce) ce.addEventListener('change', ()=>{ cmpReadControls(); renderComparativo(); });
   }
@@ -7100,10 +7388,11 @@ async function init(){
     await loadSettings();
     fillSettingsUI();
     renderHistory(await refreshDatesIndex());
-    currentMapDate = isoDate(new Date());
+    currentMapDate = GERENCIAL_PAGE && GERENCIAL_INITIAL_DATE ? GERENCIAL_INITIAL_DATE : isoDate(new Date());
     await loadMapForDate(currentMapDate);
     renderAll();
     setSaveState('synced');
+    if(SESSION && (SESSION.level === 1 || (GERENCIAL_PAGE && SESSION.level >= 3))) await loadDashboard();
   }catch(err){
     // AUDITORIA: falha de init não deixa a página em branco sem explicação
     console.error(err);
@@ -7114,7 +7403,7 @@ async function init(){
 /* AUTO-CHECK DE VERSAO: avisa (somente quando roda em github.io) se a aba estiver com
    copia antiga em cache — compara o selo APP_V local com o do arquivo publicado no repo.
    Falha de rede/offline = silencioso; nunca bloqueia o uso. */
-const APP_V = '2026-09-22c';
+const APP_V = '2026-09-24b';
 (function(){
   // Selo de versão VISÍVEL no canto da tela: qualquer print/print-screen mostra qual código
   // está rodando no aparelho (cópia antiga = selo antigo/ausente). Não entra nas capturas.
