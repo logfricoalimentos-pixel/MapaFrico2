@@ -285,11 +285,16 @@ body.print-big-font .custo-cell{font-size:15px}
 .plan-table tr.plan-total td.plan-lbl{background:#ffc000;color:#111;text-align:center;border-right:1.5px dotted #f5b800}
 .plan-foot{font-size:11px;color:#64748b;margin-top:8px;text-align:center;font-style:italic}
 
-/* ===== Etiquetas A4 (8×5cm · 10 por página: 2 colunas × 5 linhas) — alto contraste P&B ===== */
+/* ===== Etiquetas A4 RETRATO (9×5,5cm · 10 por página: 2 colunas × 5 linhas) — P&B =====
+   Grade pensada para o A4 EM PÉ (210×297mm c/ margem de 5mm):
+     largura: 2×90mm + 10mm de gap = 190mm (cabe nos 200mm úteis)
+     altura : 5×55mm + 4×2mm de gap = 283mm (cabe nos 287mm úteis)
+   Em paisagem a página sairia com etiquetas cortadas/vazias — por isso o print das
+   etiquetas força "size:A4 portrait" via setPrintOrient('retrato'). */
 #etiq-print{display:none}
 .etiq-page{display:grid;grid-template-columns:repeat(2,90mm);grid-auto-rows:55mm;column-gap:10mm;row-gap:2mm;justify-content:center;page-break-after:always;break-after:page}
 .etiq-page:last-child{page-break-after:auto;break-after:auto}
-.etq{width:90mm;height:55mm;box-sizing:border-box;border:1.2px solid #111;border-radius:2mm;background:#fff;padding:2.2mm 3.4mm;display:flex;flex-direction:column;justify-content:center;gap:0.8mm;overflow:hidden}
+.etq{width:90mm;height:55mm;box-sizing:border-box;border:1.2px solid #111;border-radius:2mm;background:#fff;padding:2.2mm 3.4mm;display:flex;flex-direction:column;justify-content:center;gap:0.8mm;overflow:hidden;page-break-inside:avoid;break-inside:avoid}
 .etq-bar{background:#111;color:#fff;font-size:12px;font-weight:800;letter-spacing:0.16em;text-transform:uppercase;text-align:center;padding:1mm 1.5mm;border-radius:0.8mm}
 .etq-val{text-align:center;font-weight:800;color:#000;line-height:1.12;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 .etq-rota{font-size:20px}
@@ -739,7 +744,11 @@ body.readonly .sec-actions{display:none}
 
 /* ===== Print ===== */
 /* AUDITORIA: margem de página reduzida (0,5cm em todos os lados) — aproveita melhor o
-   espaço no A4 com a fonte ampliada; vale tanto para o mapa quanto para as etiquetas. */
+   espaço no A4 com a fonte ampliada; vale tanto para o mapa quanto para as etiquetas.
+   AQUI SÓ A MARGEM: o tamanho/orientação ("size") NÃO é fixado de propósito — @page é uma
+   regra global (não aceita classe/seletor) e fixar "A4 landscape" aqui fazia as ETIQUETAS
+   saírem em paisagem. Cada rotina injeta a sua orientação via setPrintOrient() no momento
+   do print: ETIQUETAS = retrato (padrão) · MAPA e GERENCIAL = paisagem. */
 @page{margin:0.5cm}
 @media print{
   .no-print,#toast-wrap,#busy,.money-arrows{display:none !important}
@@ -906,7 +915,9 @@ html.gerencial-request #settings{display:none!important}
   html.gerencial-request .gm-table tr{break-inside:avoid}
   html.gerencial-request .gm-card{padding:5px 7px}
   html.gerencial-request .gm-card-v{font-size:11px}
-  @page{size:A4 landscape;margin:8mm}
+  /* AQUI NÃO: "@page{size:A4 landscape}" dentro de @media print é GLOBAL (vale p/ tudo
+     que a página imprimir) e fazia as ETIQUETAS saírem em paisagem. A orientação agora é
+     injetada só durante cada impressão por setPrintOrient() (ver bloco de impressão). */
 }
 </style>
 </head>
@@ -960,7 +971,7 @@ html.gerencial-request #settings{display:none!important}
       </div>
     </div>
     <button class="btn" id="btn-pdf">🖨 PDF</button>
-    <button class="btn" id="btn-etiq" title="Imprimir etiquetas A4 (8×5cm, 10 por página) — uma por carga">🏷 Etiquetas</button>
+    <button class="btn" id="btn-etiq" title="Imprimir etiquetas A4 RETRATO (9×5,5cm, 10 por página: 2 colunas × 5 linhas) — uma por carga">🏷 Etiquetas</button>
     <button class="btn" id="btn-plan" title="Gerar relatório Planejamento de Transporte (Capital × Interior × Total)">📊 Planejamento</button>
     <button class="btn btn-ff" id="btn-ff" title="Fechamento de Fretes: abre a tela interativa (filtros por Ordem, Destino, Placa, Motorista, Transportadora, Total e Média), edição com recálculo na hora — gravando no mapa do dia —, fechamento quinzenal e download em Excel (tudo ou só o filtrado)">📋 Fechamento de Fretes</button>
     <div class="btn-dd" id="dd-excel">
@@ -5735,15 +5746,61 @@ function etqHtml(r){
     '<div class="etq-bar">MOTORISTA</div><div class="etq-val etq-mot" style="font-size:'+motPx+'px">' + esc(dash(tMot)) + '</div>' +
     '</div>';
 }
+/* ===== Orientação da página na impressão =====
+   @page NÃO aceita seletor/classe: a regra é global e vale para TUDO que a página imprimir.
+   Por isso ela é injetada só no momento de cada impressão e removida logo depois — assim a
+   orientação de um relatório não "vaza" para os outros.
+     · ETIQUETAS  -> sempre A4 RETRATO (padrão): a grade é 2 colunas × 5 linhas de 9×5,5cm,
+                     que só cabe corretamente no A4 em pé (210×297mm).
+     · MAPA (PDF) -> A4 paisagem.
+     · GERENCIAL  -> A4 paisagem. */
+function setPrintOrient(orient, marginMm){
+  let st = document.getElementById('print-orient');
+  if(!st){
+    st = document.createElement('style');
+    st.id = 'print-orient';
+    document.head.appendChild(st);
+  }
+  const m = (typeof marginMm === 'number' ? marginMm : 5);
+  st.textContent = '@page{size:A4 ' + (orient === 'paisagem' ? 'landscape' : 'portrait') + ';margin:' + m + 'mm}';
+  return st;
+}
+function clearPrintOrient(){
+  const st = document.getElementById('print-orient');
+  if(st && st.parentNode) st.parentNode.removeChild(st);
+}
+/* Dispara window.print() com a orientação informada, limpando a regra depois do print. */
+function printWithOrient(orient, marginMm, delayMs){
+  setPrintOrient(orient, marginMm);
+  const cleanup = ()=>{
+    clearPrintOrient();
+    try{ window.removeEventListener('afterprint', cleanup); }catch(e){}
+  };
+  try{ window.addEventListener('afterprint', cleanup); }catch(e){}
+  setTimeout(cleanup, 5000); // fallback p/ navegadores sem afterprint
+  const go = ()=>{ try{ window.print(); }catch(e){ cleanup(); } };
+  if(delayMs) setTimeout(go, delayMs); else go();
+  return cleanup;
+}
+/* Rede de segurança p/ Ctrl+P (impressão que não passa pelos botões): garante a
+   orientação certa — ETIQUETAS = retrato · painel GERENCIAL = paisagem. */
+window.addEventListener('beforeprint', ()=>{
+  if(document.body.classList.contains('print-etiquetas')) setPrintOrient('retrato', 5);
+  else if(document.documentElement.classList.contains('gerencial-request')) setPrintOrient('paisagem', 8);
+});
+window.addEventListener('afterprint', ()=>{ clearPrintOrient(); });
+
 /* AUDITORIA (acessibilidade): imprime o mapa com fonte ampliada (pessoas com baixa visão).
    Recalcula a largura das colunas ANTES de abrir a impressão para o texto maior não cortar. */
 function printMap(){
   if(!(SESSION && perm().map)){ toast('🔒 Seu nível de acesso não permite o mapa', 'err'); return; }
   document.body.classList.add('print-big-font');
   autosizeAllTables(); // recalcula larguras já considerando a fonte maior
+  setPrintOrient('paisagem', 5); // mapa: A4 paisagem (só durante este print)
   const cleanup = ()=>{
     document.body.classList.remove('print-big-font');
     autosizeAllTables(); // devolve as larguras normais da tela
+    clearPrintOrient();
     try{ window.removeEventListener('afterprint', cleanup); }catch(e){}
   };
   try{ window.addEventListener('afterprint', cleanup); }catch(e){}
@@ -5763,14 +5820,19 @@ function printEtiquetas(){
   for(let i=0;i<rows.length;i+=10) pages.push(rows.slice(i,i+10));
   wrap.innerHTML = pages.map(pg=> '<div class="etiq-page">' + pg.map(etqHtml).join('') + '</div>').join('');
   document.body.classList.add('print-etiquetas'); // print: esconde o mapa e mostra só as etiquetas
+  // ETIQUETAS SÃO SEMPRE A4 RETRATO: a grade (2 colunas × 5 linhas de 9×5,5cm) só cabe
+  // corretamente no A4 em pé. A regra @page é injetada aqui e removida depois do print
+  // (senão o "paisagem" de outros relatórios vazaria e a etiqueta sairia deitada).
+  setPrintOrient('retrato', 5);
   const cleanup = ()=>{
     document.body.classList.remove('print-etiquetas');
+    clearPrintOrient();
     try{ window.removeEventListener('afterprint', cleanup); }catch(e){}
   };
   try{ window.addEventListener('afterprint', cleanup); }catch(e){}
   setTimeout(cleanup, 2500); // fallback p/ navegadores sem afterprint
   setTimeout(()=>{ try{ window.print(); }catch(e){ cleanup(); } }, 150); // pinta o layout antes de imprimir
-  toast('🏷 Etiquetas: ' + rows.length + ' carga(s) em ' + pages.length + ' página(s) A4 (10 por página)', 'ok');
+  toast('🏷 Etiquetas: ' + rows.length + ' carga(s) em ' + pages.length + ' página(s) A4 retrato (10 por página)', 'ok');
 }
 
 /* ================= Ações ================= */
@@ -7526,7 +7588,9 @@ function bindStatic(){
   const dashGuard = ()=> { if(!(SESSION && SESSION.level >= 3)){ toast('🔒 Seu nível de acesso não permite os indicadores', 'err'); return false; } return true; };
   $('#btn-dash-refresh').addEventListener('click', async ()=>{ if(dashGuard()){ await loadDashboard(); if(GERENCIAL_PAGE) renderGerencialMap(); } });
   $('#btn-gerencial-refresh').addEventListener('click', atualizarPainelGerencial);
-  $('#btn-gerencial-print').addEventListener('click', ()=>{ if(SESSION && SESSION.level >= 3) window.print(); });
+  // Painel gerencial: A4 PAISAGEM (antes essa regra @page ficava solta no @media print e
+  // vazava p/ as etiquetas — agora é injetada só durante este print).
+  $('#btn-gerencial-print').addEventListener('click', ()=>{ if(SESSION && SESSION.level >= 3) printWithOrient('paisagem', 8); });
   $('#btn-gerencial-back').addEventListener('click', fecharPainelGerencial);
   $('#btn-gerencial-logout').addEventListener('click', logout);
   // navegação Mapa Gerencial ⇄ Painel de Indicadores & Fechamento (um painel por vez)
@@ -7957,7 +8021,7 @@ async function init(){
 /* AUTO-CHECK DE VERSAO: avisa (somente quando roda em github.io) se a aba estiver com
    copia antiga em cache — compara o selo APP_V local com o do arquivo publicado no repo.
    Falha de rede/offline = silencioso; nunca bloqueia o uso. */
-const APP_V = '2026-09-25c';
+const APP_V = '2026-09-26a';
 (function(){
   // Selo de versão VISÍVEL no canto da tela: qualquer print/print-screen mostra qual código
   // está rodando no aparelho (cópia antiga = selo antigo/ausente). Não entra nas capturas.
