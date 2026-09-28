@@ -623,6 +623,8 @@ body.readonly .sec-actions{display:none}
 .st-badge.fech{background:#dcfce7;color:#15803d}
 #fech-mask{position:fixed;inset:0;z-index:450;background:rgba(15,23,42,.6);display:flex;align-items:center;justify-content:center;padding:16px}
 #fech-mask[hidden]{display:none}
+#fech-ref-mask,#fh-res-mask{position:fixed;inset:0;z-index:480;background:rgba(15,23,42,.6);display:flex;align-items:center;justify-content:center;padding:16px}
+#fech-ref-mask[hidden],#fh-res-mask[hidden]{display:none}
 .modal-fech{width:min(1080px,96vw);max-height:92vh;display:flex;flex-direction:column;padding:14px 16px 12px}
 .fech-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .fech-head h3{font-size:15px}
@@ -1977,13 +1979,19 @@ const Stor = {
   },
   async set(k, v){
     try{ localStorage.setItem('mapa:'+k, JSON.stringify(v)); }catch(e){}
-    try{
-      await fetch(SUPA_REST + '?on_conflict=key', {
-        method: 'POST',
-        headers: supaHeaders({'Prefer': 'resolution=merge-duplicates,return=minimal'}),
-        body: JSON.stringify({key: k, value: v})
-      });
-    }catch(e){ /* falha de rede: fica salvo no cache local; tenta de novo no próximo save */ }
+    const doPost = ()=> fetch(SUPA_REST + '?on_conflict=key', {
+      method: 'POST',
+      headers: supaHeaders({'Prefer': 'resolution=merge-duplicates,return=minimal'}),
+      body: JSON.stringify({key: k, value: v})
+    });
+    let res = await doPost();
+    if((res.status === 401 || res.status === 403) && typeof refreshSessionToken === 'function'){
+      if(await refreshSessionToken()) res = await doPost();
+    }
+    if(!res.ok){
+      const t = await res.text().catch(()=> '');
+      throw new Error('Supabase ' + res.status + ' ao gravar "' + k + '" ' + t.slice(0, 140));
+    }
   },
   async del(k){
     try{ localStorage.removeItem('mapa:'+k); }catch(e){}
@@ -3967,7 +3975,7 @@ async function relPersistDate(d){
     // senão um "reabrir fechamento" logo em seguida lê o storage antigo e perde a alteração
     REL.mapDirty = true;
     clearTimeout(saveTimer);
-    try{ await saveMapForDate(currentMapDate); }catch(e){ console.error(e); setSaveState('error'); }
+    try{ await saveMapForDate(currentMapDate); }catch(e){ console.error(e); setSaveState('error'); throw e; }
     relSavedMsg('💾 Dia ' + fmtBR(d) + ' (aberto no mapa) alterado — salvo automaticamente', 'ok');
     return;
   }
@@ -4997,13 +5005,27 @@ async function fechConfirm(){
       abatimento: abat, nf: s.nf, boleto: s.boleto,
       peso: x.peso, faturado: x.fat, apagar: Math.max(0, x.fat - abat),
       custoKg: x.peso > 0 ? x.fat / x.peso : null, cargas: cargas});
-    for(const it of x.itens){ it.row.stFech = 'fechado'; it.row.fechId = id; it.row.fechDt = hojeIso(); datas.add(it.d); }
+    for(const it of x.itens){ it._prevSt = it.row.stFech; it.row.stFech = 'fechado'; it.row.fechId = id; it.row.fechDt = hojeIso(); datas.add(it.d); }
     const cod = String(s.codigo || '').trim();
     if(cod && cod !== TRANSP_CODES[g.key]){ TRANSP_CODES[g.key] = cod; saveSettings(); }  // lembra o código
   }
-  for(const d of datas) await relPersistDate(d);   // grava cada dia alterado (atual = mapa ao vivo)
-  FECHAMENTOS.push(fech);
-  await Stor.set('fechamentos', FECHAMENTOS);
+  try{
+    await refreshSessionToken();                    // evita token vencido na gravação
+    for(const d of datas) await relPersistDate(d);   // grava cada dia alterado (atual = mapa ao vivo)
+    FECHAMENTOS.push(fech);
+    await Stor.set('fechamentos', FECHAMENTOS);
+  }catch(err){
+    console.error(err);
+    for(const x of sel) for(const it of x.itens){
+      if(it._prevSt === undefined) delete it.row.stFech; else it.row.stFech = it._prevSt;
+      delete it.row.fechId; delete it.row.fechDt;
+    }
+    FECHAMENTOS = FECHAMENTOS.filter(f=> f.id !== id);
+    try{ for(const d of datas) await relPersistDate(d); }catch(e2){}   // tenta regravar o estado original
+    relApplyFilters(); renderRelTable(); renderFechTable();
+    toast('❌ Fechamento NÃO gravado no banco: ' + err.message, 'err');
+    return;
+  }
   const nCargas = fech.grupos.reduce((a, g)=> a + g.cargas.length, 0);
   audit('fechamento-criado', fech.id + ' · ' + ref.label + ' · ' + fechPeriodoTxt(fech) + ' · ' + fech.grupos.length + ' transportadora(s) · ' + nCargas + ' carga(s) · ' + fmtBRL(fech.grupos.reduce((a, g)=> a + g.apagar, 0)));
   closeFech();
