@@ -881,11 +881,20 @@ html.gerencial-request #settings{display:none!important}
 .gm-card.gm-econ-pos .gm-card-v,.gm-card.gm-econ-neg .gm-card-v{white-space:normal;overflow-wrap:anywhere}
 .gm-card.gm-econ-pos,.gm-card.gm-econ-neg{cursor:help}
 /* AUDITORIA: títulos de seção do Mapa Gerencial usam os mesmos fundos do Mapa de Carregamento */
-.gm-section-title{display:flex;align-items:center;gap:8px;margin:0 0 10px;padding:8px 14px;border-radius:10px;color:#fff;print-color-adjust:exact;-webkit-print-color-adjust:exact}
+.gm-section-title{display:flex;align-items:center;gap:8px;flex-wrap:wrap;row-gap:6px;margin:0 0 10px;padding:8px 14px;border-radius:10px;color:#fff;print-color-adjust:exact;-webkit-print-color-adjust:exact}
 .gm-section-title .gm-section-count{margin-left:auto;color:rgba(255,255,255,.92);font-size:12px;font-weight:700;white-space:nowrap}
 .gm-frotas .gm-section-title{background:linear-gradient(120deg,#1976d2,#2196f3)}
 .gm-capital .gm-section-title{background:linear-gradient(120deg,#6d3fd4,#8b5cf6)}
 .gm-interior .gm-section-title{background:linear-gradient(120deg,#ef6c00,#fb8c00)}
+/* Botão recolher/expandir por seção (Frotas, Capital, Interior): ao recolher, somente a
+   nota e a tabela de veículos saem de vista — os cartões de totais da seção ficam SEMPRE
+   visíveis (e o Resumo Geral nunca é afetado). */
+.gm-section-title .gm-toggle{display:inline-flex;align-items:center;gap:6px;margin-left:10px;padding:3px 10px;border:1px solid rgba(255,255,255,.55);border-radius:999px;background:rgba(255,255,255,.16);color:#fff;font-family:inherit;font-size:11.5px;font-weight:700;line-height:1.2;cursor:pointer;white-space:nowrap;print-color-adjust:exact;-webkit-print-color-adjust:exact}
+.gm-section-title .gm-toggle:hover{background:rgba(255,255,255,.32)}
+.gm-section-title .gm-toggle:focus-visible{outline:2px solid #fff;outline-offset:1px}
+.gm-section-title .gm-toggle-arrow{width:0;height:0;border-top:4px solid transparent;border-bottom:4px solid transparent;border-left:6px solid currentColor;transition:transform .15s ease}
+.gm-section:not(.gm-collapsed) .gm-toggle-arrow{transform:rotate(90deg)}
+.gm-section.gm-collapsed .gm-body{display:none}
 /* Cabeçalho, zebrado e totais nas cores da tabela do Mapa de Carregamento. */
 .gm-table-wrap{overflow:auto;border:1px solid #b9d7f2;border-radius:9px;background:#fff}
 .gm-table{border-collapse:collapse;width:100%;min-width:1330px;font-size:12px}
@@ -917,6 +926,9 @@ html.gerencial-request #settings{display:none!important}
   html.gerencial-request .gm-table tr{break-inside:avoid}
   html.gerencial-request .gm-card{padding:5px 7px}
   html.gerencial-request .gm-card-v{font-size:11px}
+  /* Imprimir sempre sai completo: seções recolhidas na tela são expandidas no papel
+     (o botão recolher/expandir é .no-print e não aparece na impressão). */
+  html.gerencial-request .gm-section .gm-body{display:block!important}
   /* AQUI NÃO: "@page{size:A4 landscape}" dentro de @media print é GLOBAL (vale p/ tudo
      que a página imprimir) e fazia as ETIQUETAS saírem em paisagem. A orientação agora é
      injetada só durante cada impressão por setPrintOrient() (ver bloco de impressão). */
@@ -1124,6 +1136,7 @@ html.gerencial-request #settings{display:none!important}
         <li><b>📥 Excel Mapa</b>: exporta o mapa do dia em .xlsx no MESMO formato do print (seções FROTAS/CAPITAL/INTERIOR, colunas, totais e resumo — sem valores).</li>
         <li><b>📥 Excel Período</b> (admin): exporta TODAS as cargas de Capital e Interior de um período (com Vlr Kg, Neg?, Previsão, Custo/kg e Valor Frete) + aba Resumo por dia. Frotas não entra.</li>
         <li><b>💰 Economia com negociação no resumo do Mapa Gerencial</b>: tabela (+ margem) − frete efetivo, em Geral (só Capital + Interior) e em cada seção contratada. Verde = economia; vermelho = acréscimo; Frotas sem negociação.</li>
+        <li><b>▾ Recolher / ▸ Expandir no Mapa Gerencial</b>: cada tabela (Frotas, Capital, Interior) tem um botão na própria faixa da seção para recolher ou expandir a lista de veículos. Os <b>cartões de totais</b> da seção (cargas, peso, entregas, previsão, frete, custo/kg, economia) e o <b>Resumo Geral</b> continuam <b>sempre visíveis</b>. O estado de cada seção é mantido ao atualizar/trocar o período e a <b>impressão sai sempre completa</b> (todas as tabelas), mesmo com seções recolhidas na tela.</li>
         <li><b>Margem configurável (padrão +10%)</b> no valor previsto de cargas não negociadas — em Configurações dá p/ poner 0 ou qualquer X%; negociadas (Valor Frete manual ou Neg? = Sim) mantêm o valor fechado.</li>
         <li><b>Custo Geral</b> e <b>Peso / Custo por kg</b> de Capital e Interior em <b>evidência</b> (KPIs em destaque).</li>
         <li><b>Gráfico de evolução do custo</b> com granularidade <b>Diário / Mensal / Anual</b> (Capital × Interior empilhado), com tooltip (custo, peso e custo/kg).</li>
@@ -6482,6 +6495,47 @@ function gerencialCardsHtml(m, tipo){
       '<span class="gm-card-k">' + esc(c[0]) + '</span><span class="gm-card-v">' + esc(c[1]) + '</span></div>'
   ).join('') + '</div>';
 }
+/* Recolher/expandir as tabelas do Mapa Gerencial (Frotas, Capital, Interior): o estado é
+   por seção e persiste na sessão (sobrevive a "Atualizar" e à troca de período). Os cartões
+   de totais de cada seção — e o Resumo Geral — continuam SEMPRE visíveis; ao recolher saem
+   de vista apenas a nota explicativa e a tabela de veículos. */
+const GM_COLLAPSED_KEY = 'mapa:gm-collapsed';
+const GM_SECTIONS = ['frotas', 'capital', 'interior'];
+let GM_COLLAPSED = {frotas:false, capital:false, interior:false};
+function loadGmCollapsed(){
+  try{
+    const raw = sessionStorage.getItem(GM_COLLAPSED_KEY);
+    if(!raw) return;
+    const o = JSON.parse(raw);
+    if(o && typeof o === 'object'){
+      for(const sec of GM_SECTIONS){ if(typeof o[sec] === 'boolean') GM_COLLAPSED[sec] = o[sec]; }
+    }
+  }catch(e){}
+}
+function saveGmCollapsed(){
+  try{ sessionStorage.setItem(GM_COLLAPSED_KEY, JSON.stringify(GM_COLLAPSED)); }catch(e){}
+}
+function gmToggleLabel(collapsed){ return collapsed ? 'Expandir' : 'Recolher'; }
+/* Aplica o estado salvo ao DOM (sem re-renderizar o mapa inteiro). */
+function applyGmCollapsed(sec){
+  const root = $('#gerencial-map'); if(!root) return;
+  const el = root.querySelector('.gm-section.gm-' + sec); if(!el) return;
+  const collapsed = !!GM_COLLAPSED[sec];
+  el.classList.toggle('gm-collapsed', collapsed);
+  const btn = el.querySelector('[data-gm-toggle]');
+  if(btn){
+    btn.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+    btn.title = gmToggleLabel(collapsed) + ' a tabela de ' + sec.toUpperCase() + ' (os totais continuam visíveis)';
+    const label = btn.querySelector('.gm-toggle-label');
+    if(label) label.textContent = gmToggleLabel(collapsed);
+  }
+}
+function toggleGmSection(sec){
+  if(GM_SECTIONS.indexOf(sec) < 0) return;
+  GM_COLLAPSED[sec] = !GM_COLLAPSED[sec];
+  saveGmCollapsed();
+  applyGmCollapsed(sec);
+}
 function gerencialTabelaHtml(sec, entries, resumo){
   const titles = {frotas:'FROTAS', capital:'CAPITAL', interior:'INTERIOR'};
   const body = entries.length ? entries.map(en=>{
@@ -6507,9 +6561,14 @@ function gerencialTabelaHtml(sec, entries, resumo){
   }).join('') : '<tr><td colspan="11" class="gm-empty">Nenhum veículo nesta seção no período.</td></tr>';
   const custoPeso = resumo.custoMedio != null ? fmtBRL(resumo.custoMedio) + '/kg' : '—';
   const realTotal = resumo.vlrFrete == null ? '—' : fmtBRL(resumo.vlrFrete);
-  return '<section class="gm-section gm-' + sec + '">' +
-    '<div class="gm-section-title"><h2>' + (sec === 'frotas' ? '🚚 ' : sec === 'capital' ? '🏙️ ' : '🏠 ') + titles[sec] + '</h2><span class="gm-section-count">' + fmtInt(resumo.cargas) + ' veículo(s)/carga(s)</span></div>' +
+  const collapsed = !!GM_COLLAPSED[sec];
+  const bodyId = 'gm-body-' + sec;
+  return '<section class="gm-section gm-' + sec + (collapsed ? ' gm-collapsed' : '') + '">' +
+    '<div class="gm-section-title"><h2>' + (sec === 'frotas' ? '🚚 ' : sec === 'capital' ? '🏙️ ' : '🏠 ') + titles[sec] + '</h2><span class="gm-section-count">' + fmtInt(resumo.cargas) + ' veículo(s)/carga(s)</span>' +
+      '<button class="gm-toggle no-print" type="button" data-gm-toggle="' + sec + '" aria-expanded="' + (collapsed ? 'false' : 'true') + '" aria-controls="' + bodyId + '" title="' + gmToggleLabel(collapsed) + ' a tabela de ' + titles[sec] + ' (os totais continuam visíveis)">' +
+        '<span class="gm-toggle-arrow" aria-hidden="true"></span><span class="gm-toggle-label">' + gmToggleLabel(collapsed) + '</span></button></div>' +
     gerencialCardsHtml(resumo, sec) +
+    '<div class="gm-body" id="' + bodyId + '">' +
     '<p class="gm-section-note">' + (sec === 'frotas'
       ? 'Frotas: previsão e custo/kg são estimativas da rota; frete real não se aplica à frota própria.'
       : 'Previsão = tabela (+ margem configurada); Vlr Frete = valor efetivo. Economia (verde) ou acréscimo (vermelho) = Previsão − Vlr Frete.') + '</p>' +
@@ -6523,6 +6582,7 @@ function gerencialTabelaHtml(sec, entries, resumo){
       '<td class="num">' + fmtBRL(resumo.previsao) + '</td>' +
       '<td class="num">' + realTotal + '</td>' +
     '</tr></tfoot></table></div>' +
+    '</div>' +
   '</section>';
 }
 /* Resumo Geral do Mapa Gerencial: frete efetivo, custo médio e economia consideram
@@ -8071,6 +8131,15 @@ function bindStatic(){
   // navegação Mapa Gerencial ⇄ Painel de Indicadores & Fechamento (um painel por vez)
   const gmViewMap = $('#btn-gerencial-view-map'); if(gmViewMap) gmViewMap.addEventListener('click', ()=> setGerencialView('map'));
   const gmViewDash = $('#btn-gerencial-view-dash'); if(gmViewDash) gmViewDash.addEventListener('click', ()=> setGerencialView('dash'));
+  // Mapa Gerencial: recolher/expandir cada tabela (Frotas/Capital/Interior) — os totais
+  // de cada seção continuam sempre visíveis. O listener fica no container (que não é
+  // substituído nos re-renders) e delega para o botão de cada seção.
+  loadGmCollapsed();
+  const gmMapRoot = $('#gerencial-map');
+  if(gmMapRoot) gmMapRoot.addEventListener('click', e=>{
+    const btn = e.target.closest('[data-gm-toggle]');
+    if(btn && btn.dataset.gmToggle) toggleGmSection(btn.dataset.gmToggle);
+  });
   $('#gerencial-date').addEventListener('change', e=>{ if(e.target.value) switchToDate(e.target.value); });
 
   /* datas */
