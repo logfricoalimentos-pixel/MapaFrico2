@@ -1115,6 +1115,7 @@ html.gerencial-request #settings{display:none!important}
       <ul>
         <li><b>Capturas 📷 em layout dedicado A4 paisagem</b> (colunas medidas pelo conteúdo, <b>larguras iguais nas 3 tabelas</b> — <b>nada de texto cortado ou oculto</b>): os dois prints mostram Placa, Destino, Nº Carga, Peso, T.Entrega, Motorista e Ajud./Transportador, mais os cards Cargas/Peso total/Entregas, no <b>modelo visual novo</b> (banner azul, faixas de seção, zebrado e cards com ícone). As colunas Vlr Kg, Neg?, Previsão, Custo Médio e Valor Frete nunca aparecem nas imagens.</li>
         <li><b>📊 Planejamento de Transporte</b>: relatório Capital × Interior × Total com Veículos (cargas), Entregas e Peso em TON (kg ÷ 1000, 2 casas, sem zeros finais) — Frotas não entra.</li>
+        <li><b>🏷 Etiquetas SEMPRE em A4 RETRATO</b>: uma etiqueta por carga (9×5,5cm, 10 por página — 2 colunas × 5 linhas), impressa por um documento próprio e isolado, então a orientação não depende do CSS da tela nem de outro relatório (nada de página saindo deitada).</li>
         <li><b>🖨 Mapa/Print (Mapa Sem Peso / Mapa Com Peso) / 📊 Planejamento</b>: geram a imagem A4 e perguntam a orientação (Paisagem/Retrato) e se você quer imprimir, abrir em nova guia, copiar (Ctrl+V no WhatsApp/e-mail) ou baixar o .png.</li>
         <li><b>🚀 Envio automático</b>: guia passo a passo que encadeia os 5 envios (todos os grupos) — o app copia cada imagem e avança (botão ou Enter), você só cola (Ctrl+V) e envia (Enter) na conversa indicada.</li>
         <li><b>Motorista limitado a 32 caracteres</b> em Frotas, Capital e Interior (campo, digitação, importação e dados já salvos).</li>
@@ -5809,30 +5810,91 @@ function printMap(){
     try{ window.print(); }catch(e){ cleanup(); }
   }));
 }
+/* Documento COMPLETO e isolado só com as etiquetas.
+   Motivo: @page é uma regra GLOBAL do documento (não aceita classe/seletor) — qualquer
+   "size: A4 landscape" que exista na página principal (ex.: a do painel gerencial, ou um
+   CSS em cache) vence o @page das etiquetas e a página sai deitada. Imprimindo por um
+   iframe com documento próprio, o "@page{size:A4 portrait}" é do próprio documento do
+   iframe e a orientação fica GARANTIDA — sem depender de nada do CSS da tela. */
+function etqDocHtml(pagesHtml){
+  return '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8">' +
+    '<title>ETIQUETAS DE CARGA</title><style>' +
+    /* RETRATO SEMPRE: tamanho explícito em mm (210×297) + palavra-chave portrait. */
+    '@page{size:210mm 297mm;margin:5mm}' +
+    '@page{size:A4 portrait;margin:5mm}' +
+    '*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}' +
+    'html,body{margin:0;padding:0;background:#fff;color:#000;font-family:' + ETQ_SANS + '}' +
+    '.etiq-page{display:grid;grid-template-columns:repeat(2,90mm);grid-auto-rows:55mm;column-gap:10mm;row-gap:2mm;justify-content:center;page-break-after:always;break-after:page}' +
+    '.etiq-page:last-child{page-break-after:auto;break-after:auto}' +
+    '.etq{width:90mm;height:55mm;border:1.2px solid #000;border-radius:2mm;background:#fff;padding:2.2mm 3.4mm;display:flex;flex-direction:column;justify-content:center;gap:0.8mm;overflow:hidden;page-break-inside:avoid;break-inside:avoid}' +
+    '.etq-bar{background:#000;color:#fff;font-size:12px;font-weight:800;letter-spacing:0.16em;text-transform:uppercase;text-align:center;padding:1mm 1.5mm;border-radius:0.8mm}' +
+    '.etq-val{text-align:center;font-weight:800;color:#000;line-height:1.12;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}' +
+    '.etq-rota{font-size:20px}' +
+    '.etq-mot{font-size:20px}' +
+    '.etq-carga{font-family:' + ETQ_MONO + ';font-size:39px;white-space:normal}' +
+    '</style></head><body>' + pagesHtml + '</body></html>';
+}
+/* Imprime o HTML das etiquetas num iframe oculto (fora da tela, mas com o tamanho real
+   do A4 para o layout ser montado certo). Devolve false se não der p/ usar iframe. */
+function printEtiquetasIframe(pagesHtml, onFail){
+  let f = null;
+  try{
+    f = document.createElement('iframe');
+    f.setAttribute('aria-hidden', 'true');
+    f.setAttribute('title', 'Etiquetas de carga');
+    f.style.cssText = 'position:fixed;left:-10000px;top:0;width:210mm;height:297mm;border:0;background:#fff';
+    document.body.appendChild(f);
+    const d = f.contentDocument || (f.contentWindow && f.contentWindow.document);
+    if(!d){ f.remove(); return false; }
+    d.open();
+    d.write(etqDocHtml(pagesHtml));
+    d.close();
+  }catch(e){
+    if(f && f.remove) try{ f.remove(); }catch(e2){}
+    return false;
+  }
+  setTimeout(()=>{ // dá um fôlego p/ o iframe montar o layout antes do diálogo
+    let ok = false;
+    try{
+      f.contentWindow.focus();
+      f.contentWindow.print();
+      ok = true;
+    }catch(e){ ok = false; }
+    if(!ok && typeof onFail === 'function'){ try{ onFail(); }catch(e){} }
+  }, 300);
+  setTimeout(()=>{ try{ f.remove(); }catch(e){} }, 60000);
+  return true;
+}
 function printEtiquetas(){
   if(!(SESSION && SESSION.level >= 2)){ toast('🔒 Seu nível de acesso não permite o mapa', 'err'); return; }
   const rows = [...DATA.frotas.filter(rowTemCarga), ...DATA.capital, ...DATA.interior]; // uma etiqueta por CARGA
   if(!rows.length){ toast('Nenhuma carga para gerar etiquetas', 'err'); return; }
-  const wrap = $('#etiq-print');
-  if(!wrap) return;
-  // 10 etiquetas por página (2 colunas × 5 linhas de 8×5cm) — uma etiqueta por carga
+  // 10 etiquetas por página (2 colunas × 5 linhas de 9×5,5cm) — uma etiqueta por carga
   const pages = [];
   for(let i=0;i<rows.length;i+=10) pages.push(rows.slice(i,i+10));
-  wrap.innerHTML = pages.map(pg=> '<div class="etiq-page">' + pg.map(etqHtml).join('') + '</div>').join('');
-  document.body.classList.add('print-etiquetas'); // print: esconde o mapa e mostra só as etiquetas
-  // ETIQUETAS SÃO SEMPRE A4 RETRATO: a grade (2 colunas × 5 linhas de 9×5,5cm) só cabe
-  // corretamente no A4 em pé. A regra @page é injetada aqui e removida depois do print
-  // (senão o "paisagem" de outros relatórios vazaria e a etiqueta sairia deitada).
-  setPrintOrient('retrato', 5);
-  const cleanup = ()=>{
-    document.body.classList.remove('print-etiquetas');
-    clearPrintOrient();
-    try{ window.removeEventListener('afterprint', cleanup); }catch(e){}
+  const pagesHtml = pages.map(pg=> '<div class="etiq-page">' + pg.map(etqHtml).join('') + '</div>').join('');
+  // (toast usa textContent — nada de HTML aqui)
+  const aviso = '🏷 Etiquetas: ' + rows.length + ' carga(s) em ' + pages.length + ' página(s) A4 RETRATO (10 por página)';
+  // 2º) fallback (se o navegador bloquear o iframe): imprime a própria página forçando retrato
+  const fallback = ()=>{
+    const w = $('#etiq-print');
+    if(!w) return;
+    w.innerHTML = pagesHtml;
+    document.body.classList.add('print-etiquetas'); // print: esconde o mapa e mostra só as etiquetas
+    setPrintOrient('retrato', 5);
+    const cleanup = ()=>{
+      document.body.classList.remove('print-etiquetas');
+      clearPrintOrient();
+      try{ window.removeEventListener('afterprint', cleanup); }catch(e){}
+    };
+    try{ window.addEventListener('afterprint', cleanup); }catch(e){}
+    setTimeout(cleanup, 2500); // fallback p/ navegadores sem afterprint
+    setTimeout(()=>{ try{ window.print(); }catch(e){ cleanup(); } }, 150); // pinta o layout antes de imprimir
+    toast(aviso, 'ok');
   };
-  try{ window.addEventListener('afterprint', cleanup); }catch(e){}
-  setTimeout(cleanup, 2500); // fallback p/ navegadores sem afterprint
-  setTimeout(()=>{ try{ window.print(); }catch(e){ cleanup(); } }, 150); // pinta o layout antes de imprimir
-  toast('🏷 Etiquetas: ' + rows.length + ' carga(s) em ' + pages.length + ' página(s) A4 retrato (10 por página)', 'ok');
+  // 1º) caminho normal: iframe com documento próprio -> A4 RETRATO garantido
+  if(printEtiquetasIframe(pagesHtml, fallback)) toast(aviso, 'ok');
+  else fallback(); // sem iframe: imprime a própria página em retrato
 }
 
 /* ================= Ações ================= */
@@ -8021,7 +8083,7 @@ async function init(){
 /* AUTO-CHECK DE VERSAO: avisa (somente quando roda em github.io) se a aba estiver com
    copia antiga em cache — compara o selo APP_V local com o do arquivo publicado no repo.
    Falha de rede/offline = silencioso; nunca bloqueia o uso. */
-const APP_V = '2026-09-26a';
+const APP_V = '2026-09-28a';
 (function(){
   // Selo de versão VISÍVEL no canto da tela: qualquer print/print-screen mostra qual código
   // está rodando no aparelho (cópia antiga = selo antigo/ausente). Não entra nas capturas.
