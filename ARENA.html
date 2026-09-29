@@ -555,7 +555,7 @@ body.readonly .sec-actions{display:none}
 .rel-filters input:focus,.rel-filters select:focus,.rel-dates input:focus{border-color:var(--blue);outline:none}
 .rel-filters .rel-f-num{min-width:74px;width:88px;text-align:right;font-family:var(--mono)}
 .rel-scroll{flex:1 1 auto;overflow:auto;border:1px solid var(--line);border-radius:10px;margin:10px 0 6px;min-height:110px;background:#fff}
-.rel-table{border-collapse:separate;border-spacing:0;width:100%;font-size:12.5px}
+.rel-table{border-collapse:separate;border-spacing:0;width:auto;font-size:12.5px}
 .rel-table thead th{position:sticky;top:0;z-index:2;background:#f1f5f9;border-bottom:1px solid #cbd5e1;border-right:1px solid var(--line);padding:6px 7px;text-align:left;white-space:nowrap;font-size:10.5px;color:#334155;letter-spacing:.2px;text-transform:uppercase}
 .rel-table thead th.num{text-align:right}
 .rel-table tbody td{border-bottom:1px solid var(--line);border-right:1px solid var(--line);padding:2px 3px;vertical-align:middle;white-space:nowrap}
@@ -574,6 +574,23 @@ body.readonly .sec-actions{display:none}
 .rel-table td.w-ordem input{min-width:110px}
 .rel-table td.w-transp input{min-width:150px}
 .rel-table td.w-mot input{min-width:130px}
+/* AUDITORIA: coluna KM — input + selo "KM" (importado da planilha da portaria) ficam na
+   MESMA célula, em linha. Antes o selo era jogado FORA da célula (o input ocupava 100% da
+   largura) e aparecia pintado na coluna Diárias. Agora a célula é um flex e o input se
+   dimensiona pelo próprio texto (size="5"), então a coluna também fica na medida. */
+.rel-table td.w-km .km-wrap{display:inline-flex;align-items:center;gap:5px;max-width:100%}
+.rel-table td.w-km .km-wrap input{width:auto;min-width:0;flex:0 1 auto}
+.rel-table td.w-peso input,.rel-table td.w-dias input{width:auto;min-width:0}
+/* AUDITORIA: coluna Status SEMPRE visível — gruda na direita quando a tabela rola na
+   horizontal (mesma ideia das colunas 1-2 congeladas do mapa). Fundo opaco para o
+   zebrado/hover não aparecer por baixo, e borda à esquerda para separar do conteúdo
+   que passa por baixo. */
+.rel-table thead th.rel-st-col{position:sticky;top:0;right:0;z-index:3;background:#f1f5f9;border-left:1px solid #cbd5e1}
+.rel-table tbody td.rel-st-col{position:sticky;right:0;z-index:2;background:#fff;border-left:1px solid var(--line)}
+.rel-table tbody tr:nth-child(even) td.rel-st-col{background:#fbfdff}
+.rel-table tbody tr:hover td.rel-st-col{background:#f0f7ff}
+.rel-table tbody tr.rel-changed td.rel-st-col{background:#fefce8}
+.rel-table tfoot td.rel-st-col{position:sticky;right:0;z-index:3;background:#f1f5f9;border-left:1px solid var(--line)}
 .rel-table tfoot td{position:sticky;bottom:0;z-index:2;background:#f1f5f9;font-weight:700;font-size:12.5px;border-top:2px solid #94a3b8;border-right:1px solid var(--line);padding:6px 7px;white-space:nowrap}
 .rel-table tfoot td.num{text-align:right;font-family:var(--mono)}
 .rel-badge{display:inline-block;padding:1px 7px;border-radius:999px;font-size:10.5px;font-weight:700;letter-spacing:.2px}
@@ -1142,6 +1159,8 @@ html.gerencial-request #settings{display:none!important}
         <li><b>📥 Excel Período</b> (admin): exporta TODAS as cargas de Capital e Interior de um período (com Vlr Kg, Neg?, Previsão, Custo/kg e Valor Frete) + aba Resumo por dia. Frotas não entra.</li>
         <li><b>💰 Economia com negociação no resumo do Mapa Gerencial</b>: tabela (+ margem) − frete efetivo, em Geral (só Capital + Interior) e em cada seção contratada. Verde = economia; vermelho = acréscimo; Frotas sem negociação.</li>
         <li><b>🎨 Cores de status no Mapa de Carregamento</b>: linha <b>verde claro</b> = carga <b>Concluída</b> (✔ Concluir) · linha <b>cinza claro</b> = carga <b>Fechada</b> (🔒 fechamento de frete já feito — não pode ser editada, só reaberta pelo ↺ do fechamento) · sem cor = <b>Pendente</b>. As cores valem na tela e nos prints A4 do mapa.</li>
+        <li><b>📋 Fechamento de Fretes — filtro por Status</b>: além dos filtros de texto/valor e do <b>Tipo</b> (Capital/Interior), dá para filtrar por <b>Status</b>: <b>Pendente</b>, <b>Concluída</b>, <b>Em análise (antigo)</b> ou <b>Fechada</b>. Filtrar por <b>Fechada</b> marca &quot;Exibir fechadas&quot; sozinho (e desmarcar a caixa volta o filtro para Todas).</li>
+        <li><b>📋 Fechamento de Fretes — layout</b>: a coluna <b>Status</b> fica <b>grudada na direita</b> e continua visível mesmo rolando a tabela na horizontal; o selo verde <b>KM</b> (km da portaria) fica <b>dentro da coluna KM</b> (antes vazava para a coluna Diárias); as colunas <b>KM</b>, <b>Data Inicial</b>, Peso e Diárias têm a largura ajustada ao próprio texto (a tabela não estica mais além do necessário).</li>
         <li><b>🚫 Status &quot;Em Análise&quot; aposentado</b>: o app não oferece mais esse status — use <b>✔ Concluir</b>. Não existe mais o botão 🔍 Marcar Em Análise nem as opções &quot;devolver p/ Em Análise&quot;: <b>reabrir</b> uma carga fechada (↺) volta <b>sempre para Pendente</b>. Cargas antigas que já estavam &quot;Em Análise&quot; foram mantidas como estavam e seguem aparecendo com esse rótulo (marcado como antigo) onde já apareciam.</li>
         <li><b>Margem configurável (padrão +10%)</b> no valor previsto de cargas não negociadas — em Configurações dá p/ poner 0 ou qualquer X%; negociadas (Valor Frete manual ou Neg? = Sim) mantêm o valor fechado.</li>
         <li><b>Custo Geral</b> e <b>Peso / Custo por kg</b> de Capital e Interior em <b>evidência</b> (KPIs em destaque).</li>
@@ -1403,7 +1422,7 @@ html.gerencial-request #settings{display:none!important}
       <h3 id="rel-title">📋 Fechamento de Fretes</h3>
       <button class="rel-x" type="button" id="rx-x" title="Fechar (Esc)">✕</button>
     </div>
-    <p class="modal-text">Uma linha por carga (<b>Capital + Interior</b>) do período escolhido. Dá para <b>filtrar</b> e <b>editar aqui mesmo</b>: Ordem, Destino (Rota), Peso, KM, Diárias, Motorista e Transportadora. Ao editar, o app <b>refaz o cálculo</b> na hora — <b>Total</b> (previsão de frete), <b>Média (R$/kg)</b> e <b>Data Final</b> (= Entrega + Diárias − 1; sem Entrega, = Data Inicial + Diárias − 1; Capital sempre = Entrega) — e <b>grava a alteração no mapa do dia</b> correspondente. A coluna <b>Entrega</b> mostra a data de entrega do dia (campo ENTREGA); o período <b>DE/ATÉ</b> e o <b>fechamento</b> usam essa data (dia sem entrega vale pelo dia do lançamento). Frotas não entra.</p>
+    <p class="modal-text">Uma linha por carga (<b>Capital + Interior</b>) do período escolhido. Dá para <b>filtrar</b> — inclusive por <b>Status</b> (Pendente, Concluída, Em análise antigo ou Fechada) e <b>Tipo</b> (Capital/Interior) — e <b>editar aqui mesmo</b>: Ordem, Destino (Rota), Peso, KM, Diárias, Motorista e Transportadora. A coluna <b>Status</b> fica <b>sempre visível</b> (grudada na direita, mesmo rolando a tabela na horizontal). Ao editar, o app <b>refaz o cálculo</b> na hora — <b>Total</b> (previsão de frete), <b>Média (R$/kg)</b> e <b>Data Final</b> (= Entrega + Diárias − 1; sem Entrega, = Data Inicial + Diárias − 1; Capital sempre = Entrega) — e <b>grava a alteração no mapa do dia</b> correspondente. A coluna <b>Entrega</b> mostra a data de entrega do dia (campo ENTREGA); o período <b>DE/ATÉ</b> e o <b>fechamento</b> usam essa data (dia sem entrega vale pelo dia do lançamento). Frotas não entra.</p>
 
     <div class="rel-bar">
       <div class="rel-dates">
@@ -1422,6 +1441,7 @@ html.gerencial-request #settings{display:none!important}
         <label>Média mín (R$/kg)<input type="number" id="rf-media-min" class="rel-f-num" step="0.01" min="0" placeholder="0"></label>
         <label>Média máx (R$/kg)<input type="number" id="rf-media-max" class="rel-f-num" step="0.01" min="0" placeholder="—"></label>
         <label>Tipo<select id="rf-tipo"><option value="">Todas</option><option value="capital">Capital</option><option value="interior">Interior</option></select></label>
+        <label>Status<select id="rf-status"><option value="">Todas</option><option value="pendente">Pendente</option><option value="concluida">Concluída</option><option value="analise">Em análise (antigo)</option><option value="fechada">Fechada</option></select></label>
         <button class="btn mini" type="button" id="rf-clear" title="Limpa todos os filtros">🧹 Limpar filtros</button>
       </div>
     </div>
@@ -1439,7 +1459,7 @@ html.gerencial-request #settings{display:none!important}
           <tr>
             <th>Data Inicial</th><th>Entrega</th><th>Data Final</th><th>Tipo</th><th>Placa</th><th>Rota / Destino</th><th>Ordem</th>
             <th class="num">Peso (kg)</th><th class="num">KM</th><th class="num">Diárias</th>
-            <th class="num">Total (R$)</th><th class="num">Média (R$/kg)</th><th>Motorista</th><th>Transportadora</th><th>Status</th>
+            <th class="num">Total (R$)</th><th class="num">Média (R$/kg)</th><th>Motorista</th><th>Transportadora</th><th class="rel-st-col">Status</th>
           </tr>
         </thead>
         <tbody id="rel-body"></tbody>
@@ -3804,25 +3824,35 @@ async function relLoad(start, end){
 /* ---- filtros ---- */
 const REL_TEXT_FILTER_IDS = ['rf-carga','rf-destino','rf-placa','rf-motorista','rf-transp'];
 const REL_NUM_FILTER_IDS = ['rf-total-min','rf-total-max','rf-media-min','rf-media-max'];
+/* status da carga no relatório: fechada > concluída > em análise (antigo) > pendente */
+function relStatusOf(r){
+  return relIsFech(r) ? 'fechada' : relIsConcluida(r) ? 'concluida' : relIsAnalise(r) ? 'analise' : 'pendente';
+}
 function relFilterState(){
   const v = id => { const el = relEl(id); return el ? String(el.value == null ? '' : el.value).trim() : ''; };
   const chk = relEl('rf-fechadas');
   return {
     carga: norm(v('rf-carga')), destino: norm(v('rf-destino')), placa: normPlaca(v('rf-placa')),
-    motorista: norm(v('rf-motorista')), transp: norm(v('rf-transp')), tipo: v('rf-tipo'),
+    motorista: norm(v('rf-motorista')), transp: norm(v('rf-transp')), tipo: v('rf-tipo'), status: v('rf-status'),
     totalMin: v('rf-total-min'), totalMax: v('rf-total-max'), mediaMin: v('rf-media-min'), mediaMax: v('rf-media-max'),
     mostrarFechadas: !!(chk && chk.checked)
   };
 }
 function relFiltersActive(f){
   f = f || relFilterState();
-  return !!(f.carga || f.destino || f.placa || f.motorista || f.transp || f.tipo ||
+  return !!(f.carga || f.destino || f.placa || f.motorista || f.transp || f.tipo || f.status ||
             f.totalMin !== '' || f.totalMax !== '' || f.mediaMin !== '' || f.mediaMax !== '');
 }
 function relMatch(it, f){
   const r = it.row, c = it.calc || relCalc(it.sec, r, it.d, it.entrega);
-  // cargas já fechadas p/ pagamento só aparecem com "Exibir fechadas" marcado
-  if(!f.mostrarFechadas && relIsFech(r)) return false;
+  // Filtro de STATUS. "Fechada" vale por si só (e marca "Exibir fechadas" sozinho, ver
+  // relSyncStatusFilter); nos outros status a regra de "Exibir fechadas" continua valendo.
+  if(f.status === 'fechada'){ if(!relIsFech(r)) return false; }
+  else {
+    // cargas já fechadas p/ pagamento só aparecem com "Exibir fechadas" marcado
+    if(!f.mostrarFechadas && relIsFech(r)) return false;
+    if(f.status && relStatusOf(r) !== f.status) return false;
+  }
   if(f.tipo && it.sec !== f.tipo) return false;
   if(f.carga && !norm(r.carga).includes(f.carga)) return false;
   if(f.destino && !norm(r.destino).includes(f.destino)) return false;
@@ -3834,6 +3864,14 @@ function relMatch(it, f){
   if(f.mediaMin !== '' && !(c.media != null && c.media >= numVal(f.mediaMin))) return false;
   if(f.mediaMax !== '' && !(c.media != null && c.media <= numVal(f.mediaMax))) return false;
   return true;
+}
+/* Mantém o filtro de Status e a caixa "Exibir fechadas" coerentes: escolher "Fechada"
+   marca a caixa sozinho (senão a lista ficaria vazia, porque cargas fechadas só aparecem
+   com ela marcada). Nunca desmarca nada por conta própria. */
+function relSyncStatusFilter(){
+  const st = relEl('rf-status'), chk = relEl('rf-fechadas');
+  if(!st || !chk) return;
+  if(st.value === 'fechada') chk.checked = true;
 }
 function relApplyFilters(){
   const f = relFilterState();
@@ -3861,14 +3899,14 @@ function relRowHtml(it){
     '<td class="mono">' + esc(r.placa || '') + '</td>' +
     '<td class="w-dest">' + inp('destino', r.destino || '') + '</td>' +
     '<td class="w-ordem">' + inp('carga', r.carga || '') + '</td>' +
-    '<td class="num">' + inp('peso', pesoTxt, 'numin') + '</td>' +
-    '<td class="num">' + inp('km', kmTxt, 'numin') + (r.kmPortaria ? kmPortBadge(r) : '') + '</td>' +
-    '<td class="num">' + inp('dias', String(c.diarias), 'numin') + '</td>' +
+    '<td class="num w-peso">' + inp('peso', pesoTxt, 'numin', ' size="9"') + '</td>' +
+    '<td class="num w-km"><span class="km-wrap">' + inp('km', kmTxt, 'numin', ' size="5"') + (r.kmPortaria ? kmPortBadge(r) : '') + '</span></td>' +
+    '<td class="num w-dias">' + inp('dias', String(c.diarias), 'numin', ' size="3"') + '</td>' +
     '<td class="num" data-c="total" title="' + esc(c.modo) + (c.frota ? ' · ' + esc(c.frota) : '') + '">' + fmtBRL(c.total) + '</td>' +
     '<td class="num" data-c="media">' + relFmtMedia(c.media) + '</td>' +
     '<td class="w-mot">' + inp('motorista', r.motorista || '', '', ' maxlength="32"') + '</td>' +
     '<td class="w-transp">' + inp('transportadora', r.transportadora || '') + '</td>' +
-    '<td>' + (relIsFech(r)
+    '<td class="rel-st-col">' + (relIsFech(r)
         ? '<span class="st-badge fech" title="Fechado para pagamento' + (r.fechId ? ' no fechamento ' + esc(r.fechId) : '') + '">Fechado</span>' +
           ' <button class="btn mini" type="button" data-rs-row="' + esc(it.key) + '" title="Devolver SÓ esta carga p/ PENDENTE (tira do fechamento)">↺</button>'
         : relIsConcluida(r)
@@ -3936,7 +3974,8 @@ function renderRelFoot(){
     '<td></td>' +
     '<td class="num">' + fmtBRL(total) + '</td>' +
     '<td class="num">' + relFmtMedia(media) + '</td>' +
-    '<td colspan="3"></td>' +
+    '<td colspan="2"></td>' +
+    '<td class="rel-st-col"></td>' +
   '</tr>';
 }
 
@@ -4053,12 +4092,12 @@ function bindRelControls(){
   const wrap = relEl('rel-filters');
   if(wrap && wrap.dataset.relBound !== '1'){
     wrap.dataset.relBound = '1';
-    const apply = ()=>{ if(!REL.loaded) return; relApplyFilters(); renderRelTable(); };
+    const apply = ()=>{ if(!REL.loaded) return; relSyncStatusFilter(); relApplyFilters(); renderRelTable(); };
     wrap.addEventListener('input', e=>{ if(e.target && e.target.tagName === 'SELECT') return; apply(); });
     wrap.addEventListener('change', apply);
     const clr = relEl('rf-clear');
     if(clr) clr.addEventListener('click', ()=>{
-      REL_TEXT_FILTER_IDS.concat(REL_NUM_FILTER_IDS).concat(['rf-tipo']).forEach(id=>{ const el = relEl(id); if(el) el.value = ''; });
+      REL_TEXT_FILTER_IDS.concat(REL_NUM_FILTER_IDS).concat(['rf-tipo', 'rf-status']).forEach(id=>{ const el = relEl(id); if(el) el.value = ''; });
       apply();
     });
   }
@@ -4073,7 +4112,12 @@ function bindRelControls(){
   const chkF = relEl('rf-fechadas');
   if(chkF && chkF.dataset.relBound !== '1'){
     chkF.dataset.relBound = '1';
-    chkF.addEventListener('change', ()=>{ relApplyFilters(); renderRelTable(); });
+    chkF.addEventListener('change', ()=>{
+      // desmarcar "Exibir fechadas" com o filtro em "Fechada" deixaria a lista vazia:
+      // volta o filtro para Todas
+      if(!chkF.checked){ const st = relEl('rf-status'); if(st && st.value === 'fechada') st.value = ''; }
+      relApplyFilters(); renderRelTable();
+    });
   }
   const fechBtn = relEl('rf-fech-btn');
   if(fechBtn && fechBtn.dataset.relBound !== '1'){
