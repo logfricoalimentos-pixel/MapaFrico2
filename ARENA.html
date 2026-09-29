@@ -555,7 +555,7 @@ body.readonly .sec-actions{display:none}
 .rel-filters input:focus,.rel-filters select:focus,.rel-dates input:focus{border-color:var(--blue);outline:none}
 .rel-filters .rel-f-num{min-width:74px;width:88px;text-align:right;font-family:var(--mono)}
 .rel-scroll{flex:1 1 auto;overflow:auto;border:1px solid var(--line);border-radius:10px;margin:10px 0 6px;min-height:110px;background:#fff}
-.rel-table{border-collapse:separate;border-spacing:0;width:100%;font-size:12.5px}
+.rel-table{border-collapse:separate;border-spacing:0;width:auto;font-size:12.5px}
 .rel-table thead th{position:sticky;top:0;z-index:2;background:#f1f5f9;border-bottom:1px solid #cbd5e1;border-right:1px solid var(--line);padding:6px 7px;text-align:left;white-space:nowrap;font-size:10.5px;color:#334155;letter-spacing:.2px;text-transform:uppercase}
 .rel-table thead th.num{text-align:right}
 .rel-table tbody td{border-bottom:1px solid var(--line);border-right:1px solid var(--line);padding:2px 3px;vertical-align:middle;white-space:nowrap}
@@ -574,6 +574,23 @@ body.readonly .sec-actions{display:none}
 .rel-table td.w-ordem input{min-width:110px}
 .rel-table td.w-transp input{min-width:150px}
 .rel-table td.w-mot input{min-width:130px}
+/* AUDITORIA: coluna KM — input + selo "KM" (importado da planilha da portaria) ficam na
+   MESMA célula, em linha. Antes o selo era jogado FORA da célula (o input ocupava 100% da
+   largura) e aparecia pintado na coluna Diárias. Agora a célula é um flex e o input se
+   dimensiona pelo próprio texto (size="5"), então a coluna também fica na medida. */
+.rel-table td.w-km .km-wrap{display:inline-flex;align-items:center;gap:5px;max-width:100%}
+.rel-table td.w-km .km-wrap input{width:auto;min-width:0;flex:0 1 auto}
+.rel-table td.w-peso input,.rel-table td.w-dias input{width:auto;min-width:0}
+/* AUDITORIA: coluna Status SEMPRE visível — gruda na direita quando a tabela rola na
+   horizontal (mesma ideia das colunas 1-2 congeladas do mapa). Fundo opaco para o
+   zebrado/hover não aparecer por baixo, e borda à esquerda para separar do conteúdo
+   que passa por baixo. */
+.rel-table thead th.rel-st-col{position:sticky;top:0;right:0;z-index:3;background:#f1f5f9;border-left:1px solid #cbd5e1}
+.rel-table tbody td.rel-st-col{position:sticky;right:0;z-index:2;background:#fff;border-left:1px solid var(--line)}
+.rel-table tbody tr:nth-child(even) td.rel-st-col{background:#fbfdff}
+.rel-table tbody tr:hover td.rel-st-col{background:#f0f7ff}
+.rel-table tbody tr.rel-changed td.rel-st-col{background:#fefce8}
+.rel-table tfoot td.rel-st-col{position:sticky;right:0;z-index:3;background:#f1f5f9;border-left:1px solid var(--line)}
 .rel-table tfoot td{position:sticky;bottom:0;z-index:2;background:#f1f5f9;font-weight:700;font-size:12.5px;border-top:2px solid #94a3b8;border-right:1px solid var(--line);padding:6px 7px;white-space:nowrap}
 .rel-table tfoot td.num{text-align:right;font-family:var(--mono)}
 .rel-badge{display:inline-block;padding:1px 7px;border-radius:999px;font-size:10.5px;font-weight:700;letter-spacing:.2px}
@@ -795,6 +812,14 @@ body.readonly .sec-actions{display:none}
    especificidade do zebrado acima e vence pela ordem. */
 .map-table tbody tr.row-concluida td:nth-child(n){background:#e7f9ec}
 .map-table tbody tr.row-concluida:hover td:nth-child(n){background:#d7f3df}
+/* AUDITORIA: carga FECHADA — linha inteira em CINZA PRATEADO, com letras em cinza escuro
+   e ITÁLICO (frete já fechado/pago: não pode ser editada, só reaberta pelo ↺ do fechamento).
+   Mesma técnica do :nth-child(n) para vencer o zebrado; vem DEPOIS da regra verde para o
+   cinza prevalecer. O seletor com "*" é necessário porque inputs/selects NÃO herdam cor nem
+   font-style do td — sem ele o campo continuaria azul e em pé. */
+.map-table tbody tr.row-fechada td:nth-child(n){background:#c3c8d2;color:#3d4756;font-style:italic}
+.map-table tbody tr.row-fechada:hover td:nth-child(n){background:#b4bac6}
+.map-table tbody tr.row-fechada td:nth-child(n) *{color:#3d4756;font-style:italic}
 .map-table tfoot td:nth-child(1),.map-table tfoot td:nth-child(2){background:#cfe4fa}
 .map-table td:nth-child(2){box-shadow:1px 0 0 #b9d7f2}
 /* Controles nítidos: checkbox azul centralizado e lista suspensa com borda/fundo */
@@ -881,11 +906,20 @@ html.gerencial-request #settings{display:none!important}
 .gm-card.gm-econ-pos .gm-card-v,.gm-card.gm-econ-neg .gm-card-v{white-space:normal;overflow-wrap:anywhere}
 .gm-card.gm-econ-pos,.gm-card.gm-econ-neg{cursor:help}
 /* AUDITORIA: títulos de seção do Mapa Gerencial usam os mesmos fundos do Mapa de Carregamento */
-.gm-section-title{display:flex;align-items:center;gap:8px;margin:0 0 10px;padding:8px 14px;border-radius:10px;color:#fff;print-color-adjust:exact;-webkit-print-color-adjust:exact}
+.gm-section-title{display:flex;align-items:center;gap:8px;flex-wrap:wrap;row-gap:6px;margin:0 0 10px;padding:8px 14px;border-radius:10px;color:#fff;print-color-adjust:exact;-webkit-print-color-adjust:exact}
 .gm-section-title .gm-section-count{margin-left:auto;color:rgba(255,255,255,.92);font-size:12px;font-weight:700;white-space:nowrap}
 .gm-frotas .gm-section-title{background:linear-gradient(120deg,#1976d2,#2196f3)}
 .gm-capital .gm-section-title{background:linear-gradient(120deg,#6d3fd4,#8b5cf6)}
 .gm-interior .gm-section-title{background:linear-gradient(120deg,#ef6c00,#fb8c00)}
+/* Botão recolher/expandir por seção (Frotas, Capital, Interior): ao recolher, somente a
+   nota e a tabela de veículos saem de vista — os cartões de totais da seção ficam SEMPRE
+   visíveis (e o Resumo Geral nunca é afetado). */
+.gm-section-title .gm-toggle{display:inline-flex;align-items:center;gap:6px;margin-left:10px;padding:3px 10px;border:1px solid rgba(255,255,255,.55);border-radius:999px;background:rgba(255,255,255,.16);color:#fff;font-family:inherit;font-size:11.5px;font-weight:700;line-height:1.2;cursor:pointer;white-space:nowrap;print-color-adjust:exact;-webkit-print-color-adjust:exact}
+.gm-section-title .gm-toggle:hover{background:rgba(255,255,255,.32)}
+.gm-section-title .gm-toggle:focus-visible{outline:2px solid #fff;outline-offset:1px}
+.gm-section-title .gm-toggle-arrow{width:0;height:0;border-top:4px solid transparent;border-bottom:4px solid transparent;border-left:6px solid currentColor;transition:transform .15s ease}
+.gm-section:not(.gm-collapsed) .gm-toggle-arrow{transform:rotate(90deg)}
+.gm-section.gm-collapsed .gm-body{display:none}
 /* Cabeçalho, zebrado e totais nas cores da tabela do Mapa de Carregamento. */
 .gm-table-wrap{overflow:auto;border:1px solid #b9d7f2;border-radius:9px;background:#fff}
 .gm-table{border-collapse:collapse;width:100%;min-width:1330px;font-size:12px}
@@ -917,6 +951,9 @@ html.gerencial-request #settings{display:none!important}
   html.gerencial-request .gm-table tr{break-inside:avoid}
   html.gerencial-request .gm-card{padding:5px 7px}
   html.gerencial-request .gm-card-v{font-size:11px}
+  /* Imprimir sempre sai completo: seções recolhidas na tela são expandidas no papel
+     (o botão recolher/expandir é .no-print e não aparece na impressão). */
+  html.gerencial-request .gm-section .gm-body{display:block!important}
   /* AQUI NÃO: "@page{size:A4 landscape}" dentro de @media print é GLOBAL (vale p/ tudo
      que a página imprimir) e fazia as ETIQUETAS saírem em paisagem. A orientação agora é
      injetada só durante cada impressão por setPrintOrient() (ver bloco de impressão). */
@@ -1037,7 +1074,7 @@ html.gerencial-request #settings{display:none!important}
     <div class="dash-stf" role="group" aria-label="Filtrar indicadores pelo status da carga">
       <span class="dash-stf-k">Filtrar:</span>
       <label class="chk" title="Somente cargas FECHADAS p/ pagamento"><input type="radio" name="dash-stf" value="fechadas"> Fechadas</label>
-      <label class="chk" title="Pendentes + Em análise (não fechadas)"><input type="radio" name="dash-stf" value="abertas"> Em Aberto</label>
+      <label class="chk" title="Pendentes + Concluídas (não fechadas)"><input type="radio" name="dash-stf" value="abertas"> Em Aberto</label>
       <label class="chk" title="Todas as cargas, independente do status"><input type="radio" name="dash-stf" value="todas" checked> Todas</label>
     </div>
     <div class="dash-fech-dates" id="dash-fech-dates" hidden>
@@ -1124,6 +1161,10 @@ html.gerencial-request #settings{display:none!important}
         <li><b>📥 Excel Mapa</b>: exporta o mapa do dia em .xlsx no MESMO formato do print (seções FROTAS/CAPITAL/INTERIOR, colunas, totais e resumo — sem valores).</li>
         <li><b>📥 Excel Período</b> (admin): exporta TODAS as cargas de Capital e Interior de um período (com Vlr Kg, Neg?, Previsão, Custo/kg e Valor Frete) + aba Resumo por dia. Frotas não entra.</li>
         <li><b>💰 Economia com negociação no resumo do Mapa Gerencial</b>: tabela (+ margem) − frete efetivo, em Geral (só Capital + Interior) e em cada seção contratada. Verde = economia; vermelho = acréscimo; Frotas sem negociação.</li>
+        <li><b>🎨 Cores de status no Mapa de Carregamento</b>: linha <b>verde claro</b> = carga <b>Concluída</b> (✔ Concluir) · linha <b>cinza prateado</b>, com letras em <b>cinza escuro e itálico</b> = carga <b>Fechada</b> (🔒 fechamento de frete já feito — não pode ser editada, só reaberta pelo ↺ do fechamento) · sem cor = <b>Pendente</b>. As cores valem na tela e nos prints A4 do mapa.</li>
+        <li><b>📋 Fechamento de Fretes — filtro por Status</b>: além dos filtros de texto/valor e do <b>Tipo</b> (Capital/Interior), dá para filtrar por <b>Status</b>: <b>Pendente</b>, <b>Concluída</b>, <b>Em análise (antigo)</b> ou <b>Fechada</b>. Filtrar por <b>Fechada</b> marca &quot;Exibir fechadas&quot; sozinho (e desmarcar a caixa volta o filtro para Todas).</li>
+        <li><b>📋 Fechamento de Fretes — layout</b>: a coluna <b>Status</b> fica <b>grudada na direita</b> e continua visível mesmo rolando a tabela na horizontal; o selo verde <b>KM</b> (km da portaria) fica <b>dentro da coluna KM</b> (antes vazava para a coluna Diárias); as colunas <b>KM</b>, <b>Data Inicial</b>, Peso e Diárias têm a largura ajustada ao próprio texto (a tabela não estica mais além do necessário).</li>
+        <li><b>🚫 Status &quot;Em Análise&quot; aposentado</b>: o app não oferece mais esse status — use <b>✔ Concluir</b>. Não existe mais o botão 🔍 Marcar Em Análise nem as opções &quot;devolver p/ Em Análise&quot;: <b>reabrir</b> uma carga fechada (↺) volta <b>sempre para Pendente</b>. Cargas antigas que já estavam &quot;Em Análise&quot; foram mantidas como estavam e seguem aparecendo com esse rótulo (marcado como antigo) onde já apareciam.</li>
         <li><b>Margem configurável (padrão +10%)</b> no valor previsto de cargas não negociadas — em Configurações dá p/ poner 0 ou qualquer X%; negociadas (Valor Frete manual ou Neg? = Sim) mantêm o valor fechado.</li>
         <li><b>Custo Geral</b> e <b>Peso / Custo por kg</b> de Capital e Interior em <b>evidência</b> (KPIs em destaque).</li>
         <li><b>Gráfico de evolução do custo</b> com granularidade <b>Diário / Mensal / Anual</b> (Capital × Interior empilhado), com tooltip (custo, peso e custo/kg).</li>
@@ -1384,7 +1425,7 @@ html.gerencial-request #settings{display:none!important}
       <h3 id="rel-title">📋 Fechamento de Fretes</h3>
       <button class="rel-x" type="button" id="rx-x" title="Fechar (Esc)">✕</button>
     </div>
-    <p class="modal-text">Uma linha por carga (<b>Capital + Interior</b>) do período escolhido. Dá para <b>filtrar</b> e <b>editar aqui mesmo</b>: Ordem, Destino (Rota), Peso, KM, Diárias, Motorista e Transportadora. Ao editar, o app <b>refaz o cálculo</b> na hora — <b>Total</b> (previsão de frete), <b>Média (R$/kg)</b> e <b>Data Final</b> (= Entrega + Diárias − 1; sem Entrega, = Data Inicial + Diárias − 1; Capital sempre = Entrega) — e <b>grava a alteração no mapa do dia</b> correspondente. A coluna <b>Entrega</b> mostra a data de entrega do dia (campo ENTREGA); o período <b>DE/ATÉ</b> e o <b>fechamento</b> usam essa data (dia sem entrega vale pelo dia do lançamento). Frotas não entra.</p>
+    <p class="modal-text">Uma linha por carga (<b>Capital + Interior</b>) do período escolhido. Dá para <b>filtrar</b> — inclusive por <b>Status</b> (Pendente, Concluída, Em análise antigo ou Fechada) e <b>Tipo</b> (Capital/Interior) — e <b>editar aqui mesmo</b>: Ordem, Destino (Rota), Peso, KM, Diárias, Motorista e Transportadora. A coluna <b>Status</b> fica <b>sempre visível</b> (grudada na direita, mesmo rolando a tabela na horizontal). Ao editar, o app <b>refaz o cálculo</b> na hora — <b>Total</b> (previsão de frete), <b>Média (R$/kg)</b> e <b>Data Final</b> (= Entrega + Diárias − 1; sem Entrega, = Data Inicial + Diárias − 1; Capital sempre = Entrega) — e <b>grava a alteração no mapa do dia</b> correspondente. A coluna <b>Entrega</b> mostra a data de entrega do dia (campo ENTREGA); o período <b>DE/ATÉ</b> e o <b>fechamento</b> usam essa data (dia sem entrega vale pelo dia do lançamento). Frotas não entra.</p>
 
     <div class="rel-bar">
       <div class="rel-dates">
@@ -1403,6 +1444,7 @@ html.gerencial-request #settings{display:none!important}
         <label>Média mín (R$/kg)<input type="number" id="rf-media-min" class="rel-f-num" step="0.01" min="0" placeholder="0"></label>
         <label>Média máx (R$/kg)<input type="number" id="rf-media-max" class="rel-f-num" step="0.01" min="0" placeholder="—"></label>
         <label>Tipo<select id="rf-tipo"><option value="">Todas</option><option value="capital">Capital</option><option value="interior">Interior</option></select></label>
+        <label>Status<select id="rf-status"><option value="">Todas</option><option value="pendente">Pendente</option><option value="concluida">Concluída</option><option value="analise">Em análise (antigo)</option><option value="fechada">Fechada</option></select></label>
         <button class="btn mini" type="button" id="rf-clear" title="Limpa todos os filtros">🧹 Limpar filtros</button>
       </div>
     </div>
@@ -1410,7 +1452,7 @@ html.gerencial-request #settings{display:none!important}
     <div class="rel-tools">
       <label class="chk"><input type="checkbox" id="rf-fechadas"> Exibir fechadas</label>
       <button class="btn" type="button" id="rf-fech-btn" title="Fechamento quinzenal de frete: agrupa por transportadora (Capital + Interior), marca as cargas como Fechado e gera o resumo do financeiro + o relatório de cada transportador">🔒 Fechamento</button>
-      <button class="btn" type="button" id="rf-ret-btn" title="Devolve cargas FECHADAS p/ PENDENTE ou EM ANÁLISE, por critérios: data em que foi fechada, transportador e ordem">↺ Retornar fechadas</button>
+      <button class="btn" type="button" id="rf-ret-btn" title="Devolve cargas FECHADAS p/ PENDENTE, por critérios: data em que foi fechada, transportador e ordem">↺ Retornar fechadas</button>
       <span class="rel-tools-hint" id="rel-fech-hint"></span>
     </div>
 
@@ -1420,7 +1462,7 @@ html.gerencial-request #settings{display:none!important}
           <tr>
             <th>Data Inicial</th><th>Entrega</th><th>Data Final</th><th>Tipo</th><th>Placa</th><th>Rota / Destino</th><th>Ordem</th>
             <th class="num">Peso (kg)</th><th class="num">KM</th><th class="num">Diárias</th>
-            <th class="num">Total (R$)</th><th class="num">Média (R$/kg)</th><th>Motorista</th><th>Transportadora</th><th>Status</th>
+            <th class="num">Total (R$)</th><th class="num">Média (R$/kg)</th><th>Motorista</th><th>Transportadora</th><th class="rel-st-col">Status</th>
           </tr>
         </thead>
         <tbody id="rel-body"></tbody>
@@ -1468,7 +1510,7 @@ html.gerencial-request #settings{display:none!important}
       <label>Data do fechamento<select id="ret-data"></select></label>
       <label>Transportador<select id="ret-transp"></select></label>
       <label>Ordem (nº da carga)<input id="ret-ordem" placeholder="todas" maxlength="12"></label>
-      <label>Status de volta<select id="ret-st"><option value="pendente">Pendente</option><option value="analise">Em análise</option></select></label>
+      <label>Status de volta<select id="ret-st"><option value="pendente">Pendente</option></select></label>
     </div>
     <div id="ret-list" class="ret-list"></div>
     <div class="modal-actions">
@@ -1515,7 +1557,7 @@ html.gerencial-request #settings{display:none!important}
     <p class="fech-per" id="fech-per"></p>
     <p class="modal-text" style="margin:0 0 8px">Marque as transportadoras que serão <b>pagas neste fechamento</b> — e, dentro de cada uma, <b>marque/desmarque cargas individuais</b> (clique no ▸ para ver a lista). O filtro <b>Status</b> exibe somente as cargas <b>Concluída</b> (linhas em verde claro) e/ou <b>Pendente</b>; a seleção e o fechamento valem apenas para o que está em exibição. Ao confirmar, o app <b>pergunta a referência da quinzena</b> (mês anterior ou atual, Quinzena 1 ou 2) e as cargas marcadas passam de <b>Pendente/Concluída</b> para <b>Fechado</b> (somem do relatório, a não ser que você marque "Exibir fechadas"). <b>Não gera Excel</b> — os arquivos de sempre ficam em 📚 Fechamentos anteriores → "Baixar de novo". O 💬 abre o WhatsApp do transportador já com a mensagem do fechamento.</p>
     <div class="fech-tools">
-      <label title="Exibe somente as linhas das rotas com o status escolhido. Cargas 'Em análise' aparecem em 'Todas'. A seleção (✓) e o 🔒 Fechar valem só para o que está em exibição.">Status:
+      <label title="Exibe somente as linhas das rotas com o status escolhido. A seleção (✓) e o 🔒 Fechar valem só para o que está em exibição.">Status:
         <select id="fech-st-filter">
           <option value="">Todas</option>
           <option value="concluida">Concluída</option>
@@ -1555,7 +1597,6 @@ html.gerencial-request #settings{display:none!important}
       <div id="fech-hist-rows"></div>
     </details>
     <div class="modal-actions">
-      <button class="btn" type="button" id="fech-analise" title="Alterna as cargas MARCADAS entre PENDENTE e EM ANÁLISE — em análise dá p/ editar, incluir e excluir, e marcar ✔/✘ na lista de cargas">🔍 Marcar Em Análise</button>
       <button class="btn" type="button" id="fech-copy-next" title="Copia o print do resumo da próxima transportadora MARCADA (com WhatsApp) e abre a conversa vazia — lá é só Ctrl+V e Enviar">📋 Copiar e abrir próxima ➡</button>
       <button class="btn" type="button" id="fech-wa-auto" title="Manda o print + resumo por WhatsApp (API configurada) para cada transportador marcada, um a um">🤖 Enviar resumo p/ marcados</button>
       <button class="btn" type="button" id="fech-cancel">Cancelar</button>
@@ -2435,9 +2476,10 @@ function rowHtml(sec, r, cols){
   const custo = (frete && frete.total > 0 && numVal(r.peso) > 0) ? frete.total / numVal(r.peso) : null;
   const unav = plateSegs(r.placa).some(p => AVAILABILITY[p] === false);
   const concl = relIsConcluida(r);
+  const fech = relIsFech(r);
   const tds = cols.map(c=> cellHtml(sec, r, c, {frete, custo})).join('');
-  const cls = [unav ? 'row-unavailable' : '', concl ? 'row-concluida' : ''].filter(Boolean).join(' ');
-  const ttl = [unav ? 'Veículo indisponível' : '', concl ? 'Carga CONCLUÍDA ✔ (entrega finalizada — aguardando fechamento; clique ✔ Concluir p/ voltar p/ Pendente)' : ''].filter(Boolean).join(' · ');
+  const cls = [unav ? 'row-unavailable' : '', fech ? 'row-fechada' : '', concl ? 'row-concluida' : ''].filter(Boolean).join(' ');
+  const ttl = [unav ? 'Veículo indisponível' : '', fech ? 'Carga FECHADA 🔒 (frete já fechado — não pode ser editada; reabra pelo ↺ do fechamento p/ alterar)' : '', concl ? 'Carga CONCLUÍDA ✔ (entrega finalizada — aguardando fechamento; clique ✔ Concluir p/ voltar p/ Pendente)' : ''].filter(Boolean).join(' · ');
   return '<tr data-id="'+r.id+'"'+(cls ? ' class="'+cls+'"' : '')+(ttl ? ' title="'+ttl+'"' : '')+'>' + tds + '</tr>';
 }
 
@@ -3785,25 +3827,35 @@ async function relLoad(start, end){
 /* ---- filtros ---- */
 const REL_TEXT_FILTER_IDS = ['rf-carga','rf-destino','rf-placa','rf-motorista','rf-transp'];
 const REL_NUM_FILTER_IDS = ['rf-total-min','rf-total-max','rf-media-min','rf-media-max'];
+/* status da carga no relatório: fechada > concluída > em análise (antigo) > pendente */
+function relStatusOf(r){
+  return relIsFech(r) ? 'fechada' : relIsConcluida(r) ? 'concluida' : relIsAnalise(r) ? 'analise' : 'pendente';
+}
 function relFilterState(){
   const v = id => { const el = relEl(id); return el ? String(el.value == null ? '' : el.value).trim() : ''; };
   const chk = relEl('rf-fechadas');
   return {
     carga: norm(v('rf-carga')), destino: norm(v('rf-destino')), placa: normPlaca(v('rf-placa')),
-    motorista: norm(v('rf-motorista')), transp: norm(v('rf-transp')), tipo: v('rf-tipo'),
+    motorista: norm(v('rf-motorista')), transp: norm(v('rf-transp')), tipo: v('rf-tipo'), status: v('rf-status'),
     totalMin: v('rf-total-min'), totalMax: v('rf-total-max'), mediaMin: v('rf-media-min'), mediaMax: v('rf-media-max'),
     mostrarFechadas: !!(chk && chk.checked)
   };
 }
 function relFiltersActive(f){
   f = f || relFilterState();
-  return !!(f.carga || f.destino || f.placa || f.motorista || f.transp || f.tipo ||
+  return !!(f.carga || f.destino || f.placa || f.motorista || f.transp || f.tipo || f.status ||
             f.totalMin !== '' || f.totalMax !== '' || f.mediaMin !== '' || f.mediaMax !== '');
 }
 function relMatch(it, f){
   const r = it.row, c = it.calc || relCalc(it.sec, r, it.d, it.entrega);
-  // cargas já fechadas p/ pagamento só aparecem com "Exibir fechadas" marcado
-  if(!f.mostrarFechadas && relIsFech(r)) return false;
+  // Filtro de STATUS. "Fechada" vale por si só (e marca "Exibir fechadas" sozinho, ver
+  // relSyncStatusFilter); nos outros status a regra de "Exibir fechadas" continua valendo.
+  if(f.status === 'fechada'){ if(!relIsFech(r)) return false; }
+  else {
+    // cargas já fechadas p/ pagamento só aparecem com "Exibir fechadas" marcado
+    if(!f.mostrarFechadas && relIsFech(r)) return false;
+    if(f.status && relStatusOf(r) !== f.status) return false;
+  }
   if(f.tipo && it.sec !== f.tipo) return false;
   if(f.carga && !norm(r.carga).includes(f.carga)) return false;
   if(f.destino && !norm(r.destino).includes(f.destino)) return false;
@@ -3815,6 +3867,14 @@ function relMatch(it, f){
   if(f.mediaMin !== '' && !(c.media != null && c.media >= numVal(f.mediaMin))) return false;
   if(f.mediaMax !== '' && !(c.media != null && c.media <= numVal(f.mediaMax))) return false;
   return true;
+}
+/* Mantém o filtro de Status e a caixa "Exibir fechadas" coerentes: escolher "Fechada"
+   marca a caixa sozinho (senão a lista ficaria vazia, porque cargas fechadas só aparecem
+   com ela marcada). Nunca desmarca nada por conta própria. */
+function relSyncStatusFilter(){
+  const st = relEl('rf-status'), chk = relEl('rf-fechadas');
+  if(!st || !chk) return;
+  if(st.value === 'fechada') chk.checked = true;
 }
 function relApplyFilters(){
   const f = relFilterState();
@@ -3842,16 +3902,16 @@ function relRowHtml(it){
     '<td class="mono">' + esc(r.placa || '') + '</td>' +
     '<td class="w-dest">' + inp('destino', r.destino || '') + '</td>' +
     '<td class="w-ordem">' + inp('carga', r.carga || '') + '</td>' +
-    '<td class="num">' + inp('peso', pesoTxt, 'numin') + '</td>' +
-    '<td class="num">' + inp('km', kmTxt, 'numin') + (r.kmPortaria ? kmPortBadge(r) : '') + '</td>' +
-    '<td class="num">' + inp('dias', String(c.diarias), 'numin') + '</td>' +
+    '<td class="num w-peso">' + inp('peso', pesoTxt, 'numin', ' size="9"') + '</td>' +
+    '<td class="num w-km"><span class="km-wrap">' + inp('km', kmTxt, 'numin', ' size="5"') + (r.kmPortaria ? kmPortBadge(r) : '') + '</span></td>' +
+    '<td class="num w-dias">' + inp('dias', String(c.diarias), 'numin', ' size="3"') + '</td>' +
     '<td class="num" data-c="total" title="' + esc(c.modo) + (c.frota ? ' · ' + esc(c.frota) : '') + '">' + fmtBRL(c.total) + '</td>' +
     '<td class="num" data-c="media">' + relFmtMedia(c.media) + '</td>' +
     '<td class="w-mot">' + inp('motorista', r.motorista || '', '', ' maxlength="32"') + '</td>' +
     '<td class="w-transp">' + inp('transportadora', r.transportadora || '') + '</td>' +
-    '<td>' + (relIsFech(r)
+    '<td class="rel-st-col">' + (relIsFech(r)
         ? '<span class="st-badge fech" title="Fechado para pagamento' + (r.fechId ? ' no fechamento ' + esc(r.fechId) : '') + '">Fechado</span>' +
-          ' <button class="btn mini" type="button" data-rs-row="' + esc(it.key) + '" title="Devolver SÓ esta carga p/ PENDENTE ou EM ANÁLISE (tira do fechamento)">↺</button>'
+          ' <button class="btn mini" type="button" data-rs-row="' + esc(it.key) + '" title="Devolver SÓ esta carga p/ PENDENTE (tira do fechamento)">↺</button>'
         : relIsConcluida(r)
           ? '<span class="st-badge concl" title="Concluída — entrega finalizada; aguarda o fechamento quinzenal">Concluída</span>'
         : relIsAnalise(r)
@@ -3917,7 +3977,8 @@ function renderRelFoot(){
     '<td></td>' +
     '<td class="num">' + fmtBRL(total) + '</td>' +
     '<td class="num">' + relFmtMedia(media) + '</td>' +
-    '<td colspan="3"></td>' +
+    '<td colspan="2"></td>' +
+    '<td class="rel-st-col"></td>' +
   '</tr>';
 }
 
@@ -4034,12 +4095,12 @@ function bindRelControls(){
   const wrap = relEl('rel-filters');
   if(wrap && wrap.dataset.relBound !== '1'){
     wrap.dataset.relBound = '1';
-    const apply = ()=>{ if(!REL.loaded) return; relApplyFilters(); renderRelTable(); };
+    const apply = ()=>{ if(!REL.loaded) return; relSyncStatusFilter(); relApplyFilters(); renderRelTable(); };
     wrap.addEventListener('input', e=>{ if(e.target && e.target.tagName === 'SELECT') return; apply(); });
     wrap.addEventListener('change', apply);
     const clr = relEl('rf-clear');
     if(clr) clr.addEventListener('click', ()=>{
-      REL_TEXT_FILTER_IDS.concat(REL_NUM_FILTER_IDS).concat(['rf-tipo']).forEach(id=>{ const el = relEl(id); if(el) el.value = ''; });
+      REL_TEXT_FILTER_IDS.concat(REL_NUM_FILTER_IDS).concat(['rf-tipo', 'rf-status']).forEach(id=>{ const el = relEl(id); if(el) el.value = ''; });
       apply();
     });
   }
@@ -4054,7 +4115,12 @@ function bindRelControls(){
   const chkF = relEl('rf-fechadas');
   if(chkF && chkF.dataset.relBound !== '1'){
     chkF.dataset.relBound = '1';
-    chkF.addEventListener('change', ()=>{ relApplyFilters(); renderRelTable(); });
+    chkF.addEventListener('change', ()=>{
+      // desmarcar "Exibir fechadas" com o filtro em "Fechada" deixaria a lista vazia:
+      // volta o filtro para Todas
+      if(!chkF.checked){ const st = relEl('rf-status'); if(st && st.value === 'fechada') st.value = ''; }
+      relApplyFilters(); renderRelTable();
+    });
   }
   const fechBtn = relEl('rf-fech-btn');
   if(fechBtn && fechBtn.dataset.relBound !== '1'){
@@ -4353,22 +4419,6 @@ async function salvarEdicaoCarga(){
   toast('💾 Carga de ' + fmtBR(d) + ' atualizada no mapa', 'ok');
   closeEdc();
 }
-/* alterna as marcadas entre PENDENTE <-> EM ANÁLISE (antes de pagar, p/ poder editar/incluir/excluir) */
-async function fechToggleAnalise(){
-  if(!requireOperational()) return;
-  const sel = fechGroups().map(g=> Object.assign({g: g}, fechGroupSel(g))).filter(x=> x.itens.length);
-  if(!sel.length){ toast('Marque ao menos uma carga antes de mudar o status', 'err'); return; }
-  const todas = sel.every(x=> x.itens.every(it=> it.row.stFech === 'analise'));
-  const datas = new Set(); let n = 0;
-  for(const x of sel) for(const it of x.itens){
-    if(todas) delete it.row.stFech; else it.row.stFech = 'analise';
-    datas.add(it.d); n++;
-  }
-  for(const d of datas) await relPersistDate(d);
-  audit('fechamento-analise', (todas ? 'devolvidas p/ Pendente: ' : 'marcadas Em Análise: ') + n + ' carga(s)');
-  toast(todas ? '↩ ' + n + ' carga(s) de volta a PENDENTE' : '🔍 ' + n + ' carga(s) EM ANÁLISE — edição/inclusão/exclusão liberadas; marque ✔ ou ✘ na lista (▸)', 'ok');
-  renderFechTable(); relApplyFilters(); renderRelTable();
-}
 let FECH_COPY_IDX = 0;
 function fechCopyNext(){
   if(!requireOperational()) return;
@@ -4452,8 +4502,8 @@ function fechSelOf(key){
   return FECH_SEL[key] || (FECH_SEL[key] = {codigo: TRANSP_CODES[key] || '', abat: '', nf: 'Não', boleto: 'Não', exp: false, cargas: {}});
 }
 /* Filtro de STATUS do painel de fechamento (select do cabeçalho): '' = Todas;
-   'concluida' = somente Concluída; 'pendente' = somente Pendente (cargas EM ANÁLISE
-   aparecem em "Todas"). Vale para exibição, seleção, resumo e para o próprio fechamento. */
+   'concluida' = somente Concluída; 'pendente' = somente Pendente. Vale para exibição,
+   seleção, resumo e para o próprio fechamento. */
 let FECH_ST = '';
 function fechStMatch(r){
   if(!FECH_ST) return true;
@@ -4576,7 +4626,7 @@ function openFech(){
   FECH_ST = '';
   const stf = relEl('fech-st-filter'); if(stf) stf.value = '';
   const mask = relEl('fech-mask'); if(mask) mask.hidden = false;
-  relEl('fech-per').textContent = 'Período: ' + fechPeriodoTxt(REL) + ' (pela DATA DE ENTREGA) · entram cargas PENDENTES, CONCLUÍDAS (verde claro) e EM ANÁLISE · use o ▸ p/ marcar cargas individuais · 🔍 Em Análise libera editar/incluir/excluir · use o ✏️ na lista de cargas p/ abrir a janela de edição do mapa';
+  relEl('fech-per').textContent = 'Período: ' + fechPeriodoTxt(REL) + ' (pela DATA DE ENTREGA) · entram cargas PENDENTES e CONCLUÍDAS (verde claro) · use o ▸ p/ marcar cargas individuais · use o ✏️ na lista de cargas p/ abrir a janela de edição do mapa';
   renderFechTable();
   renderFechHist();
 }
@@ -4618,7 +4668,7 @@ function renderFechTable(){
   if(!body) return;
   let groups = fechGroups();
   if(!groups.length){
-    body.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:20px;color:var(--muted)">Nenhuma carga <b>PENDENTE</b> ou <b>EM ANÁLISE</b> no período ' + esc(fechPeriodoTxt(REL)) + '.</td></tr>';
+    body.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:20px;color:var(--muted)">Nenhuma carga <b>PENDENTE</b> ou <b>CONCLUÍDA</b> no período ' + esc(fechPeriodoTxt(REL)) + '.</td></tr>';
     if(foot) foot.innerHTML = '';
     const ok = relEl('fech-ok'); if(ok) ok.disabled = true;
     return;
@@ -4646,7 +4696,7 @@ function renderFechTable(){
       '<td><button class="fech-exp" type="button" data-f="exp" title="ver/marcar as cargas individualmente">' + (gs.s.exp ? '▾' : '▸') + '</button>' +
         '<b>' + esc(g.nome) + '</b><span class="fech-cnt">' + gs.itens.length + '/' + vis + '</span>' +
         (nConcl ? '<span class="st-badge concl" title="carga(s) concluída(s) — entrega finalizada, aguardando fechamento; linhas em verde claro"> ' + nConcl + ' concluída(s)</span>' : '') +
-        (g.itens.some(it=> it.row.stFech === 'analise') ? '<span class="st-badge anal" title="carga(s) em análise — edição/inclusão/exclusão liberadas e conferência ✔/✘"> ' + g.itens.filter(it=> it.row.stFech === 'analise').length + ' em análise</span>' : '') + '</td>' +
+        (g.itens.some(it=> it.row.stFech === 'analise') ? '<span class="st-badge anal" title="carga(s) com o status antigo \"Em análise\" (aposentado) — seguem valendo para o fechamento"> ' + g.itens.filter(it=> it.row.stFech === 'analise').length + ' em análise (antigo)</span>' : '') + '</td>' +
       '<td class="num">' + gs.itens.length + '</td>' +
       '<td class="num">' + fmtPeso2(gs.peso) + '</td>' +
       '<td class="num">' + fmtBRL(gs.fat) + '</td>' +
@@ -5306,9 +5356,9 @@ async function histCollectRows(){
 }
 /* reabre cargas fechadas: as do histórico saem do fechamento (mesma regra do ↺ do
    relatório); as avulsas/em lote são reabertas direto na linha do mapa do dia */
-async function histReopenBatch(items, st){
+async function histReopenBatch(items){
   if(!requireOperational()) return {ok:false, msg:'🔒 Ação restrita à operação'};
-  st = (st === 'analise') ? 'analise' : 'pendente';
+  // status "Em análise" aposentado: reabrir volta SEMPRE para Pendente
   const fids = new Set(FECHAMENTOS.map(f=> f.id));
   const byFid = new Map(), orphans = [];
   for(const it of items){
@@ -5327,7 +5377,8 @@ async function histReopenBatch(items, st){
     for(const it of byD.get(d)){
       const row = (rec.data[it.sec] || []).find(r=> r.id === it.id);
       if(!row || !relIsFech(row) || (row.fechId || "") !== (it.fid || "")) continue;
-      if(st === 'analise') row.stFech = 'analise'; else delete row.stFech;
+      // status "Em análise" aposentado: reabrir volta SEMPRE para Pendente
+      delete row.stFech;
       delete row.fechId; delete row.fechDt;
       nOrf++;
     }
@@ -5339,8 +5390,8 @@ async function histReopenBatch(items, st){
     }
   }
   if(nOrf){
-    audit('fechamento-reaberto-avulsas', nOrf + ' carga(s) → ' + (st === 'analise' ? 'EM ANÁLISE' : 'PENDENTE'));
-    toast('↺ ' + nOrf + ' carga(s) avulsa(s) reaberta(s) → ' + (st === 'analise' ? 'EM ANÁLISE' : 'PENDENTE'), 'ok');
+    audit('fechamento-reaberto-avulsas', nOrf + ' carga(s) → PENDENTE');
+    toast('↺ ' + nOrf + ' carga(s) avulsa(s) reaberta(s) → PENDENTE', 'ok');
   }
   if(REL.loaded){ relApplyFilters(); renderRelTable(); }
   if(REL.mapDirty) renderAll();
@@ -5356,7 +5407,6 @@ function histWinHtml(){
     'header h1{font-size:16.5px;margin:0;display:flex;align-items:center;gap:8px;flex-wrap:wrap}',
     'header h1 .sub{font-size:12px;font-weight:400;color:#fecaca}',
     '.h-actions{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}',
-    '.h-actions .hst{width:auto;min-width:96px}',
     '.bar{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;background:#fff;border-bottom:1px solid var(--line);padding:10px 16px;position:sticky;top:0;z-index:5}',
     '.bar label{font-size:10.5px;color:var(--muted);display:flex;flex-direction:column;gap:3px;text-transform:uppercase;letter-spacing:.2px}',
     '.bar input,.bar select{border:1px solid var(--line);border-radius:7px;padding:5px 7px;font:inherit;font-size:12.5px;min-width:86px;background:#fff;color:var(--ink)}',
@@ -5390,8 +5440,7 @@ function histWinHtml(){
   const BODY = [
     '<header><h1>📚 Fechamentos anteriores — cargas fechadas <span class="sub">uma linha por carga · faturamento · entrega · fechamento</span>',
     '<span class="h-actions">',
-    '<select id="hst" class="hst" title="Status p/ onde as cargas voltam ao reabrir"><option value="pendente">→ Pendente</option><option value="analise">→ Em análise</option></select>',
-    '<button class="btn red" id="h-reopen-all" title="Reabre TODAS as cargas da listagem filtrada p/ o status escolhido ao lado">↺ Reabrir listadas</button>',
+    '<button class="btn red" id="h-reopen-all" title="Reabre TODAS as cargas da listagem filtrada — todas voltam como PENDENTE">↺ Reabrir listadas</button>',
     '<button class="btn" id="h-reload" title="Recarrega a lista do banco (depois de alterações feitas em outras telas)">🔄 Atualizar</button>',
     '<button class="btn" id="h-close" title="Fecha esta janela">✕ Fechar janela</button>',
     '</span></header>',
@@ -5418,7 +5467,7 @@ function histWinHtml(){
     '</tr></thead><tbody id="body"></tbody><tfoot id="foot"></tfoot></table>',
     '<div class="empty" id="empty" hidden>Carregando…</div>',
     '</div>',
-    '<footer><span>↩ devolve a carga p/ <b>PENDENTE</b> · 🔍 devolve p/ <b>EM ANÁLISE</b> · 📥 baixa de novo o resumo + Excel do fechamento (valores da época)</span><span>janela aberta pelo Mapa de Carregamento — manter a aba principal aberta</span></footer>'
+    '<footer><span>↩ devolve a carga p/ <b>PENDENTE</b> · 📥 baixa de novo o resumo + Excel do fechamento (valores da época)</span><span>janela aberta pelo Mapa de Carregamento — manter a aba principal aberta</span></footer>'
   ].join('\n');
   const JS = [
     "'use strict';",
@@ -5481,7 +5530,6 @@ function histWinHtml(){
     "      '<td class=\"act\">'+",
     "      (r.avulsa?'':'<button class=\"btn mini\" data-hact=\"dl\" title=\"Baixa de novo o resumo + os arquivos por transportadora deste fechamento (valores da época)\">📥</button>')+",
     "      '<button class=\"btn mini\" data-hact=\"pd\" title=\"Devolve esta carga p/ PENDENTE\">↩</button>'+",
-    "      '<button class=\"btn mini\" data-hact=\"an\" title=\"Devolve esta carga p/ EM ANÁLISE\">🔍</button>'+",
     "      '</td></tr>').join('');",
     "    let peso=0,total=0; for(const r of rows){ peso+=Number(r.peso)||0; total+=Number(r.total)||0; }",
     "    const media=(total>0&&peso>0)?total/peso:null;",
@@ -5516,13 +5564,12 @@ function histWinHtml(){
     "  const o = op(); if(!o){ alert('⚠️ A aba principal do Mapa foi fechada.'); return; }",
     "  const act = b.getAttribute('data-hact');",
     "  if(act === 'dl'){ o.fechBaixarDeNovo(it.fid); return; }",
-    "  reopenItems([{fid: it.fid, d: it.d, sec: it.sec, id: it.id}], act === 'an' ? 'analise' : 'pendente');",
+    "  reopenItems([{fid: it.fid, d: it.d, sec: it.sec, id: it.id}]);",
     "});",
     "document.getElementById('h-reopen-all').addEventListener('click', ()=>{",
     "  const rows = filtered(); if(!rows.length){ alert('Nenhuma carga na listagem filtrada.'); return; }",
-    "  const st = document.getElementById('hst').value;",
-    "  if(!confirm('Reabrir TODAS as '+rows.length+' carga(s) da listagem filtrada?\\nElas voltam como ' + (st==='analise'?'EM ANÁLISE':'PENDENTE') + '.')) return;",
-    "  reopenItems(rows.map(r=>({fid:r.fid, d:r.d, sec:r.sec, id:r.id})), st);",
+    "  if(!confirm('Reabrir TODAS as '+rows.length+' carga(s) da listagem filtrada?\\nElas voltam como PENDENTE.')) return;",
+    "  reopenItems(rows.map(r=>({fid:r.fid, d:r.d, sec:r.sec, id:r.id})));",
     "});",
     "document.getElementById('h-reload').addEventListener('click', ()=>{",
     "  const o = op(); if(!o){ alert('⚠️ A aba principal do Mapa foi fechada.'); return; }",
@@ -5574,7 +5621,7 @@ function histWinRefresh(){
 function fechRsPanel(id){
   const f = FECHAMENTOS.find(x=> x.id === id); if(!f) return '';
   return '<div class="rs-top"><label>Devolver para: <select data-rs-st title="status de volta das cargas marcadas">' +
-    '<option value="pendente">Pendente</option><option value="analise">Em análise</option></select></label>' +
+    '<option value="pendente">Pendente</option></select></label>' +
     '<button class="btn mini" type="button" data-rs="all" title="Marca todas as cargas deste fechamento">Selecionar tudo</button>' +
     '<button class="btn mini" type="button" data-rs="none" title="Desmarca todas">Limpar</button>' +
     '<span class="grow"></span>' +
@@ -5652,7 +5699,7 @@ function renderFechHist(){
         '<span class="grow"><b>' + fechPeriodoTxt(f) + '</b> · ' + f.grupos.length + ' transportadora(s) · ' + n + ' carga(s) · ' + fmtBRL(val) + ' · 🔒 Fechado em ' + esc(quando || '—') + '</span>' +
         '<span class="mono">' + esc(f.por || '') + '</span>' +
         '<button class="btn mini" type="button" data-act="fech-dl" title="Gera de novo o resumo + os arquivos por transportadora (com os valores da época)">📥 Baixar de novo</button>' +
-        '<button class="btn mini" type="button" data-act="fech-rs" title="Devolve as cargas escolhidas deste fechamento para PENDENTE ou EM ANÁLISE">↺ Reabrir cargas</button>' +
+        '<button class="btn mini" type="button" data-act="fech-rs" title="Devolve as cargas escolhidas deste fechamento para PENDENTE">↺ Reabrir cargas</button>' +
         '<div class="fech-rs" data-rs-panel hidden></div>' +
       '</div>';
     }).join('');
@@ -5816,13 +5863,12 @@ async function retConfirm(){
   for(const [fid, keys] of byF){ await fechReopenSel(fid, st, keys); }
   retRender();
 }
-/* menu do ↺ da linha FECHADA no relatório: devolve só aquela carga p/ PENDENTE / EM ANÁLISE */
+/* menu do ↺ da linha FECHADA no relatório: devolve só aquela carga p/ PENDENTE */
 function fecharMenuReopenRow(){ const m = document.querySelector('.rs-row-menu'); if(m) m.remove(); }
 function abrirMenuReopenRow(btn, it){
   fecharMenuReopenRow();
   const m = document.createElement('div'); m.className = 'rs-row-menu';
-  m.innerHTML = '<button type="button" data-st="pendente">↩ Devolver p/ PENDENTE</button>' +
-                '<button type="button" data-st="analise">🔍 Devolver p/ EM ANÁLISE</button>';
+  m.innerHTML = '<button type="button" data-st="pendente">↩ Devolver p/ PENDENTE</button>';
   document.body.appendChild(m);
   const r = btn.getBoundingClientRect();
   m.style.top = Math.max(8, Math.min(window.innerHeight - 92, (r.bottom || 40) + 4)) + 'px';
@@ -5853,7 +5899,8 @@ async function fechReopenSel(id, st, keys){
       const p = k.split('|'); if(p[0] !== d) continue;
       const row = (rec.data[p[1]] || []).find(r=> r.id === p[2]);
       if(!row) continue;
-      if(st === 'analise') row.stFech = 'analise'; else delete row.stFech;
+      // status "Em análise" aposentado: reabrir volta SEMPRE para Pendente
+      delete row.stFech;
       delete row.fechId; delete row.fechDt;
     }
     if(loaded || d === currentMapDate){ await relPersistDate(d); }
@@ -5876,11 +5923,11 @@ async function fechReopenSel(id, st, keys){
   f.grupos = f.grupos.filter(g=> g.cargas.length);
   if(!f.grupos.length) FECHAMENTOS = FECHAMENTOS.filter(x=> x.id !== id);
   await Stor.set('fechamentos', FECHAMENTOS);
-  audit('fechamento-reaberto-parcial', id + ' · ' + n + ' carga(s) → ' + (st === 'analise' ? 'EM ANÁLISE' : 'PENDENTE'));
+  audit('fechamento-reaberto-parcial', id + ' · ' + n + ' carga(s) → PENDENTE');
   renderFechHist();
   if(REL.loaded){ relApplyFilters(); renderRelTable(); }
   if(REL.mapDirty){ renderAll(); }
-  toast('↺ ' + n + ' carga(s) reaberta(s) → ' + (st === 'analise' ? 'EM ANÁLISE' : 'PENDENTE') + (f.grupos.length ? '' : ' · fechamento saiu do histórico'), 'ok');
+  toast('↺ ' + n + ' carga(s) reaberta(s) → PENDENTE' + (f.grupos.length ? '' : ' · fechamento saiu do histórico'), 'ok');
 }
 
 /* ---- cadastro de códigos de transportadora (Configurações) ---- */
@@ -6309,7 +6356,7 @@ function fmtNum2(v){ return numVal(v).toLocaleString('pt-BR',{maximumFractionDig
 function fmtInt(v){ return Math.round(numVal(v)).toLocaleString('pt-BR'); }
 
 /* Filtro de status do painel (memorizado): Fechadas / Em Aberto / Todas.
-   "Em Aberto" = Pendente + Em análise (tudo que não está Fechado p/ pagamento).
+   "Em Aberto" = Pendente + Concluída (tudo que não está Fechado p/ pagamento).
    Com "Fechadas", dá p/ refinar (opcional) por 1 ou mais DATAS em que a carga
    foi fechada (r.fechDt; legado sem fechDt resolve pelo fechamento de origem).
    Aplicado na LEITURA dos dados: KPIs, dia a dia, período e comparativo de rotas. */
@@ -6482,6 +6529,47 @@ function gerencialCardsHtml(m, tipo){
       '<span class="gm-card-k">' + esc(c[0]) + '</span><span class="gm-card-v">' + esc(c[1]) + '</span></div>'
   ).join('') + '</div>';
 }
+/* Recolher/expandir as tabelas do Mapa Gerencial (Frotas, Capital, Interior): o estado é
+   por seção e persiste na sessão (sobrevive a "Atualizar" e à troca de período). Os cartões
+   de totais de cada seção — e o Resumo Geral — continuam SEMPRE visíveis; ao recolher saem
+   de vista apenas a nota explicativa e a tabela de veículos. */
+const GM_COLLAPSED_KEY = 'mapa:gm-collapsed';
+const GM_SECTIONS = ['frotas', 'capital', 'interior'];
+let GM_COLLAPSED = {frotas:false, capital:false, interior:false};
+function loadGmCollapsed(){
+  try{
+    const raw = sessionStorage.getItem(GM_COLLAPSED_KEY);
+    if(!raw) return;
+    const o = JSON.parse(raw);
+    if(o && typeof o === 'object'){
+      for(const sec of GM_SECTIONS){ if(typeof o[sec] === 'boolean') GM_COLLAPSED[sec] = o[sec]; }
+    }
+  }catch(e){}
+}
+function saveGmCollapsed(){
+  try{ sessionStorage.setItem(GM_COLLAPSED_KEY, JSON.stringify(GM_COLLAPSED)); }catch(e){}
+}
+function gmToggleLabel(collapsed){ return collapsed ? 'Expandir' : 'Recolher'; }
+/* Aplica o estado salvo ao DOM (sem re-renderizar o mapa inteiro). */
+function applyGmCollapsed(sec){
+  const root = $('#gerencial-map'); if(!root) return;
+  const el = root.querySelector('.gm-section.gm-' + sec); if(!el) return;
+  const collapsed = !!GM_COLLAPSED[sec];
+  el.classList.toggle('gm-collapsed', collapsed);
+  const btn = el.querySelector('[data-gm-toggle]');
+  if(btn){
+    btn.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+    btn.title = gmToggleLabel(collapsed) + ' a tabela de ' + sec.toUpperCase() + ' (os totais continuam visíveis)';
+    const label = btn.querySelector('.gm-toggle-label');
+    if(label) label.textContent = gmToggleLabel(collapsed);
+  }
+}
+function toggleGmSection(sec){
+  if(GM_SECTIONS.indexOf(sec) < 0) return;
+  GM_COLLAPSED[sec] = !GM_COLLAPSED[sec];
+  saveGmCollapsed();
+  applyGmCollapsed(sec);
+}
 function gerencialTabelaHtml(sec, entries, resumo){
   const titles = {frotas:'FROTAS', capital:'CAPITAL', interior:'INTERIOR'};
   const body = entries.length ? entries.map(en=>{
@@ -6507,9 +6595,14 @@ function gerencialTabelaHtml(sec, entries, resumo){
   }).join('') : '<tr><td colspan="11" class="gm-empty">Nenhum veículo nesta seção no período.</td></tr>';
   const custoPeso = resumo.custoMedio != null ? fmtBRL(resumo.custoMedio) + '/kg' : '—';
   const realTotal = resumo.vlrFrete == null ? '—' : fmtBRL(resumo.vlrFrete);
-  return '<section class="gm-section gm-' + sec + '">' +
-    '<div class="gm-section-title"><h2>' + (sec === 'frotas' ? '🚚 ' : sec === 'capital' ? '🏙️ ' : '🏠 ') + titles[sec] + '</h2><span class="gm-section-count">' + fmtInt(resumo.cargas) + ' veículo(s)/carga(s)</span></div>' +
+  const collapsed = !!GM_COLLAPSED[sec];
+  const bodyId = 'gm-body-' + sec;
+  return '<section class="gm-section gm-' + sec + (collapsed ? ' gm-collapsed' : '') + '">' +
+    '<div class="gm-section-title"><h2>' + (sec === 'frotas' ? '🚚 ' : sec === 'capital' ? '🏙️ ' : '🏠 ') + titles[sec] + '</h2><span class="gm-section-count">' + fmtInt(resumo.cargas) + ' veículo(s)/carga(s)</span>' +
+      '<button class="gm-toggle no-print" type="button" data-gm-toggle="' + sec + '" aria-expanded="' + (collapsed ? 'false' : 'true') + '" aria-controls="' + bodyId + '" title="' + gmToggleLabel(collapsed) + ' a tabela de ' + titles[sec] + ' (os totais continuam visíveis)">' +
+        '<span class="gm-toggle-arrow" aria-hidden="true"></span><span class="gm-toggle-label">' + gmToggleLabel(collapsed) + '</span></button></div>' +
     gerencialCardsHtml(resumo, sec) +
+    '<div class="gm-body" id="' + bodyId + '">' +
     '<p class="gm-section-note">' + (sec === 'frotas'
       ? 'Frotas: previsão e custo/kg são estimativas da rota; frete real não se aplica à frota própria.'
       : 'Previsão = tabela (+ margem configurada); Vlr Frete = valor efetivo. Economia (verde) ou acréscimo (vermelho) = Previsão − Vlr Frete.') + '</p>' +
@@ -6523,6 +6616,7 @@ function gerencialTabelaHtml(sec, entries, resumo){
       '<td class="num">' + fmtBRL(resumo.previsao) + '</td>' +
       '<td class="num">' + realTotal + '</td>' +
     '</tr></tfoot></table></div>' +
+    '</div>' +
   '</section>';
 }
 /* Resumo Geral do Mapa Gerencial: frete efetivo, custo médio e economia consideram
@@ -8071,6 +8165,15 @@ function bindStatic(){
   // navegação Mapa Gerencial ⇄ Painel de Indicadores & Fechamento (um painel por vez)
   const gmViewMap = $('#btn-gerencial-view-map'); if(gmViewMap) gmViewMap.addEventListener('click', ()=> setGerencialView('map'));
   const gmViewDash = $('#btn-gerencial-view-dash'); if(gmViewDash) gmViewDash.addEventListener('click', ()=> setGerencialView('dash'));
+  // Mapa Gerencial: recolher/expandir cada tabela (Frotas/Capital/Interior) — os totais
+  // de cada seção continuam sempre visíveis. O listener fica no container (que não é
+  // substituído nos re-renders) e delega para o botão de cada seção.
+  loadGmCollapsed();
+  const gmMapRoot = $('#gerencial-map');
+  if(gmMapRoot) gmMapRoot.addEventListener('click', e=>{
+    const btn = e.target.closest('[data-gm-toggle]');
+    if(btn && btn.dataset.gmToggle) toggleGmSection(btn.dataset.gmToggle);
+  });
   $('#gerencial-date').addEventListener('change', e=>{ if(e.target.value) switchToDate(e.target.value); });
 
   /* datas */
@@ -8250,7 +8353,6 @@ function bindStatic(){
   });
   $('#fech-wa-auto').addEventListener('click', waAutoSendAll);
   $('#fech-copy-next').addEventListener('click', fechCopyNext);
-  $('#fech-analise').addEventListener('click', fechToggleAnalise);
   $('#edc-save').addEventListener('click', salvarEdicaoCarga);
   $('#edc-cancel').addEventListener('click', closeEdc);
   $('#edc-x').addEventListener('click', closeEdc);
