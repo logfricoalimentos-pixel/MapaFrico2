@@ -812,11 +812,14 @@ body.readonly .sec-actions{display:none}
    especificidade do zebrado acima e vence pela ordem. */
 .map-table tbody tr.row-concluida td:nth-child(n){background:#e7f9ec}
 .map-table tbody tr.row-concluida:hover td:nth-child(n){background:#d7f3df}
-/* AUDITORIA: carga FECHADA — linha inteira em CINZA CLARO no mapa (frete já fechado/pago:
-   não pode ser editada, só reaberta pelo ↺ do fechamento). Mesma técnica do :nth-child(n)
-   para vencer o zebrado; vem DEPOIS da regra verde para o cinza prevalecer. */
-.map-table tbody tr.row-fechada td:nth-child(n){background:#e6e9ef}
-.map-table tbody tr.row-fechada:hover td:nth-child(n){background:#d8dde6}
+/* AUDITORIA: carga FECHADA — linha inteira em CINZA PRATEADO, com letras em cinza escuro
+   e ITÁLICO (frete já fechado/pago: não pode ser editada, só reaberta pelo ↺ do fechamento).
+   Mesma técnica do :nth-child(n) para vencer o zebrado; vem DEPOIS da regra verde para o
+   cinza prevalecer. O seletor com "*" é necessário porque inputs/selects NÃO herdam cor nem
+   font-style do td — sem ele o campo continuaria azul e em pé. */
+.map-table tbody tr.row-fechada td:nth-child(n){background:#c3c8d2;color:#3d4756;font-style:italic}
+.map-table tbody tr.row-fechada:hover td:nth-child(n){background:#b4bac6}
+.map-table tbody tr.row-fechada td:nth-child(n) *{color:#3d4756;font-style:italic}
 .map-table tfoot td:nth-child(1),.map-table tfoot td:nth-child(2){background:#cfe4fa}
 .map-table td:nth-child(2){box-shadow:1px 0 0 #b9d7f2}
 /* Controles nítidos: checkbox azul centralizado e lista suspensa com borda/fundo */
@@ -1158,7 +1161,7 @@ html.gerencial-request #settings{display:none!important}
         <li><b>📥 Excel Mapa</b>: exporta o mapa do dia em .xlsx no MESMO formato do print (seções FROTAS/CAPITAL/INTERIOR, colunas, totais e resumo — sem valores).</li>
         <li><b>📥 Excel Período</b> (admin): exporta TODAS as cargas de Capital e Interior de um período (com Vlr Kg, Neg?, Previsão, Custo/kg e Valor Frete) + aba Resumo por dia. Frotas não entra.</li>
         <li><b>💰 Economia com negociação no resumo do Mapa Gerencial</b>: tabela (+ margem) − frete efetivo, em Geral (só Capital + Interior) e em cada seção contratada. Verde = economia; vermelho = acréscimo; Frotas sem negociação.</li>
-        <li><b>🎨 Cores de status no Mapa de Carregamento</b>: linha <b>verde claro</b> = carga <b>Concluída</b> (✔ Concluir) · linha <b>cinza claro</b> = carga <b>Fechada</b> (🔒 fechamento de frete já feito — não pode ser editada, só reaberta pelo ↺ do fechamento) · sem cor = <b>Pendente</b>. As cores valem na tela e nos prints A4 do mapa.</li>
+        <li><b>🎨 Cores de status no Mapa de Carregamento</b>: linha <b>verde claro</b> = carga <b>Concluída</b> (✔ Concluir) · linha <b>cinza prateado</b>, com letras em <b>cinza escuro e itálico</b> = carga <b>Fechada</b> (🔒 fechamento de frete já feito — não pode ser editada, só reaberta pelo ↺ do fechamento) · sem cor = <b>Pendente</b>. As cores valem na tela e nos prints A4 do mapa.</li>
         <li><b>📋 Fechamento de Fretes — filtro por Status</b>: além dos filtros de texto/valor e do <b>Tipo</b> (Capital/Interior), dá para filtrar por <b>Status</b>: <b>Pendente</b>, <b>Concluída</b>, <b>Em análise (antigo)</b> ou <b>Fechada</b>. Filtrar por <b>Fechada</b> marca &quot;Exibir fechadas&quot; sozinho (e desmarcar a caixa volta o filtro para Todas).</li>
         <li><b>📋 Fechamento de Fretes — layout</b>: a coluna <b>Status</b> fica <b>grudada na direita</b> e continua visível mesmo rolando a tabela na horizontal; o selo verde <b>KM</b> (km da portaria) fica <b>dentro da coluna KM</b> (antes vazava para a coluna Diárias); as colunas <b>KM</b>, <b>Data Inicial</b>, Peso e Diárias têm a largura ajustada ao próprio texto (a tabela não estica mais além do necessário).</li>
         <li><b>🚫 Status &quot;Em Análise&quot; aposentado</b>: o app não oferece mais esse status — use <b>✔ Concluir</b>. Não existe mais o botão 🔍 Marcar Em Análise nem as opções &quot;devolver p/ Em Análise&quot;: <b>reabrir</b> uma carga fechada (↺) volta <b>sempre para Pendente</b>. Cargas antigas que já estavam &quot;Em Análise&quot; foram mantidas como estavam e seguem aparecendo com esse rótulo (marcado como antigo) onde já apareciam.</li>
