@@ -1164,7 +1164,7 @@ html.gerencial-request #settings{display:none!important}
       <ul>
         <li>Divisão por zero bloqueada (custo/kg e % economia só com denominador &gt; 0).</li>
         <li>Frotas: sem negociação (veículo próprio). O sistema calcula um <b>custo estimado da rota</b> (mesma tabela do Interior) só para referência — não entra no Custo Geral (Capital+Interior). Peso/cargas sempre contam no total geral. Pode ocultar esse indicador em "Mostrar custo de Frotas" no painel. Veículos fixos <b>sempre aparecem</b> em Frotas (mesmo sem carga), com <b>motorista/ajudante padrão por placa</b>; <b>sem Nº Carga</b> o custo estimado fica <b>R$ 0,00</b> e a linha <b>não conta como carga/veículo</b> (badge, Totais, resumo, etiquetas, planejamento e indicadores). O texto de <b>Destino</b> em Frotas muda de cor por status: <b>EM ROTA / COLETA / EM VIAGEM</b> = cinza negrito-itálico · <b>OFICINA</b> = vermelho negrito.</li>
-        <li>Negociação contada apenas quando há valor efetivo (Valor Frete &gt; 0 ou Neg? = Sim).</li>
+        <li>Carga negociada = <b>Neg? = Sim</b> ou Valor Frete digitado manualmente. O valor que o app preenche sozinho (tabela + margem) não conta como negociação.</li>
         <li>Delta "vs período anterior" só exibido quando o período anterior tem dados (senão, aviso "sem base").</li>
         <li>Períodos comparados por datas ISO (YYYY-MM-DD) — sem problemas de fuso horário.</li>
         <li>Precisão: cálculos com precisão total; arredondamento apenas na exibição (2 casas).</li>
@@ -5551,7 +5551,7 @@ async function histReopenBatch(items){
     else orphans.push(it);
   }
   let n = 0;
-  for(const [fid, keys] of byFid){ await fechReopenSel(fid, st, keys); n += keys.size; }
+  for(const [fid, keys] of byFid){ await fechReopenSel(fid, 'pendente', keys); n += keys.size; }
   const byD = new Map();
   for(const it of orphans){ if(!byD.has(it.d)) byD.set(it.d, []); byD.get(it.d).push(it); }
   let nOrf = 0;
@@ -6592,7 +6592,9 @@ function metricsFromData(data){
     const com = calcularFrete(sec, r).total;
     if(sec === 'capital'){ m.capSem += sem; m.capCom += com; m.capPeso += numVal(r.peso); }
     else { m.intSem += sem; m.intCom += com; m.intPeso += numVal(r.peso); }
-    if(numVal(r.valorFrete) > 0 || isNegSim(r)) m.neg++;
+    // negociada = Neg?=Sim ou Valor Frete digitado manualmente (_vfAuto===false).
+    // valorFrete > 0 sozinho NÃO conta: o app preenche esse campo automaticamente com o valor da tabela.
+    if(isNegSim(r) || (numVal(r.valorFrete) > 0 && r._vfAuto === false)) m.neg++;
   };
   frotas.forEach(r=> acc('frotas', r));
   capital.forEach(r=> acc('capital', r));
@@ -7127,7 +7129,7 @@ function renderComparativo(){
     }).join('') + '</tbody></table>';
 }
 function aggregateRange(start, end){
-  const a = {cargas:0, peso:0, ent:0, capSem:0, intSem:0, capCom:0, intCom:0, capPeso:0, intPeso:0, frotasPeso:0, frotasCusto:0, frotasCargas:0, diasAtivos:0};
+  const a = {cargas:0, peso:0, ent:0, capSem:0, intSem:0, capCom:0, intCom:0, capPeso:0, intPeso:0, frotasPeso:0, frotasCusto:0, frotasCargas:0, neg:0, diasAtivos:0};
   for(const d of DASH.days){
     if(d.date < start || d.date > end) continue;
     const m = d.m;
@@ -7136,6 +7138,7 @@ function aggregateRange(start, end){
     a.capCom += m.capCom; a.intCom += m.intCom;
     a.capPeso += m.capPeso; a.intPeso += m.intPeso;
     a.frotasPeso += m.frotasPeso; a.frotasCusto += m.frotasCusto; a.frotasCargas += (m.frotasCargas||0);
+    a.neg += (m.neg||0);
     if(m.cargas > 0) a.diasAtivos++;
   }
   a.semNeg = a.capSem + a.intSem;
