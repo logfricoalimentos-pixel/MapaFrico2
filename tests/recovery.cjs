@@ -48,8 +48,55 @@ test('histórico inclui avulsas sem duplicar cargas dos fechamentos',async()=>{
   vm.runInContext(block('const HIST_ENT =','/* ---- histórico: baixar de novo'),c);
   const rows=await c.histCollectRows();assert.equal(rows.length,2);assert.equal(rows[1].avulsa,true);assert.equal(rows[1].total,20);
 });
+test('KM Portaria: seleção por linha, KM igual travado e filtros de Status/Tipo',()=>{
+  const c=context({SECTIONS:['frotas','capital','interior'],numVal:x=>Number(x)||0,norm:s=>String(s==null?'':s).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase(),
+    relIsFech:r=>r.stFech==='fechado',relStatusOf:r=>r.stFech==='fechado'?'fechada':r.stFech==='concluida'?'concluida':r.stFech==='analise'?'analise':'pendente',
+    calcularFrete:(sec,r)=>({total:(Number(r.km)||0)*2}),isNegSim:r=>String(r.neg||'').toLowerCase()==='sim',
+    relNormalizeRec:rec=>rec,Stor:{get:async()=>null,list:async()=>[]},$:()=>null,           // sem DOM: kpEl() devolve null
+    esc:s=>String(s==null?'':s).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch])),
+    fmtBR:d=>String(d),fmtNum:v=>String(Number(v)||0),fmtBRL:v=>'R$ '+(Number(v)||0).toFixed(2)});
+  vm.runInContext(block('/* carga negociada (Valor Frete manual ou Neg?=Sim)','/* ================= Exportação Excel (SheetJS)'),c);
+  const rec={data:{
+    interior:[{id:'r1',carga:'10',km:100,stFech:'pendente',destino:'RIO VERDE'},
+              {id:'r2',carga:'20',km:50,stFech:'concluida',destino:'JATAI'},
+              {id:'r3',carga:'30',km:80,stFech:'fechado',destino:'MINEIROS'}],
+    capital:[{id:'r4',carga:'40',km:12,stFech:'pendente',destino:'GOIANIA',neg:'sim'}],
+    frotas:[{id:'r5',carga:'50',km:150,stFech:'pendente',destino:'FROTA FIXA'}]}};
+  const rs=c.kmPortScanRec(rec,'2026-09-21',new Map([['10',100],['20',120],['30',90],['40',10],['50',200]]));
+  assert.equal(rs.changes.length,4); assert.equal(rs.locked.length,1);
+  assert.equal(rs.changes.find(x=>x.id==='r1').same,true);            // KM já igual
+  assert.equal(rs.changes.find(x=>x.id==='r2').same,false);
+  assert.equal(rs.changes.find(x=>x.id==='r2').status,'concluida');
+  assert.equal(rs.locked[0].status,'fechada'); assert.equal(rs.locked[0].id,'r3');
+  c.KP_STATE={map:new Map(),stats:{valid:5,invalid:0,dup:0},fileName:'p.xlsx',sel:new Set(),
+    scan:{changes:rs.changes,locked:rs.locked,fechSkipped:1,notFound:[],days:1}};
+  c.KP_STATE.rows=c.kpBuildRows();
+  assert.equal(c.KP_STATE.rows.length,5);
+  const row=id=>c.KP_STATE.rows.find(x=>x.id===id);
+  assert.equal(row('r1').locked,true); assert.equal(row('r3').locked,true);   // KM igual e fechada: sem ✓
+  assert.equal(row('r2').locked,false); assert.equal(row('r4').locked,false);
+  c.kpSelectable(c.KP_STATE.rows).forEach(x=>c.KP_STATE.sel.add(x.k));        // padrão: tudo que muda, marcado
+  assert.deepStrictEqual(Array.from(c.kpSelectedRows().map(x=>x.id)).sort(),['r2','r4','r5']);
+  // fechadas só aparecem com o filtro Status = Fechada; tipo separa Capital/Interior/Frotas
+  assert.equal(c.kpMatch(row('r3'),{tipo:'',status:'',ordem:'',destino:'',data:''}),false);
+  assert.equal(c.kpMatch(row('r3'),{tipo:'',status:'fechada',ordem:'',destino:'',data:''}),true);
+  assert.deepStrictEqual(Array.from(c.KP_STATE.rows.filter(x=>c.kpMatch(x,{tipo:'frotas',status:'',ordem:'',destino:'',data:''}))).map(x=>x.id),['r5']);
+  assert.deepStrictEqual(Array.from(c.KP_STATE.rows.filter(x=>c.kpMatch(x,{tipo:'',status:'concluida',ordem:'',destino:'',data:''}))).map(x=>x.id),['r2']);
+  assert.deepStrictEqual(Array.from(c.KP_STATE.rows.filter(x=>c.kpMatch(x,{tipo:'',status:'',ordem:'',destino:'rio verde',data:''}))).map(x=>x.id),['r1']);
+  assert.deepStrictEqual(Array.from(c.KP_STATE.rows.filter(x=>c.kpMatch(x,{tipo:'',status:'',ordem:'',destino:'',data:'2026-09-21'}))).map(x=>x.id).sort(),['r1','r2','r4','r5']);
+  // selAll só age sobre linhas com ✓ (travadas nunca entram)
+  c.KP_STATE.sel.clear(); c.kpSelAll(true);
+  assert.deepStrictEqual(Array.from(c.kpSelectedRows().map(x=>x.id)).sort(),['r2','r4','r5']);
+  c.kpSelAll('invert');
+  assert.deepStrictEqual(Array.from(c.kpSelectedRows().map(x=>x.id)),[]);
+  // HTML da linha: travada mostra 🔒 e NÃO tem checkbox
+  const htmlLock=c.kpRowHtml(row('r1')), htmlSel=c.kpRowHtml(row('r2'));
+  assert.ok(htmlLock.includes('🔒') && !htmlLock.includes('type="checkbox"'));
+  assert.ok(htmlSel.includes('class="kp-sel"') && htmlSel.includes('data-k="2026-09-21|r2"'));
+  assert.ok(html.includes('Aplicar KM real nas marcadas') && html.includes('id="kp-f-tipo"') && html.includes('id="kp-f-status"'));
+});
 test('regressões: resumo por quinzena e impressão isolada permanecem',()=>{
-  for(const x of ['id="fh-resumo"','function fechRefOptions','function renderFechHist','A4 portrait','2026-09-28b']) assert.ok(html.includes(x),x);
+  for(const x of ['id="fh-resumo"','function fechRefOptions','function renderFechHist','A4 portrait','2026-09-29a']) assert.ok(html.includes(x),x);
   assert.ok(!html.includes('tryAutoMigrarLote'));
 });
 test('migração: simulação não grava e aplicação usa comparação/flag após confirmação', async()=>{

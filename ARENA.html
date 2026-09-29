@@ -609,11 +609,30 @@ body.readonly .sec-actions{display:none}
 }
 /* ===== KM real da portaria (importação de planilha) ===== */
 .kmport-badge{display:inline-block;margin-left:4px;padding:0 5px;border:1px solid #0a5c3c;border-radius:3px;font-size:10px;font-weight:800;letter-spacing:.6px;color:#032015;background:linear-gradient(160deg,#d7ffe9 0%,#6fe0a8 25%,#0f8a58 50%,#0a5c3c 62%,#4ed69a 85%,#eafff4 100%);text-shadow:0 1px 0 rgba(255,255,255,.4);vertical-align:middle;cursor:help}
+/* AUDITORIA: prévia do KM Portaria com SELEÇÃO por linha (✓) + filtros de Status e Tipo
+   (Capital/Interior/Frotas). Regra pedida: quando o KM do mapa já é IGUAL ao da planilha a
+   linha NÃO tem seleção (cadeado 🔒, nada a aplicar) — o ✓ só existe nas linhas que mudam. */
+#kp-mask .kp-filters{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin:8px 0 2px;padding:8px 9px;background:#f8fafc;border:1px solid var(--line);border-radius:9px}
+#kp-mask .kp-filters label{font-size:10px;color:var(--muted);display:flex;flex-direction:column;gap:3px;text-transform:uppercase;letter-spacing:.2px;font-weight:700}
+#kp-mask .kp-filters input,#kp-mask .kp-filters select{border:1px solid var(--line);border-radius:7px;padding:4px 6px;font:inherit;font-size:12.5px;min-width:96px;background:#fff;color:var(--ink)}
+#kp-mask .kp-filters input:focus,#kp-mask .kp-filters select:focus{border-color:var(--blue);outline:none}
 #kp-mask .kp-tbl{width:100%;border-collapse:collapse;font-size:12px;margin:6px 0}
-#kp-mask .kp-tbl th{background:#1e293b;color:#fff;padding:4px 8px;text-align:left}
+#kp-mask .kp-tbl th{background:#1e293b;color:#fff;padding:4px 8px;text-align:left;position:sticky;top:0;z-index:2}
 #kp-mask .kp-tbl td{padding:3px 8px;border-bottom:1px solid #e2e8f0}
-#kp-mask .kp-tbl td.num{text-align:right}
-#kp-mask .kp-scroll{max-height:280px;overflow:auto;border:1px solid #cbd5e1;border-radius:6px}
+#kp-mask .kp-tbl td.num{text-align:right;white-space:nowrap}
+#kp-mask .kp-tbl th.ctr,#kp-mask .kp-tbl td.ctr{text-align:center}
+#kp-mask .kp-tbl td.w-dest{max-width:190px;overflow:hidden;text-overflow:ellipsis}
+#kp-mask .kp-tbl tbody tr:nth-child(even) td{background:#fbfdff}
+#kp-mask .kp-tbl tbody tr.kp-off td{background:#f1f5f9;color:#64748b}
+#kp-mask .kp-tbl tbody tr.kp-lock td{background:#f8fafc;color:#94a3b8}
+#kp-mask .kp-tbl tbody tr.kp-lock td.num{color:#64748b}
+#kp-mask .kp-tbl input[type=checkbox]{width:15px;height:15px;accent-color:var(--blue);cursor:pointer;vertical-align:middle}
+#kp-mask .kp-tbl input[type=checkbox]:disabled{cursor:not-allowed}
+#kp-mask .kp-selbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:6px 0 2px;font-size:12px;color:#475569}
+#kp-mask .kp-selbar .grow{flex:1;min-width:180px}
+#kp-mask .kp-selbar b{color:#0f172a}
+#kp-mask .kp-scroll{max-height:min(46vh,340px);overflow:auto;border:1px solid #cbd5e1;border-radius:6px;background:#fff}
+#kp-mask .kp-empty{padding:18px 10px;text-align:center;color:var(--muted);font-size:12.5px}
 #kp-mask .kp-nf{max-height:120px;overflow:auto;background:#fef2f2;border:1px solid #fecaca;border-radius:6px;padding:6px 8px;font-size:12px;margin:4px 0}
 #ft-mask .ft-modal{max-width:min(1120px, 96vw);width:100%}
 #ft-mask .ft-chips{margin:2px 0 6px}
@@ -996,7 +1015,7 @@ html.gerencial-request #settings{display:none!important}
   </div>
   <div class="row">
     <button class="btn primary" id="btn-import">📥 Importar planilha</button>
-    <button class="btn" id="btn-kmport" title="Importa o KM REAL (coluna KM Rodado) da planilha da portaria: atualiza o KM das ordens encontradas no mapa (ignora KM vazio, 0 ou negativo) e marca cada ordem ajustada com a sigla KM em verde metálico">📥 KM Portaria</button>
+    <button class="btn" id="btn-kmport" title="Importa o KM REAL (coluna KM Rodado) da planilha da portaria: mostra a prévia com ✓ por linha (aplica o KM real SÓ nas ordens marcadas), filtros de Status e Tipo (Capital/Interior/Frotas), ignora KM vazio/0/negativo e trava (🔒, sem ✓) as linhas cujo KM já é igual ao da planilha; cada ordem ajustada ganha a sigla KM em verde metálico">📥 KM Portaria</button>
     <button class="btn" id="btn-ftrack" title="Envia o faturamento do dia aberto direto p/ o FricoTrack (lista de veículos esperados da portaria) — substitui a lista daquela data no site, igual ao import de planilha">📤 FricoTrack</button>
     <span class="sep"></span>
     <button class="btn" id="btn-backup">💾 Backup</button>
@@ -1163,6 +1182,7 @@ html.gerencial-request #settings{display:none!important}
         <li><b>💰 Economia com negociação no resumo do Mapa Gerencial</b>: tabela (+ margem) − frete efetivo, em Geral (só Capital + Interior) e em cada seção contratada. Verde = economia; vermelho = acréscimo; Frotas sem negociação.</li>
         <li><b>🎨 Cores de status no Mapa de Carregamento</b>: linha <b>verde claro</b> = carga <b>Concluída</b> (✔ Concluir) · linha <b>cinza prateado</b>, com letras em <b>cinza escuro e itálico</b> = carga <b>Fechada</b> (🔒 fechamento de frete já feito — não pode ser editada, só reaberta pelo ↺ do fechamento) · sem cor = <b>Pendente</b>. As cores valem na tela e nos prints A4 do mapa.</li>
         <li><b>📋 Fechamento de Fretes — filtro por Status</b>: além dos filtros de texto/valor e do <b>Tipo</b> (Capital/Interior), dá para filtrar por <b>Status</b>: <b>Pendente</b>, <b>Concluída</b>, <b>Em análise (antigo)</b> ou <b>Fechada</b>. Filtrar por <b>Fechada</b> marca &quot;Exibir fechadas&quot; sozinho (e desmarcar a caixa volta o filtro para Todas).</li>
+        <li><b>📥 KM Portaria — seleção por linha + filtros</b>: a prévia da planilha da portaria ganhou <b>✓ em cada linha</b>, e o botão <b>&quot;Aplicar KM real nas marcadas&quot;</b> grava o KM <b>somente nas ordens selecionadas</b> (a prévia já abre com todas as que mudam marcadas; há <b>Marcar do filtro</b>, <b>Inverter</b> e <b>Desmarcar tudo</b>). Quando o <b>KM do mapa já é igual</b> ao da planilha a linha fica <b>travada (🔒), sem ✓</b> — não há o que aplicar. Filtros novos: <b>Tipo</b> (Capital / Interior / Frotas), <b>Status</b> (Pendente / Concluída / Em análise antigo / Fechada), <b>Data</b>, <b>Ordem</b> e <b>Destino / Rota</b>, mais as colunas <b>Destino / Rota</b> e <b>Status</b> na tabela. Carga <b>FECHADA</b> continua <b>nunca alterada</b>: aparece travada (🔒) somente com o filtro <b>Status = Fechada</b>; <b>negociada</b> atualiza só o KM (o valor negociado permanece). A seleção é mantida ao filtrar e o rodapé da barra mostra quantas linhas estão marcadas.</li>
         <li><b>📋 Fechamento de Fretes — layout</b>: a coluna <b>Status</b> fica <b>grudada na direita</b> e continua visível mesmo rolando a tabela na horizontal; o selo verde <b>KM</b> (km da portaria) fica <b>dentro da coluna KM</b> (antes vazava para a coluna Diárias); as colunas <b>KM</b>, <b>Data Inicial</b>, Peso e Diárias têm a largura ajustada ao próprio texto (a tabela não estica mais além do necessário).</li>
         <li><b>🚫 Status &quot;Em Análise&quot; aposentado</b>: o app não oferece mais esse status — use <b>✔ Concluir</b>. Não existe mais o botão 🔍 Marcar Em Análise nem as opções &quot;devolver p/ Em Análise&quot;: <b>reabrir</b> uma carga fechada (↺) volta <b>sempre para Pendente</b>. Cargas antigas que já estavam &quot;Em Análise&quot; foram mantidas como estavam e seguem aparecendo com esse rótulo (marcado como antigo) onde já apareciam.</li>
         <li><b>Margem configurável (padrão +10%)</b> no valor previsto de cargas não negociadas — em Configurações dá p/ poner 0 ou qualquer X%; negociadas (Valor Frete manual ou Neg? = Sim) mantêm o valor fechado.</li>
@@ -3565,66 +3585,220 @@ async function portariaParseFile(file){
 }
 /* carga negociada (Valor Frete manual ou Neg?=Sim): o valor NÃO depende do KM */
 function kpIsNeg(r){ return isNegSim(r); }
-/* varre UM dia (rec já normalizado) -> {changes:[{d,sec,id,ordem,kmOld,kmNew,totOld,totNew,neg,same}], fechSkipped, fechOrdens}
-   REGRAS: carga FECHADA não é alterada; negociada atualiza só o KM (o valor negociado permanece) */
+/* varre UM dia (rec já normalizado) -> {changes:[{d,sec,id,ordem,destino,status,kmOld,kmNew,totOld,totNew,neg,same}],
+   locked:[cargas FECHADAS com ordem na planilha], fechSkipped, fechOrdens}
+   REGRAS: carga FECHADA não é alterada (vai p/ locked, só aparece com o filtro Status=Fechada);
+   negociada atualiza só o KM (o valor negociado permanece). status/destino alimentam os filtros da prévia. */
 function kmPortScanRec(rec, d, map){
-  const changes=[]; let fechSkipped=0; const fechOrdens=[];
-  if(!rec||!rec.data) return {changes:changes, fechSkipped:0, fechOrdens:fechOrdens};
+  const changes=[]; const locked=[]; let fechSkipped=0; const fechOrdens=[];
+  if(!rec||!rec.data) return {changes:changes, locked:locked, fechSkipped:0, fechOrdens:fechOrdens};
   for(const sec of SECTIONS){
     for(const r of (rec.data[sec]||[])){
       const key=String(r.carga||'').trim(); if(!key||!map.has(key)) continue;
-      if(relIsFech(r)){ fechSkipped++; fechOrdens.push(key); continue; }   // só não fechadas
       const kmNew=map.get(key);
+      if(relIsFech(r)){   // FECHADA: nunca alterada — entra na prévia só p/ visualização (🔒)
+        fechSkipped++; fechOrdens.push(key);
+        const totF=numVal((calcularFrete(sec, r)||{}).total);
+        locked.push({d:d, sec:sec, id:r.id, ordem:key, destino:String(r.destino||''), status:'fechada',
+                 kmOld:(r.km===''||r.km==null?'':numVal(r.km)), kmNew:kmNew, totOld:totF, totNew:totF});
+        continue;
+      }
       const old=calcularFrete(sec, r)||{};
       const nw=calcularFrete(sec, Object.assign({}, r, {km:kmNew}))||{};
-      changes.push({d:d, sec:sec, id:r.id, ordem:key, kmOld:(r.km===''||r.km==null?'':numVal(r.km)), kmNew:kmNew,
+      changes.push({d:d, sec:sec, id:r.id, ordem:key, destino:String(r.destino||''), status:relStatusOf(r),
+                kmOld:(r.km===''||r.km==null?'':numVal(r.km)), kmNew:kmNew,
                 totOld:numVal(old.total), totNew:numVal(nw.total), neg:kpIsNeg(r), same:numVal(r.km)===kmNew});
     }
   }
-  return {changes:changes, fechSkipped:fechSkipped, fechOrdens:fechOrdens};
+  return {changes:changes, locked:locked, fechSkipped:fechSkipped, fechOrdens:fechOrdens};
 }
 async function kmPortScan(map){
   let idx=await Stor.get('map-dates-index');
   if(!Array.isArray(idx)||!idx.length) idx=(await Stor.list()).filter(k=>/^map:\d{4}-\d{2}-\d{2}$/.test(k)).map(k=>k.slice(4));
-  const changes=[]; const skipped=[]; const found=new Set(); let fechSkipped=0;
+  const changes=[]; const locked=[]; const skipped=[]; const found=new Set(); let fechSkipped=0;
   for(const d of idx){
     const rec=relNormalizeRec(await Stor.get('map:'+d));
     const rs=kmPortScanRec(rec, d, map);
     for(const ch of rs.changes){ changes.push(ch); found.add(ch.ordem); }
-    for(const ord of rs.fechOrdens){ skipped.push({d:d, ordem:ord}); found.add(ord); }
+    for(const l of rs.locked){ locked.push(l); found.add(l.ordem); }
+    for(const ord of rs.fechOrdens){ skipped.push({d:d, ordem:ord}); }
     fechSkipped+=rs.fechSkipped;
   }
   const notFound=[...map.keys()].filter(k=>!found.has(k));
-  return {changes:changes, skipped:skipped, fechSkipped:fechSkipped, notFound:notFound, days:idx.length};
+  return {changes:changes, locked:locked, skipped:skipped, fechSkipped:fechSkipped, notFound:notFound, days:idx.length};
 }
-let KP_STATE=null;   // {map, stats, scan, fileName}
-function kpRowHtml(ch){
-  return '<tr><td>' + fmtBR(ch.d) + '</td>' +
-    '<td>' + (ch.sec==='capital'?'Capital':ch.sec==='interior'?'Interior':'Frotas') + '</td>' +
-    '<td class="mono">' + esc(ch.ordem) + '</td>' +
-    '<td class="num">' + (ch.kmOld===''?'—':fmtNum(ch.kmOld)) + ' → <b>' + fmtNum(ch.kmNew) + '</b></td>' +
-    '<td class="num">' + fmtBRL(ch.totOld) + ' → <b>' + fmtBRL(ch.totNew) + '</b></td>' +
-    '<td>' + (ch.neg?'<span class="st-badge fech" title="negociada (Neg?=Sim ou Valor Frete manual): o KM atualiza, o valor negociado permanece" style="background:#fef3c7;color:#92400e">negociada · valor mantido</span>':(ch.same?'<span class="st-badge pend">KM já igual</span>':'<span class="st-badge anal">atualiza</span>')) + '</td></tr>';
+/* Estado da prévia: {map, stats, scan, fileName, rows, sel:Set(chave dia|id marcada no ✓)}
+   (var = estado global do app, como REL/FT_STATE — também permite teste em sandbox) */
+var KP_STATE=null;
+/* ---- rótulos de status na prévia (mesma ordem de prioridade do relatório: fechada > concluída > análise > pendente) ---- */
+function kpStatusLabel(s){
+  return s==='fechada' ? 'Fechada' : s==='concluida' ? 'Concluída' : s==='analise' ? 'Em análise (antigo)' : 'Pendente';
+}
+function kpStatusBadge(s){
+  const cls = s==='fechada' ? 'fech' : s==='concluida' ? 'concl' : s==='analise' ? 'anal' : 'pend';
+  return '<span class="st-badge ' + cls + '">' + kpStatusLabel(s) + '</span>';
+}
+/* Linhas da prévia = mudanças (não fechadas) + fechadas encontradas na planilha.
+   SELECT por linha só onde há o que mudar: km diferente do real E carga não fechada.
+   KM IGUAL (ou carga FECHADA) => linha travada (🔒), sem checkbox. */
+function kpBuildRows(){
+  const st=KP_STATE; if(!st||!st.scan) return [];
+  const rows=(st.scan.changes||[]).map(ch=>Object.assign({k:kpRowKey(ch), locked:!!ch.same, lockWhy:'KM já igual'}, ch));
+  for(const l of (st.scan.locked||[])) rows.push(Object.assign({k:kpRowKey(l), locked:true, lockWhy:'Fechada', same:false, neg:false}, l));
+  rows.sort((a,b)=> (a.d<b.d?-1:a.d>b.d?1:0) || (a.sec<b.sec?-1:a.sec>b.sec?1:0) || String(a.ordem).localeCompare(String(b.ordem),'pt-BR',{numeric:true}));
+  return rows;
+}
+function kpRowKey(x){ return String(x.d) + '|' + String(x.id); }
+function kpEl(id){ const m=$('#kp-mask'); return m ? m.querySelector('#'+id) : null; }
+function kpFilterState(){
+  const v=id=>{ const el=kpEl(id); return el ? String(el.value==null?'':el.value).trim() : ''; };
+  return {tipo:v('kp-f-tipo'), status:v('kp-f-status'), ordem:norm(v('kp-f-ordem')).toLowerCase(), destino:norm(v('kp-f-destino')).toLowerCase(), data:v('kp-f-data')};
+}
+function kpMatch(x, f){
+  if(x.locked && x.status==='fechada' && f.status!=='fechada') return false;   // fechadas só aparecem com o filtro Status = Fechada
+  if(f.tipo && x.sec!==f.tipo) return false;
+  if(f.status && x.status!==f.status) return false;
+  if(f.data && String(x.d)!==f.data) return false;
+  if(f.ordem && !norm(x.ordem).toLowerCase().includes(f.ordem)) return false;
+  if(f.destino && !norm(x.destino).toLowerCase().includes(f.destino)) return false;
+  return true;
+}
+function kpVisibleRows(){
+  const f=kpFilterState();
+  return (KP_STATE&&KP_STATE.rows||[]).filter(x=>kpMatch(x,f));
+}
+/* seleção = conjunto de chaves (dia|id) marcadas no ✓; linhas travadas nunca entram */
+function kpSelectable(vis){ return (vis||kpVisibleRows()).filter(x=>!x.locked); }
+function kpSelectedRows(){
+  const sel=KP_STATE&&KP_STATE.sel; if(!sel||!sel.size) return [];
+  return (KP_STATE.rows||[]).filter(x=>!x.locked && sel.has(x.k));
+}
+function kpSelAll(state){
+  const st=KP_STATE; if(!st) return;
+  if(state===true) kpSelectable().forEach(x=>st.sel.add(x.k));
+  else if(state==='invert'){ kpSelectable().forEach(x=>{ if(st.sel.has(x.k)) st.sel.delete(x.k); else st.sel.add(x.k); }); }
+  else st.sel.clear();
+  kpRenderTable();
+}
+/* ---- renderização da tabela (mantém o scroll e as marcações ao filtrar/selecionar) ---- */
+function kpRowHtml(x){
+  const tipo = x.sec==='capital'?'Capital':x.sec==='interior'?'Interior':'Frotas';
+  const sit = x.locked && x.status==='fechada'
+    ? '<span class="st-badge fech" title="Carga FECHADA: o KM real não é aplicado">🔒 fechada · não altera</span>'
+    : (x.neg
+      ? '<span class="st-badge anal" title="negociada (Neg?=Sim ou Valor Frete manual): o KM atualiza, o valor negociado permanece">negociada · valor mantido</span>'
+      : (x.same
+        ? '<span class="st-badge pend" title="O KM do mapa já é igual ao da planilha — nada a aplicar (por isso sem ✓)">🔒 KM já igual</span>'
+        : '<span class="st-badge anal">atualiza</span>'));
+  const sel = x.locked
+    ? '<span title="' + esc(x.lockWhy==='Fechada' ? 'Carga FECHADA — o KM real não é aplicado' : 'KM do mapa já é igual ao KM real da planilha — nada a aplicar') + '">🔒</span>'
+    : '<input type="checkbox" class="kp-sel" data-k="' + esc(x.k) + '"' + ((KP_STATE&&KP_STATE.sel&&KP_STATE.sel.has(x.k))?' checked':'') + ' title="Aplicar o KM real nesta carga">';
+  const cls = x.locked ? ' class="kp-lock"' : ((KP_STATE&&KP_STATE.sel&&KP_STATE.sel.has(x.k)) ? '' : ' class="kp-off"');
+  return '<tr' + cls + ' data-k="' + esc(x.k) + '">' +
+    '<td class="ctr">' + sel + '</td>' +
+    '<td>' + fmtBR(x.d) + '</td>' +
+    '<td>' + tipo + '</td>' +
+    '<td class="mono">' + esc(x.ordem) + '</td>' +
+    '<td class="w-dest" title="' + esc(x.destino||'') + '">' + esc(x.destino||'—') + '</td>' +
+    '<td class="num">' + (x.kmOld===''?'—':fmtNum(x.kmOld)) + ' → <b>' + fmtNum(x.kmNew) + '</b></td>' +
+    '<td class="num">' + fmtBRL(x.totOld) + ' → <b>' + fmtBRL(x.totNew) + '</b></td>' +
+    '<td>' + kpStatusBadge(x.status) + '</td>' +
+    '<td>' + sit + '</td></tr>';
+}
+function kpRenderTable(){
+  const st=KP_STATE; if(!st) return;
+  const vis=kpVisibleRows(), sel=kpSelectable(vis), marked=sel.filter(x=>st.sel.has(x.k)).length;
+  const body=kpEl('kp-body'), sc=kpEl('kp-scroll');
+  const top = sc ? sc.scrollTop : 0;
+  if(body) body.innerHTML = vis.length
+    ? vis.map(kpRowHtml).join('')
+    : '<tr><td colspan="9" class="kp-empty">Nenhuma linha com o filtro atual.</td></tr>';
+  if(sc) sc.scrollTop = top;
+  const all=kpEl('kp-all');
+  if(all){ all.checked = !!sel.length && marked===sel.length; all.indeterminate = marked>0 && marked<sel.length; all.disabled = !sel.length; }
+  const sum=kpEl('kp-sel-sum');
+  if(sum){
+    const lockSame=(st.rows||[]).filter(x=>x.locked&&x.status!=='fechada').length;
+    const lockFech=(st.rows||[]).filter(x=>x.locked&&x.status==='fechada').length;
+    sum.innerHTML = '<b>' + marked + '</b> de <b>' + sel.length + '</b> linha(s) do filtro marcada(s) · <b>' + (st.rows||[]).length + '</b> no total' +
+      (lockSame? ' · <b>' + lockSame + '</b> com KM já igual (sem ✓)': '') +
+      (lockFech? ' · <b>' + lockFech + '</b> fechada(s) (🔒)': '') +
+      (vis.length!==((st.rows||[]).length)? ' · filtro ativo': '');
+  }
+  // o botão vale pela seleção GLOBAL (não só pelo filtro visível) e só habilita quando há
+  // alguma marcada que realmente MUDA o KM (linha com KM já igual nem tem ✓)
+  const chosen=kpSelectedRows(), apl=chosen.filter(x=>!x.same).length, iguais=chosen.length-apl;
+  const ok=kpEl('kp-ok');
+  if(ok){
+    ok.disabled = !apl;
+    ok.textContent = apl ? '✅ Aplicar KM real nas ' + apl + ' marcada(s)' : '✅ Aplicar KM real nas marcadas';
+    ok.title = apl
+      ? 'Grava o KM real somente nas ' + apl + ' carga(s) marcadas no ✓' + (iguais? ' (' + iguais + ' marcada(s) já estão com o KM igual — nada a aplicar)': '') + '. Carga FECHADA nunca é alterada.'
+      : 'Marque no ✓ ao menos uma linha cujo KM seja diferente do real';
+  }
+}
+function kpBindTable(){
+  const m=$('#kp-mask'); if(!m) return;
+  m.addEventListener('change', e=>{
+    const t=e.target; if(!t||!t.classList) return;
+    if(t.id==='kp-all'){ kpSelAll(!!t.checked); return; }
+    if(t.classList.contains('kp-sel')){
+      const k=String(t.getAttribute('data-k')||'');
+      if(KP_STATE){ if(t.checked) KP_STATE.sel.add(k); else KP_STATE.sel.delete(k); }
+      kpRenderTable();
+    }
+  });
+  ['kp-f-tipo','kp-f-status','kp-f-data'].forEach(id=>{ const el=kpEl(id); if(el) el.addEventListener('change', kpRenderTable); });
+  ['kp-f-ordem','kp-f-destino'].forEach(id=>{ const el=kpEl(id); if(el) el.addEventListener('input', kpRenderTable); });
+  const cl=kpEl('kp-f-clear'); if(cl) cl.addEventListener('click', ()=>{
+    ['kp-f-tipo','kp-f-status','kp-f-ordem','kp-f-destino','kp-f-data'].forEach(id=>{ const el=kpEl(id); if(el) el.value=''; });
+    kpRenderTable();
+  });
+  const bAll=kpEl('kp-sel-all'); if(bAll) bAll.addEventListener('click', ()=>kpSelAll(true));
+  const bInv=kpEl('kp-sel-inv'); if(bInv) bInv.addEventListener('click', ()=>kpSelAll('invert'));
+  const bNon=kpEl('kp-sel-none'); if(bNon) bNon.addEventListener('click', ()=>kpSelAll(false));
 }
 function kpClose(){ const m=$('#kp-mask'); if(m) m.remove(); }
 function kpOpenPreview(){
   const st=KP_STATE; if(!st) return;
   kpClose();
   const mask=document.createElement('div'); mask.id='kp-mask'; mask.className='no-print';
-  const listAll=st.scan.changes;
-  const nNeg=listAll.filter(c=>c.neg).length;
+  const listAll=st.rows||[];
+  const aplicaveis=listAll.filter(x=>!x.locked).length;
+  const nSame=listAll.filter(x=>x.locked&&x.status!=='fechada').length;
+  const nNeg=listAll.filter(x=>x.neg&&!x.locked).length;
+  const nFech=(st.scan.locked||[]).length;
+  const optsData=[...new Set(listAll.map(x=>String(x.d)))].sort();
   mask.innerHTML =
-    '<div class="modal modal-edc" style="max-width:900px">' +
+    '<div class="modal modal-edc" style="max-width:1180px;width:min(1180px,96vw)">' +
       '<div class="fech-head"><h3>📥 KM Portaria — ' + esc(st.fileName) + '</h3><button class="x" type="button" id="kp-x" title="Cancelar">✕</button></div>' +
-      '<p class="hint">A planilha tem <b>' + st.stats.valid + '</b> ordem(ns) com KM válido (>0) · <b>' + st.stats.invalid + '</b> linha(s) ignorada(s) por KM vazio/0/negativo' + (st.stats.dup? ' · <b>'+st.stats.dup+'</b> ordem(ns) repetida(s) (vale a última)': '') + '. No mapa, <b>' + listAll.length + '</b> carga(s) <b>não fechadas</b> casam com a planilha em ' + st.scan.days + ' dia(s) verificado(s); <b>' + st.scan.notFound.length + '</b> ordem(ns) da planilha não existem no mapa. <b>Regras:</b> carga <b>FECHADA não é alterada</b>' + (st.scan.fechSkipped? ' (' + st.scan.fechSkipped + ' fechada(s) com ordem na planilha ficaram de fora)': '') + '; carga <b>negociada</b> (Neg?=Sim ou Valor Frete manual) atualiza <b>só o KM</b> — o valor negociado permanece' + (nNeg? ' (' + nNeg + ' negociada(s))': '') + '. Cada ordem ajustada ganha a sigla <b>KM</b> em verde metálico.</p>' +
-      '<div class="kp-scroll"><table class="kp-tbl"><thead><tr><th>Data</th><th>Tipo</th><th>Ordem</th><th class="num">KM atual → real</th><th class="num">Total previsto → novo</th><th>Situação</th></tr></thead><tbody>' +
-      (listAll.length? listAll.map(kpRowHtml).join('') : '<tr><td colspan="6">Nenhuma carga do mapa casa com a planilha.</td></tr>') +
-      '</tbody></table></div>' +
+      '<p class="hint">A planilha tem <b>' + st.stats.valid + '</b> ordem(ns) com KM válido (&gt;0) · <b>' + st.stats.invalid + '</b> linha(s) ignorada(s) por KM vazio/0/negativo' + (st.stats.dup? ' · <b>'+st.stats.dup+'</b> ordem(ns) repetida(s) (vale a última)': '') + '. No mapa, <b>' + listAll.length + '</b> carga(s) casam com a planilha em ' + st.scan.days + ' dia(s) verificado(s) — <b>' + aplicaveis + '</b> podem receber o KM real; <b>' + st.scan.notFound.length + '</b> ordem(ns) da planilha não existem no mapa. <b>Marque no ✓ somente as linhas que devem receber o KM real</b> (já vem tudo marcado — desmarque o que não quer). Linha com <b>KM já igual</b> fica <b>travada (🔒), sem ✓</b>: não há o que aplicar' + (nSame? ' (' + nSame + ' linha(s))': '') + '. <b>Regras:</b> carga <b>FECHADA não é alterada</b>' + (nFech? ' — ' + nFech + ' fechada(s) com ordem na planilha aparecem só com o filtro <b>Status = Fechada</b>': '') + '; carga <b>negociada</b> (Neg?=Sim ou Valor Frete manual) atualiza <b>só o KM</b> — o valor negociado permanece' + (nNeg? ' (' + nNeg + ' negociada(s))': '') + '. Cada ordem ajustada ganha a sigla <b>KM</b> em verde metálico.</p>' +
+      '<div class="kp-filters">' +
+        '<label>Tipo<select id="kp-f-tipo"><option value="">Todos</option><option value="capital">Capital</option><option value="interior">Interior</option><option value="frotas">Frotas</option></select></label>' +
+        '<label>Status<select id="kp-f-status"><option value="">Todos</option><option value="pendente">Pendente</option><option value="concluida">Concluída</option><option value="analise">Em análise (antigo)</option><option value="fechada">Fechada</option></select></label>' +
+        '<label>Data<input type="date" id="kp-f-data"></label>' +
+        '<label>Ordem<input type="search" id="kp-f-ordem" placeholder="nº da carga" autocomplete="off"></label>' +
+        '<label>Destino / Rota<input type="search" id="kp-f-destino" placeholder="ex.: RIO VERDE" autocomplete="off"></label>' +
+        '<button class="btn mini" type="button" id="kp-f-clear" title="Limpa os filtros (a seleção ✓ é mantida)">🧹 Limpar</button>' +
+        (optsData.length>1? '<span class="hint" style="margin:0 0 4px">dias na prévia: ' + optsData.map(fmtBR).join(', ') + '</span>' : '') +
+      '</div>' +
+      '<div class="kp-selbar">' +
+        '<button class="btn mini" type="button" id="kp-sel-all" title="Marca todas as linhas do filtro atual que podem receber o KM real">☑ Marcar do filtro</button>' +
+        '<button class="btn mini" type="button" id="kp-sel-inv" title="Inverte a seleção das linhas do filtro atual">⇄ Inverter</button>' +
+        '<button class="btn mini" type="button" id="kp-sel-none" title="Desmarca tudo (de todas as linhas, não só do filtro)">☐ Desmarcar tudo</button>' +
+        '<span class="grow" id="kp-sel-sum"></span>' +
+      '</div>' +
+      '<div class="kp-scroll" id="kp-scroll"><table class="kp-tbl"><thead><tr>' +
+        '<th class="ctr" title="Marca/desmarca todas as linhas do filtro que PODEM receber o KM real (linhas com KM já igual ou fechadas ficam travadas)"><input type="checkbox" id="kp-all" checked></th>' +
+        '<th>Data</th><th>Tipo</th><th>Ordem</th><th>Destino / Rota</th><th class="num">KM atual → real</th><th class="num">Total previsto → novo</th><th>Status</th><th>Situação</th>' +
+      '</tr></thead><tbody id="kp-body"></tbody></table></div>' +
       (st.scan.notFound.length? '<p class="hint" style="margin:6px 0 2px"><b>Ordens da planilha que NÃO estão no mapa</b> (' + st.scan.notFound.length + '):</p><div class="kp-nf mono">' + esc(st.scan.notFound.join(', ')) + '</div>' : '') +
       '<div class="modal-actions"><button class="btn" type="button" id="kp-cancel">Cancelar</button>' +
-      '<button class="btn primary" type="button" id="kp-ok"' + (listAll.length? '':' disabled') + '>✅ Aplicar KM real</button></div>' +
+      '<button class="btn primary" type="button" id="kp-ok"' + (aplicaveis? '':' disabled') + '>✅ Aplicar KM real nas marcadas</button></div>' +
     '</div>';
   document.body.appendChild(mask);
+  kpRenderTable();
+  kpBindTable();
   $('#kp-x').addEventListener('click', kpClose);
   $('#kp-cancel').addEventListener('click', kpClose);
   $('#kp-ok').addEventListener('click', ()=> kpApply());
@@ -3632,10 +3806,17 @@ function kpOpenPreview(){
 async function kpApply(){
   if(!requireOperational()) return;
   const st=KP_STATE; if(!st) return;
-  // REGRAS: o scan já deixa FECHADAS de fora; negociadas entram só p/ atualizar o KM
-  // (o valor negociado não depende do KM no calcularFrete — permanece intacto)
-  const list=st.scan.changes;
-  if(!list.length){ toast('Nada para aplicar.', 'warn'); return; }
+  // REGRAS: fechadas ficam de fora do scan (🔒); linhas com KM já igual não têm seleção;
+  // negociadas entram só p/ atualizar o KM (o valor negociado não depende do KM no
+  // calcularFrete — permanece intacto). Vale SOMENTE o que estiver marcado no ✓.
+  const chosen=kpSelectedRows();
+  if(!chosen.length){ toast('Marque no ✓ ao menos uma linha para aplicar o KM real.', 'warn'); return; }
+  // defesa em profundidade: mesmo que uma carga tenha sido FECHADA entre a prévia e o clique,
+  // ela nunca é alterada (a linha travada nem tem ✓)
+  const list=chosen.filter(ch=>!ch.same && ch.status!=='fechada');
+  const nSame=chosen.filter(ch=>ch.same).length;
+  const nFechNow=chosen.length-list.length-nSame;
+  if(!list.length){ toast('Nada para aplicar: as linhas marcadas já estão com o KM igual ao da planilha (ou são fechadas).', 'warn'); return; }
   clearTimeout(saveTimer);                                   // protege edição pendente do dia aberto
   if(currentMapDate) await saveMapForDate(currentMapDate);
   const byD={};
@@ -3655,9 +3836,9 @@ async function kpApply(){
   }
   if(currentMapDate){ await loadMapForDate(currentMapDate); }
   renderAll();
-  audit('km-portaria', st.fileName + ': ' + n + ' carga(s) com KM real · ' + st.scan.notFound.length + ' ordem(ns) da planilha não encontrada(s)');
+  audit('km-portaria', st.fileName + ': ' + n + ' carga(s) selecionada(s) com KM real · ' + nSame + ' com KM já igual · ' + (nFechNow + st.scan.fechSkipped) + ' fechada(s) intocada(s) · ' + st.scan.notFound.length + ' ordem(ns) da planilha não encontrada(s)');
   kpClose();
-  toast('✅ KM real aplicado em ' + n + ' carga(s) não fechada(s)' + (st.scan.fechSkipped? ' · ' + st.scan.fechSkipped + ' fechada(s) intocada(s)' : '') + ' · sigla KM verde = ajustada', 'ok');
+  toast('✅ KM real aplicado em ' + n + ' carga(s) selecionada(s)' + (nSame? ' · ' + nSame + ' com KM já igual (nada a aplicar)': '') + ((nFechNow + st.scan.fechSkipped)? ' · ' + (nFechNow + st.scan.fechSkipped) + ' fechada(s) intocada(s)' : '') + ' · sigla KM verde = ajustada', 'ok');
 }
 function kmPortStart(file){
   if(!requireOperational()) return;
@@ -3666,8 +3847,12 @@ function kmPortStart(file){
     if(!parsed.map.size){ toast('❌ Nenhum KM válido (>0) na planilha', 'err'); return; }
     toast('⏳ Cruzando ' + parsed.map.size + ' ordem(ns) da planilha com o mapa…', 'warn');
     const scan=await kmPortScan(parsed.map);
-    KP_STATE={map:parsed.map, stats:parsed.stats, scan:scan, fileName:file.name};
+    KP_STATE={map:parsed.map, stats:parsed.stats, scan:scan, fileName:file.name, sel:new Set(), rows:[]};
+    KP_STATE.rows=kpBuildRows();
+    kpSelectable(KP_STATE.rows).forEach(x=>KP_STATE.sel.add(x.k));   // padrão: tudo que muda, marcado
     kpOpenPreview();
+    const nSame=KP_STATE.rows.filter(x=>x.locked&&x.status!=='fechada').length;
+    if(nSame) toast('ℹ️ ' + nSame + ' carga(s) já estão com o KM igual ao da planilha — ficaram travadas (🔒), sem ✓', 'warn');
   }).catch(err=>{ console.error(err); toast('❌ Falha ao ler a planilha: ' + err.message, 'err'); });
 }
 
@@ -8603,7 +8788,7 @@ async function init(){
 /* AUTO-CHECK DE VERSAO: avisa (somente quando roda em github.io) se a aba estiver com
    copia antiga em cache — compara o selo APP_V local com o do arquivo publicado no repo.
    Falha de rede/offline = silencioso; nunca bloqueia o uso. */
-const APP_V = '2026-09-28b';
+const APP_V = '2026-09-29a';
 (function(){
   // Selo de versão VISÍVEL no canto da tela: qualquer print/print-screen mostra qual código
   // está rodando no aparelho (cópia antiga = selo antigo/ausente). Não entra nas capturas.
