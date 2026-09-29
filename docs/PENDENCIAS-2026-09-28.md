@@ -78,3 +78,15 @@ Selo de versão: **2026-09-29a** (`APP_V`), mantida a recuperação 2026-09-28b 
 - `kmPortScanRec`/`kmPortScan` agora devolvem `destino`, `status` e a lista `locked` (fechadas encontradas); `KP_STATE` virou `var` (estado global, testável em sandbox).
 - Validação: `python tests/validate.py` (parser HTML, IDs únicos, `node --check` dos scripts inline e `node --test tests/recovery.cjs`), com teste novo cobrindo scan/seleção/filtros/HTML da linha. Renderização e gravação conferidas também em DOM (jsdom) com `Stor` falso: apenas a linha marcada foi gravada.
 - Pendente: conferência visual no navegador logado (a validação acima não equivale a teste de login/impressão em produção) e deploy no Pages.
+
+## Atualização 29/09/2026 (b) — KM Portaria: filtro Situação, grupos fixos, só Pendente/Concluída e destaque laranja >10%
+
+Selo de versão: **2026-09-29b** (`APP_V`), sobre a atualização 2026-09-29a acima.
+
+- **Filtro novo: Situação** (`#kp-f-sit`) com os 3 grupos fixos da prévia: **1 · atualiza**, **2 · negociada · valor mantido**, **3 · KM já igual** (🔒, sem ✓). A classificação (`kpSituation`) vale KM já igual > negociada > atualiza: carga negociada com KM já igual entra no grupo 3 (nada a aplicar).
+- **A prévia mostra SOMENTE status Pendente e Concluída.** Carga **FECHADA continua nunca alterada** e agora fica **fora da prévia** — continua contada no scan (`scan.locked`/`fechSkipped`) para o rodapé, o toast e a auditoria; `kpMatch` rejeita qualquer linha que não seja pendente/concluída (defesa em profundidade, inclusive se um dado antigo aparecer). O select de Status passou a ter só Todos / Pendente / Concluída.
+- **Agrupamento SEMPRE por situação**, na ordem fixa 1 → 2 → 3 (`kpGroupRows`), com cabeçalho de grupo informando linhas, marcadas e laranjas do grupo; dentro do grupo mantém a ordenação por data, seção e ordem. Grupos vazios não aparecem.
+- **Destaque laranja (`tr.kp-dif` + ⚠️ na coluna KM)** quando o **KM real é mais de 10% acima do KM atual** (`kpKmJump`: `novo > atual × 1,1`; KM atual vazio/0 com KM real válido também destaca). O `<td>` do KM ganha `title` com o percentual de salto. Contadores de laranjas no rodapé da barra e no cabeçalho do grupo.
+- Negociada (Neg?=Sim ou Valor Frete manual) segue atualizando **só o KM** — o valor negociado permanece; badge âmbar "negociada · valor mantido" no grupo 2.
+- Validação: `python tests/validate.py` (parser HTML, IDs únicos, `node --check` dos scripts inline) e `node --test tests/recovery.cjs` com teste ampliado cobrindo situação/grupos, exclusão de fechadas e análise, filtro Situação e a regra dos 10% (inclusive limites 100→110 não destaca, 100→111 destaca, vazio→5 destaca). Renderização agrupada conferida por HTML de linha/grupo em sandbox.
+- Pendente: conferência visual no navegador logado (a validação acima não equivale a teste de login/impressão em produção) e deploy no Pages.
