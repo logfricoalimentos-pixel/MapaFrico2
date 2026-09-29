@@ -67,3 +67,14 @@ CONFIRMAR_LOTE=2026-09-21 node scripts/fechar-cargas.cjs --apply --plan backups/
 `python tests/validate.py`: parser HTML, IDs estáticos únicos, sintaxe dos scripts inline, matriz de permissões, peso zero, matching de ordens, script da janela gerada, inclusão de avulsas e preservação das funcionalidades recentes.
 
 Também: `node --check scripts/fechar-cargas.cjs` e `git diff --check`. A conexão GitHub desta sessão não tem permissão `workflows`; o workflow de CI não foi publicado. As verificações foram executadas localmente e os testes permanecem versionados. Não equivale a teste de login ou impressão física em produção.
+
+## Atualização 29/09/2026 — KM Portaria com seleção por linha e filtros
+
+Selo de versão: **2026-09-29a** (`APP_V`), mantida a recuperação 2026-09-28b acima.
+
+- Prévia da planilha da portaria (`📥 KM Portaria`) passou a ter **✓ por linha**: o botão **"Aplicar KM real nas N marcada(s)"** grava `km`/`kmPortaria` **somente nas ordens selecionadas**. A prévia abre com todas as linhas que mudam marcadas; há *Marcar do filtro*, *Inverter* e *Desmarcar tudo* (a seleção sobrevive aos filtros).
+- **KM já igual** ao da planilha ⇒ linha **travada (🔒), sem seleção** — nada a aplicar. Carga **FECHADA** continua nunca alterada: entra na prévia travada e só aparece com o filtro **Status = Fechada**.
+- Filtros novos: **Tipo** (Capital / Interior / Frotas), **Status** (Pendente / Concluída / Em análise antigo / Fechada), **Data**, **Ordem** e **Destino / Rota**; colunas **Destino / Rota** e **Status** acrescentadas à tabela.
+- `kmPortScanRec`/`kmPortScan` agora devolvem `destino`, `status` e a lista `locked` (fechadas encontradas); `KP_STATE` virou `var` (estado global, testável em sandbox).
+- Validação: `python tests/validate.py` (parser HTML, IDs únicos, `node --check` dos scripts inline e `node --test tests/recovery.cjs`), com teste novo cobrindo scan/seleção/filtros/HTML da linha. Renderização e gravação conferidas também em DOM (jsdom) com `Stor` falso: apenas a linha marcada foi gravada.
+- Pendente: conferência visual no navegador logado (a validação acima não equivale a teste de login/impressão em produção) e deploy no Pages.
