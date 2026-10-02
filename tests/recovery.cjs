@@ -176,11 +176,20 @@ test('resumo do fechamento: tbody.grp por transportadora e CSS de quebra p/ impr
   assert.ok(iSub2>iGrp2 && iSub2<iClose2);                           // T2 + subtotal no 2º grupo
   const css=c.printResumoCss();
   for(const x of ['@page{size:A4 landscape;margin:10mm}','body{font-family:Arial,Helvetica,sans-serif;margin:0;color:#0f172a}',
-    'thead{display:table-header-group}','tr{break-inside:avoid;page-break-inside:avoid}','tbody.grp{break-inside:avoid;page-break-inside:avoid}']) assert.ok(css.includes(x),x);
+    'thead{display:table-header-group}','tr{break-inside:avoid;page-break-inside:avoid}','tbody.grp{break-inside:avoid;page-break-inside:avoid}',
+    'div.grp{break-inside:avoid;page-break-inside:avoid}','table{border-collapse:collapse;width:100%;font-size:12px;table-layout:fixed}']) assert.ok(css.includes(x),x);
+  // impressão: cada tbody.grp vira div.grp com table própria + thead repetido (Chrome ignora break-inside em tbody)
+  const stubTbl={querySelector:()=>({outerHTML:'<thead><tr><th>Região</th></tr></thead>'}),
+    querySelectorAll:()=>[{outerHTML:'<tbody class="grp"><tr><td>T1</td></tr></tbody>'},{outerHTML:'<tbody class="grp"><tr class="res-total"><td>TOT</td></tr></tbody>'}]};
+  const pg=c.printResumoGroupHtml(stubTbl);
+  assert.equal(cnt(pg,'<div class="grp">'),2);
+  assert.equal(cnt(pg,'<thead><tr><th>Região</th></tr></thead>'),2);          // cabeçalho em cada grupo
+  assert.ok(pg.indexOf('<div class="grp"><table>')===0 && pg.endsWith('</table></div>'));
+  assert.ok(pg.indexOf('<tbody class="grp"><tr><td>T1</td></tr></tbody>')<pg.indexOf('<tbody class="grp"><tr class="res-total">'));
 });
 test('regressões: resumo por quinzena e impressão isolada permanecem',()=>{
-  for(const x of ['id="fh-resumo"','function fechRefOptions','function renderFechHist','A4 portrait','2026-09-29c','id="kp-f-sit"','function kpGroupRows','function kpKmJump','function kpSituation','@page{size:A4 landscape;margin:10mm}','tbody class="grp"']) assert.ok(html.includes(x),x);
-  assert.ok(!html.includes("const APP_V = '2026-09-29b'"));
+  for(const x of ['id="fh-resumo"','function fechRefOptions','function renderFechHist','A4 portrait','2026-09-29d','id="kp-f-sit"','function kpGroupRows','function kpKmJump','function kpSituation','@page{size:A4 landscape;margin:10mm}','tbody class="grp"','function printResumoGroupHtml','div.grp{break-inside:avoid']) assert.ok(html.includes(x),x);
+  assert.ok(!html.includes("const APP_V = '2026-09-29c'"));
   assert.ok(!html.includes('tryAutoMigrarLote'));
 });
 test('migração: simulação não grava e aplicação usa comparação/flag após confirmação', async()=>{

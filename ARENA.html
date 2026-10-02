@@ -5037,10 +5037,11 @@ function printResumoCss(){
     '*{-webkit-print-color-adjust:exact;print-color-adjust:exact}' +
     'body{font-family:Arial,Helvetica,sans-serif;margin:0;color:#0f172a}' +         // margin:0 (a margem agora vem do @page)
     'h3{margin:0 0 10px;font-size:15px;background:#0f172a;color:#fff;padding:8px 10px;border-radius:6px}' +
-    'table{border-collapse:collapse;width:100%;font-size:12px}' +
+    'table{border-collapse:collapse;width:100%;font-size:12px;table-layout:fixed}' +
     'thead{display:table-header-group}' +                                          // NOVO: repete o cabeçalho em cada folha
     'tr{break-inside:avoid;page-break-inside:avoid}' +                             // NOVO: nunca corta uma linha ao meio
-    'tbody.grp{break-inside:avoid;page-break-inside:avoid}' +                      // NOVO: transportadora + subtotal ficam juntos
+    'tbody.grp{break-inside:avoid;page-break-inside:avoid}' +                      // transportadora + subtotal juntos (onde o engine respeita)
+    'div.grp{break-inside:avoid;page-break-inside:avoid}' +                        // 2026-09-29d: o Chrome IGNORA break-inside em tbody => na impressão cada grupo vira div.grp com table própria
     'th,td{border:1px solid #64748b;padding:6px 8px;text-align:left}' +
     'td.num,th.num{text-align:right}' +
     'thead th{background:#1e293b;color:#fff;font-weight:700}' +
@@ -5049,13 +5050,25 @@ function printResumoCss(){
     'tbody tr.res-total td,tbody tr.res-total:nth-child(odd) td{background:#15803d;color:#fff;font-weight:800}' +
     'td.mono{font-family:ui-monospace,Consolas,monospace}';
 }
+/* 2026-09-29d: o Chrome não honra break-inside:avoid em <tbody> (row-group). P/ garantir que
+   transportadora + subtotal NUNCA separem, a impressão monta UMA <table> por grupo dentro de
+   <div class="grp"> (div respeita break-inside:avoid). O thead vai junto p/ repetir o cabeçalho
+   e table-layout:fixed mantém as mesmas larguras de coluna em todas as tabelas. Na tela segue
+   sendo uma tabela só com tbody.grp. */
+function printResumoGroupHtml(tbl){
+  const thead = tbl.querySelector('thead');
+  const tbs = tbl.querySelectorAll('tbody');
+  let out = '';
+  for(const tb of tbs) out += '<div class="grp"><table>' + (thead ? thead.outerHTML : '') + tb.outerHTML + '</table></div>';
+  return out || tbl.outerHTML;
+}
 function printResumo(){
   const node = relEl('fech-resumo'); if(!node) return;
   const tbl = node.querySelector('table'); if(!tbl){ toast('Nada para imprimir ainda — marque cargas no período', 'err'); return; }
   const css = printResumoCss();
   const head = '<html><head><meta charset="utf-8"><title>Resumo geral do fechamento</title><style>' + css + '</style></head><body>' +
     '<h3>RESUMO GERAL DO FECHAMENTO — ' + esc(fechPeriodoTxt(REL)) + ' · gerado em ' + new Date().toLocaleDateString('pt-BR') + '</h3>' +
-    tbl.outerHTML + '</body></html>';
+    printResumoGroupHtml(tbl) + '</body></html>';
   const f = document.createElement('iframe');
   f.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0';
   document.body.appendChild(f);
@@ -8840,7 +8853,7 @@ async function init(){
 /* AUTO-CHECK DE VERSAO: avisa (somente quando roda em github.io) se a aba estiver com
    copia antiga em cache — compara o selo APP_V local com o do arquivo publicado no repo.
    Falha de rede/offline = silencioso; nunca bloqueia o uso. */
-const APP_V = '2026-09-29c';
+const APP_V = '2026-09-29d';
 (function(){
   // Selo de versão VISÍVEL no canto da tela: qualquer print/print-screen mostra qual código
   // está rodando no aparelho (cópia antiga = selo antigo/ausente). Não entra nas capturas.

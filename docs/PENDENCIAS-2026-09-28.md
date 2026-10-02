@@ -100,3 +100,13 @@ Selo de versão: **2026-09-29c** (`APP_V`), sobre a atualização 2026-09-29b ac
 - Na tela nada muda visualmente (o CSS de tela não zebrava por `tbody`); o efeito é só na impressão via `printResumo()`: o grupo inteiro salta para a folha seguinte quando não cabe.
 - O Resumo das quinzenas (`fhResPrint`) usa outro HTML/CSS e não foi alterado.
 - Validação: `python tests/validate.py` + `node --test tests/recovery.cjs` com teste novo renderizando `renderFechResumo()` em sandbox (3 grupos p/ 2 transportadoras + total, subtotais dentro do grupo certo) e conferindo as 5 regras novas do CSS de impressão.
+
+## Atualização 29/09/2026 (d) — Impressão: transportadora + subtotal NUNCA em folhas separadas
+
+Selo de versão: **2026-09-29d** (`APP_V`), sobre a atualização 2026-09-29c acima.
+
+- Motivo: o Chrome **ignora** `break-inside:avoid`/`page-break-inside:avoid` em row-groups de tabela (`<tbody>`) — na prática o grupo da transportadora continuava separando (linha Capital numa folha, subtotal na seguinte), como visto no print de conferência.
+- Solução: `printResumoGroupHtml(tbl)` — na **impressão** (iframe do `printResumo()`), cada `<tbody class="grp">` vira um `<div class="grp">` contendo uma `<table>` própria com o `<thead>` repetido; `div.grp{break-inside:avoid;page-break-inside:avoid}` é respeitado pelo Chrome/Firefox, então o grupo inteiro salta para a folha seguinte quando não cabe. `table-layout:fixed` + thead idêntico mantêm as larguras de coluna iguais entre as tabelas.
+- Na **tela** nada muda: continua uma única tabela com `<tbody class="grp">` por transportadora.
+- `printResumoCss()` também passou a incluir `div.grp{...}` e `table-layout:fixed` na regra `table`.
+- Validação: teste do resumo ampliado — `printResumoGroupHtml()` com DOM stub gera 2 `div.grp` com thead repetido e ordem preservada; CSS confere as regras novas. `python tests/validate.py` + `node --test tests/recovery.cjs` verdes.
