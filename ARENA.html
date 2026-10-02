@@ -337,6 +337,8 @@ body.print-big-font .custo-cell{font-size:15px}
 .rotas-head{grid-template-columns:1fr 90px 28px}
 .rotas-add{grid-template-columns:1fr 90px 34px}
 .transp-add{grid-template-columns:1fr 72px 96px 34px}
+.trip-row,.trip-head{grid-template-columns:76px 1.25fr .9fr .9fr 28px}
+.trip-add{grid-template-columns:76px 1.25fr .9fr .9fr 34px}
 .fech-resumo tr.res-sub td{padding:2px 8px;line-height:1.25}
 .res-actions{display:flex;justify-content:flex-end;margin:0 0 8px}
 .res-actions #res-print{background:#dc2626;border-color:#b91c1c;color:#d1d5db;font-weight:700;font-size:14.5px;padding:9px 18px;border-radius:8px;box-shadow:0 2px 6px rgba(185,28,28,.35)}
@@ -1282,6 +1284,20 @@ html.gerencial-request #settings{display:none!important}
     <button class="btn" id="btn-save-fixed">Salvar placas fixas</button>
   </section>
 
+  <section id="sec-frota-trip">
+    <h3>👷 Cadastro de ajudantes &amp; tripulação (Frotas)</h3>
+    <p class="hint">Motorista e ajudantes padrão por placa de Frotas — preenchem automaticamente os veículos fixos e as linhas de Frotas (ao abrir/limpar o dia ou importar). Os 5 veículos fixos padrão já vêm cadastrados; edite aqui manualmente quando trocar o ajudante ou motorista (seus valores têm prioridade).</p>
+    <div class="reg-head trip-head"><span>Placa</span><span>Motorista</span><span>1º Ajudante</span><span>2º Ajudante</span><span></span></div>
+    <div id="trip-rows" class="reg-rows"></div>
+    <div class="reg-add trip-add">
+      <input id="trip-add-placa" class="mono" placeholder="placa">
+      <input id="trip-add-mot" maxlength="32" placeholder="motorista">
+      <input id="trip-add-ajud" placeholder="1º ajudante">
+      <input id="trip-add-ajud2" placeholder="2º ajudante">
+      <button class="btn mini" id="btn-trip-add" title="Adicionar">＋</button>
+    </div>
+  </section>
+
   <section>
     <h3>Palavras-chave do destino</h3>
     <p class="hint">Usadas para classificar automaticamente (busca em palavra inteira, sem acento; ponto e espaço são tratados igual: PQ.OESTE ≡ PQ. OESTE). As listas padrão de Capital e Interior são sempre mescladas e nunca somem.</p>
@@ -1683,14 +1699,15 @@ html.gerencial-request #settings{display:none!important}
 
 /* ================= Constantes ================= */
 const DEFAULT_FIXED_FROTAS = ['MFM8075','RBQ4C63','RSD1E71','NWN3975','NVP6191'];
-/* Tripulação PADRÃO por placa de Frotas (motorista + 1º ajudante) — preenche ao criar/editar linha */
+/* Tripulação PADRÃO por placa de Frotas (motorista + ajudantes) — preenche ao criar/editar linha */
 const DEFAULT_FROTA_TRIPULACAO = {
-  MFM8075: {motorista:'ALEX LOPES DA SILVA',       ajudante:'ISRAEL'},
-  RBQ4C63: {motorista:'JAIRO DE OLIVEIRA',         ajudante:'PAULO'},
-  RSD1E71: {motorista:'DOUGLACY FURTADO DA SILVA', ajudante:'EDIMILSON'},
-  NWN3975: {motorista:'JULIO CESAR DOS REIS',      ajudante:'JEAN'},
-  NVP6191: {motorista:'SEBASTIÃO FELIX DE BRITO',  ajudante:'GIL'}
+  MFM8075: {motorista:'ALEX LOPES DA SILVA',       ajudante:'ISRAEL',    ajudante2:''},
+  RBQ4C63: {motorista:'JAIRO DE OLIVEIRA',         ajudante:'PAULO',     ajudante2:''},
+  RSD1E71: {motorista:'DOUGLACY FURTADO DA SILVA', ajudante:'EDIMILSON', ajudante2:''},
+  NWN3975: {motorista:'JULIO CESAR DOS REIS',      ajudante:'JEAN',      ajudante2:''},
+  NVP6191: {motorista:'SEBASTIÃO FELIX DE BRITO',  ajudante:'GIL',       ajudante2:''}
 };
+const DEFAULT_FROTA_TRIPULACAO_KEYS = new Set(Object.keys(DEFAULT_FROTA_TRIPULACAO).map(normPlaca));
 const DEFAULT_CAPITAL_KEYWORDS = ['LACERDA','TG','BRAGANÇA','AVIZ','GW','MINERIM','MASTER','EUBOM','RUBENS','BARBOSA','APARECIDA','BALNEARIO','CENTRO','GUANABARA','NOVO MUNDO','PARQUE OESTE','PQ.OESTE','PQ. OESTE','PQ.ANHANGUERA','PQ. ANHANGUERA','TRINDADE','COSTA BL','PQ.ANH'];
 const DEFAULT_INTERIOR_KEYWORDS = ['ARUANA','BARRA DO GARCAS','CAMPOS BELOS','CATALAO','GOIAS','IPORA','JARAGUA','MINACU','MINEIROS','MORRINHOS','QUIRINOPOLIS','RIO VERDE','ANAPOLIS','GOIANIRA','INHUMAS','TRIUNFO','ALEXANIA','CALDAS NOVAS','CEZARINA','GOIANESIA','JATAI','NEROPOLIS','GUAPO','SILVANIA','VALE S PATRICIO','AGUAS LINDAS','VALPARAISO','BRASILIA','LUZIANIA','PLANALTINA','HIDROLANDIA','BELA VISTA','BOM FINOPOLIS','CANEDO','DF','VIVENDAS','SANTA HELENA','RD+MAX','CUIABA MT','BRITANIA','ABADIA','BARRA DO GARÇA','CEILANDIA','ITAPURANGA','PORANGATU','ITUMBIARA','-DF','- DF','BOM CORTE','GOIATUBA','NILO'];
 /* Diárias padrão por rota (nome da rota/destino) — tabela do relatório, sempre mesclada
@@ -1860,6 +1877,10 @@ const SECTIONS = ['frotas','capital','interior'];
 let DATA = {frotas:[], capital:[], interior:[]}; // arrays de linhas
 let POOL = [];            // destinos novos aguardando classificação
 let REGISTRY = {};        // placa (normalizada) -> {transportadora, ajudantes, valorKg, neg}
+let FROTA_TRIPULACAO = {}; // placa (normalizada) -> {motorista, ajudante, ajudante2}
+for(const [k, v] of Object.entries(DEFAULT_FROTA_TRIPULACAO)){
+  FROTA_TRIPULACAO[normPlaca(k)] = {motorista: String(v.motorista || ''), ajudante: String(v.ajudante || ''), ajudante2: String(v.ajudante2 || '')};
+}
 let AVAILABILITY = {};    // placa (normalizada) -> true/false
 let FIXED_FROTAS = [];    // placas fixas salvas pelo usuário (padrão é sempre mesclado)
 let CAPITAL_KEYWORDS = [...DEFAULT_CAPITAL_KEYWORDS];
@@ -2178,15 +2199,40 @@ function calcularFrete(section, row){
    completa o nome inteiro (ex.: "SEBASTIÃO FELIX DE B" -> "SEBASTIÃO FELIX DE BRITO") */
 function frotaTripulacaoOf(placa){
   const k = plateSegs(placa)[0] || '';
-  return k ? (DEFAULT_FROTA_TRIPULACAO[k] || null) : null;
+  if(!k) return null;
+  const src = (typeof FROTA_TRIPULACAO === 'object' && FROTA_TRIPULACAO && Object.keys(FROTA_TRIPULACAO).length) ? FROTA_TRIPULACAO : DEFAULT_FROTA_TRIPULACAO;
+  return src[k] || null;
 }
 function applyFrotaTripulacao(row){
   const t = frotaTripulacaoOf(row.placa);
   if(!t) return;
   const m = String(row.motorista==null?'':row.motorista).trim();
-  if(!m) row.motorista = clampMotorista(t.motorista);
-  else if(t.motorista.length > m.length && t.motorista.startsWith(m)) row.motorista = t.motorista;
-  if(!String(row.ajudantes==null?'':row.ajudantes).trim() && t.ajudante) row.ajudantes = t.ajudante;
+  const tm = String(t.motorista || '').trim();
+  if(!m && tm) row.motorista = clampMotorista(tm);
+  else if(tm.length > m.length && m && tm.startsWith(m)) row.motorista = clampMotorista(tm);
+  if(!row._ajudManual){
+    if(!String(row.ajudantes==null?'':row.ajudantes).trim() && t.ajudante) row.ajudantes = t.ajudante;
+    if(!String(row.ajudante2==null?'':row.ajudante2).trim() && t.ajudante2) row.ajudante2 = t.ajudante2;
+  }
+}
+function syncFrotaTripulacaoToMap(placaKey, prev){
+  const nk = normPlaca(placaKey);
+  if(!nk || typeof DATA !== 'object' || !DATA || !Array.isArray(DATA.frotas)) return;
+  const cur = FROTA_TRIPULACAO[nk] || {motorista:'', ajudante:'', ajudante2:''};
+  const oldM = prev ? clampMotorista(String(prev.motorista || '').trim()) : '';
+  const oldA1 = prev ? String(prev.ajudante || '').trim() : '';
+  const oldA2 = prev ? String(prev.ajudante2 || '').trim() : '';
+  for(const r of DATA.frotas){
+    if(r.stFech === 'fechado') continue;
+    const rk = plateSegs(r.placa)[0] || '';
+    if(rk !== nk) continue;
+    const rm = String(r.motorista == null ? '' : r.motorista).trim();
+    const ra1 = String(r.ajudantes == null ? '' : r.ajudantes).trim();
+    const ra2 = String(r.ajudante2 == null ? '' : r.ajudante2).trim();
+    if(!rm || (oldM && rm === oldM)) r.motorista = clampMotorista(cur.motorista || '');
+    if(!ra1 || (oldA1 && ra1 === oldA1)){ r.ajudantes = cur.ajudante || ''; delete r._ajudManual; }
+    if(!ra2 || (oldA2 && ra2 === oldA2)){ r.ajudante2 = cur.ajudante2 || ''; delete r._ajudManual; }
+  }
 }
 function applyRegistry(row){
   const k = plateSegs(row.placa)[0] || '';
@@ -2609,6 +2655,7 @@ function allPlates(){
   const add = p=>{ const k = normPlaca(p); if(k && !m.has(k)) m.set(k, k); };
   for(const sec of SECTIONS) for(const r of DATA[sec]) for(const s of plateSegs(r.placa)) add(s);
   for(const k of Object.keys(REGISTRY)) add(k);
+  for(const k of Object.keys(FROTA_TRIPULACAO)) add(k);
   for(const p of FIXED_FROTAS) add(p);
   for(const p of DEFAULT_FIXED_FROTAS) add(p);
   for(const k of Object.keys(AVAILABILITY)) add(k);
@@ -2916,16 +2963,35 @@ async function switchToDate(dateStr){
   if(dashVisible) await loadDashboard();
 }
 async function loadSettings(){
-  const [reg, ff, ck, ik, hc, av, rd, tc, fc, tz, wa, mg] = await Promise.all([
+  const [reg, ff, ck, ik, hc, av, rd, tc, fc, tz, wa, mg, ft] = await Promise.all([
     Stor.get('fleet-registry'), Stor.get('fixed-frotas'), Stor.get('capital-keywords'),
     Stor.get('interior-keywords'), Stor.get('hidden-cols'), Stor.get('availability'),
     Stor.get('routes-days'), Stor.get('transp-codes'), Stor.get('fechamentos'), Stor.get('transp-zap'), Stor.get('wa-auto'),
-    Stor.get('margem-frete')
+    Stor.get('margem-frete'), Stor.get('frota-tripulacao')
   ]);
   // pré-cadastro padrão de transportadoras sempre mesclado; o salvo pelo usuário tem prioridade
   REGISTRY = Object.assign({}, DEFAULT_REGISTRY);
   if(reg && typeof reg === 'object'){
     for(const [k, v] of Object.entries(reg)) REGISTRY[normPlaca(k)] = v;
+  }
+  // tripulação/ajudantes de Frotas: os 5 veículos padrão sempre mesclados; o salvo pelo usuário tem prioridade
+  {
+    const m = {};
+    for(const [k, v] of Object.entries(DEFAULT_FROTA_TRIPULACAO)){
+      m[normPlaca(k)] = {motorista: String(v.motorista || ''), ajudante: String(v.ajudante || ''), ajudante2: String(v.ajudante2 || '')};
+    }
+    const saved = (ft && typeof ft === 'object' && !Array.isArray(ft)) ? ft : {};
+    for(const [k, v] of Object.entries(saved)){
+      const nk = normPlaca(k);
+      if(!nk || !v || typeof v !== 'object') continue;
+      const def = m[nk] || {motorista:'', ajudante:'', ajudante2:''};
+      m[nk] = {
+        motorista: v.motorista !== undefined ? clampMotorista(String(v.motorista || '').trim()) : def.motorista,
+        ajudante:  v.ajudante  !== undefined ? String(v.ajudante  || '').trim() : (v.ajudantes !== undefined ? String(v.ajudantes || '').trim() : def.ajudante),
+        ajudante2: v.ajudante2 !== undefined ? String(v.ajudante2 || '').trim() : def.ajudante2
+      };
+    }
+    FROTA_TRIPULACAO = m;
   }
   if(Array.isArray(ff)) FIXED_FROTAS = ff.map(String);
   CAPITAL_KEYWORDS = dedupeKw([...DEFAULT_CAPITAL_KEYWORDS, ...(Array.isArray(ck)? ck: [])]);
@@ -2963,6 +3029,7 @@ async function loadSettings(){
 }
 function saveSettings(){
   Stor.set('fleet-registry', REGISTRY);
+  Stor.set('frota-tripulacao', FROTA_TRIPULACAO);
   Stor.set('fixed-frotas', FIXED_FROTAS);
   Stor.set('capital-keywords', CAPITAL_KEYWORDS);
   Stor.set('interior-keywords', INTERIOR_KEYWORDS);
@@ -3043,6 +3110,7 @@ function backup(){
     mapDate: currentMapDate,
     map: snapshotMap(),
     registry: REGISTRY,
+    frotaTripulacao: FROTA_TRIPULACAO,
     fixedFrotas: FIXED_FROTAS,
     capitalKeywords: CAPITAL_KEYWORDS,
     interiorKeywords: INTERIOR_KEYWORDS,
@@ -3074,6 +3142,24 @@ async function restoreBackup(file){
       const v = obj.registry[k];
       if(nk && v && typeof v === 'object') REGISTRY[nk] = v;
     }
+  }
+  if(obj.frotaTripulacao && typeof obj.frotaTripulacao === 'object' && !Array.isArray(obj.frotaTripulacao)){
+    const m = {};
+    for(const [k, v] of Object.entries(DEFAULT_FROTA_TRIPULACAO)){
+      m[normPlaca(k)] = {motorista: String(v.motorista || ''), ajudante: String(v.ajudante || ''), ajudante2: String(v.ajudante2 || '')};
+    }
+    for(const k of Object.keys(obj.frotaTripulacao)){
+      const nk = normPlaca(k);
+      const v = obj.frotaTripulacao[k];
+      if(!nk || !v || typeof v !== 'object') continue;
+      const def = m[nk] || {motorista:'', ajudante:'', ajudante2:''};
+      m[nk] = {
+        motorista: v.motorista !== undefined ? clampMotorista(String(v.motorista || '').trim()) : def.motorista,
+        ajudante:  v.ajudante  !== undefined ? String(v.ajudante  || '').trim().slice(0, 40) : def.ajudante,
+        ajudante2: v.ajudante2 !== undefined ? String(v.ajudante2 || '').trim().slice(0, 40) : def.ajudante2
+      };
+    }
+    FROTA_TRIPULACAO = m;
   }
   if(Array.isArray(obj.fixedFrotas)) FIXED_FROTAS = obj.fixedFrotas.map(String).filter(x=> typeof x === 'string' && x.length <= 12);
   CAPITAL_KEYWORDS = dedupeKw([...DEFAULT_CAPITAL_KEYWORDS, ...(Array.isArray(obj.capitalKeywords)? obj.capitalKeywords.map(String).filter(x=> x.length <= 40): [])]);
@@ -4988,15 +5074,25 @@ function fechResumoRows(grupos, skipSingleSub){
   rows.push({t:'tot', peso: tp, abat: ta, fat: tf, pagar: tap, custo: tp > 0 ? tf / tp : null});
   return rows;
 }
+function fechResumoSelectedGroups(){
+  return fechGroups().map(g=> ({g: g, gs: fechGroupSel(g)})).filter(x=> x.gs.itens.length).map(x=> ({
+    transp: x.g.nome,
+    codigo: String(x.gs.s.codigo || '').trim() || TRANSP_CODES[x.g.key] || '',
+    nf: x.gs.s.nf,
+    boleto: x.gs.s.boleto,
+    abatimento: numVal(x.gs.s.abat),
+    cargas: x.gs.itens.map(it=> ({sec: it.sec, peso: it.calc.peso, total: it.calc.total}))
+  }));
+}
 function renderFechResumo(){
   const wrap = relEl('fech-resumo'); if(!wrap) return;
-  const groups = fechGroups();
-  const selG = groups.map(g=> ({g: g, gs: fechGroupSel(g)})).filter(x=> x.gs.itens.length);
-  if(!selG.length){ wrap.innerHTML = '<div class="empty">Nenhuma carga MARCADA no período — o resumo aparece conforme você marca.</div>'; return; }
-  const grupos = selG.map(x=> ({transp: x.g.nome,
-    codigo: String(x.gs.s.codigo || '').trim() || TRANSP_CODES[x.g.key] || '',
-    nf: x.gs.s.nf, boleto: x.gs.s.boleto, abatimento: numVal(x.gs.s.abat),
-    cargas: x.gs.itens.map(it=> ({sec: it.sec, peso: it.calc.peso, total: it.calc.total}))}));
+  const grupos = (typeof fechResumoSelectedGroups === 'function')
+    ? fechResumoSelectedGroups()
+    : fechGroups().map(g=> ({g: g, gs: fechGroupSel(g)})).filter(x=> x.gs.itens.length).map(x=> ({transp: x.g.nome,
+        codigo: String(x.gs.s.codigo || '').trim() || TRANSP_CODES[x.g.key] || '',
+        nf: x.gs.s.nf, boleto: x.gs.s.boleto, abatimento: numVal(x.gs.s.abat),
+        cargas: x.gs.itens.map(it=> ({sec: it.sec, peso: it.calc.peso, total: it.calc.total}))}));
+  if(!grupos.length){ wrap.innerHTML = '<div class="empty">Nenhuma carga MARCADA no período — o resumo aparece conforme você marca.</div>'; return; }
   const rows = fechResumoRows(grupos, true);
   let html = '<div class="res-actions"><button class="btn mini" type="button" id="res-print" title="Imprime o resumo geral agrupado (1 linha Capital + 1 Interior por transportadora, subtotais e TOTAL GERAL)">🖨 Imprimir</button></div>' +
     '<table class="fech-table fech-resumo"><thead><tr>' +
@@ -5053,7 +5149,7 @@ function printResumoCss(){
     '.print-title span{display:block;font-size:9px;font-weight:400;color:#334155}' +
     '.print-columns th{font-weight:700;border-bottom:2px solid #334155;padding:5px 6px;vertical-align:bottom}' +
     '.print-columns th.num,.carrier-data td.num{text-align:right;white-space:nowrap}' +
-    '.carrier-data tr.res-sub td{background:#fff !important;color:#0f172a;font-weight:700;border-top:2px solid #64748b}' +
+    '.carrier-data tr.res-sub td{background:#1f1f1f !important;color:#fff !important;font-weight:700;border-color:#1f1f1f;border-top:2px solid #1f1f1f}' +
     '.carrier-data tr.res-total td{background:#fff !important;color:#0f172a;font-weight:800;border-top:2px solid #0f172a}' +
     '.carrier-data td.mono{font-family:ui-monospace,Consolas,monospace}';
 }
@@ -5095,14 +5191,17 @@ function printResumoRowsHtml(rows, periodo, gerado){
 }
 function printResumo(){
   const node = relEl('fech-resumo'); if(!node) return;
-  const selecionados = fechGroups().map(g=> ({g: g, gs: fechGroupSel(g)})).filter(x=> x.gs.itens.length).map(x=> ({
-    transp: x.g.nome,
-    codigo: String(x.gs.s.codigo || '').trim() || TRANSP_CODES[x.g.key] || '',
-    abatimento: numVal(x.gs.s.abat),
-    cargas: x.gs.itens.map(it=> ({sec: it.sec, peso: it.calc.peso, total: it.calc.total}))
-  }));
-  const grupos = selecionados.filter(g=> String(g.transp || '').trim().toLocaleUpperCase('pt-BR') !== 'PAGO');
-  if(!grupos.length){ toast(selecionados.length ? 'A transportadora "PAGO" foi omitida; não há outras cargas marcadas para imprimir' : 'Nada para imprimir ainda — marque cargas no período', 'err'); return; }
+  const grupos = (typeof fechResumoSelectedGroups === 'function')
+    ? fechResumoSelectedGroups()
+    : fechGroups().map(g=> ({g: g, gs: fechGroupSel(g)})).filter(x=> x.gs.itens.length).map(x=> ({
+        transp: x.g.nome,
+        codigo: String(x.gs.s.codigo || '').trim() || TRANSP_CODES[x.g.key] || '',
+        nf: x.gs.s.nf,
+        boleto: x.gs.s.boleto,
+        abatimento: numVal(x.gs.s.abat),
+        cargas: x.gs.itens.map(it=> ({sec: it.sec, peso: it.calc.peso, total: it.calc.total}))
+      }));
+  if(!grupos.length){ toast('Nada para imprimir ainda — marque cargas no período', 'err'); return; }
   const rows = fechResumoRows(grupos, true);
   const css = printResumoCss();
   const gerado = new Date().toLocaleDateString('pt-BR');
@@ -8321,9 +8420,23 @@ function fillSettingsUI(){
   $('#kw-capital').value = CAPITAL_KEYWORDS.join(', ');
   $('#kw-interior').value = INTERIOR_KEYWORDS.join(', ');
   $$('.hc-chk').forEach(c=> c.checked = HIDDEN_COLS.includes(c.dataset.col));
+  renderFrotaTripulacao();
   renderRegistry();
   renderRotas();
   renderTranspCodes();
+}
+function renderFrotaTripulacao(){
+  const wrap = $('#trip-rows'); if(!wrap) return;
+  const entries = Object.entries(FROTA_TRIPULACAO);
+  wrap.innerHTML = entries.length ? entries.map(([k, v])=>{
+    return '<div class="reg-row trip-row" data-key="'+esc(k)+'">' +
+      '<input type="text" class="mono" data-trip="placa" value="'+esc(k)+'" placeholder="placa">' +
+      '<input type="text" data-trip="motorista" maxlength="32" value="'+esc(v.motorista||'')+'" placeholder="motorista">' +
+      '<input type="text" data-trip="ajudante" value="'+esc(v.ajudante||'')+'" placeholder="1º ajudante">' +
+      '<input type="text" data-trip="ajudante2" value="'+esc(v.ajudante2||'')+'" placeholder="2º ajudante">' +
+      '<button class="btn mini" data-act="trip-del" title="Remover / limpar">🗑</button>' +
+    '</div>';
+  }).join('') : '<div class="empty">Nenhuma tripulação cadastrada. Adicione abaixo.</div>';
 }
 function renderRotas(){
   const wrap = $('#rotas-rows');
@@ -8427,6 +8540,7 @@ function bindStatic(){
       row[field] = (t.value === '') ? '' : num(t.value);
     } else {
       row[field] = t.value;
+      if(field === 'ajudantes' || field === 'ajudante2') row._ajudManual = true;
     }
     // negociação automática:
     // · preencheu Vlr Kg → Neg?=Sim; apagou Vlr Kg → Neg?=Não
@@ -8803,6 +8917,76 @@ function bindStatic(){
     saveSettings();
     renderAll();
   });
+  /* cadastro de ajudantes & tripulação (Frotas) */
+  $('#btn-trip-add').addEventListener('click', ()=>{
+    if(!requireOperational()) return;
+    const k = normPlaca($('#trip-add-placa').value);
+    if(!k){ toast('Informe a placa de Frotas', 'err'); return; }
+    const prev = FROTA_TRIPULACAO[k] ? Object.assign({}, FROTA_TRIPULACAO[k]) : null;
+    FROTA_TRIPULACAO[k] = {
+      motorista: clampMotorista($('#trip-add-mot').value.trim()),
+      ajudante: $('#trip-add-ajud').value.trim(),
+      ajudante2: $('#trip-add-ajud2').value.trim()
+    };
+    syncFrotaTripulacaoToMap(k, prev);
+    saveSettings();
+    $('#trip-add-placa').value = ''; $('#trip-add-mot').value = '';
+    $('#trip-add-ajud').value = ''; $('#trip-add-ajud2').value = '';
+    renderFrotaTripulacao();
+    renderAll();
+    toast('👷 Tripulação/ajudante da placa ' + k + ' salva', 'ok');
+  });
+  $('#trip-rows').addEventListener('change', e=>{
+    if(!requireOperational()) return;
+    const t = e.target;
+    const rowEl = t.closest('[data-key]');
+    if(!rowEl) return;
+    const key = rowEl.dataset.key;
+    const f = t.dataset.trip;
+    if(!f || !FROTA_TRIPULACAO[key]) return;
+    const prev = Object.assign({}, FROTA_TRIPULACAO[key]);
+    if(f === 'placa'){
+      const nk = normPlaca(t.value);
+      if(!nk){ t.value = key; return; }
+      if(nk !== key){
+        FROTA_TRIPULACAO[nk] = FROTA_TRIPULACAO[key];
+        if(DEFAULT_FROTA_TRIPULACAO_KEYS.has(key)){
+          FROTA_TRIPULACAO[key] = {motorista:'', ajudante:'', ajudante2:''};
+        } else {
+          delete FROTA_TRIPULACAO[key];
+        }
+        syncFrotaTripulacaoToMap(nk, null);
+      }
+    } else if(f === 'motorista'){
+      FROTA_TRIPULACAO[key].motorista = clampMotorista(t.value.trim());
+      syncFrotaTripulacaoToMap(key, prev);
+    } else if(f === 'ajudante' || f === 'ajudante2'){
+      FROTA_TRIPULACAO[key][f] = t.value.trim();
+      syncFrotaTripulacaoToMap(key, prev);
+    }
+    saveSettings();
+    renderFrotaTripulacao();
+    renderAll();
+    toast('👷 Cadastro de ajudante/tripulação atualizado (' + (f === 'placa' ? normPlaca(t.value) : key) + ')', 'ok');
+  });
+  $('#trip-rows').addEventListener('click', e=>{
+    if(!requireOperational()) return;
+    if(!e.target.closest('[data-act="trip-del"]')) return;
+    const rowEl = e.target.closest('[data-key]');
+    if(rowEl){
+      const k = rowEl.dataset.key;
+      const prev = FROTA_TRIPULACAO[k] ? Object.assign({}, FROTA_TRIPULACAO[k]) : null;
+      if(DEFAULT_FROTA_TRIPULACAO_KEYS.has(k)){
+        FROTA_TRIPULACAO[k] = {motorista:'', ajudante:'', ajudante2:''};
+      } else {
+        delete FROTA_TRIPULACAO[k];
+      }
+      syncFrotaTripulacaoToMap(k, prev);
+      saveSettings();
+      renderFrotaTripulacao();
+      renderAll();
+    }
+  });
   $('#btn-reg-add').addEventListener('click', ()=>{
     if(!requireOperational()) return;
     const k = normPlaca($('#reg-add-placa').value);
@@ -9173,7 +9357,7 @@ async function init(){
 /* AUTO-CHECK DE VERSAO: avisa (somente quando roda em github.io) se a aba estiver com
    copia antiga em cache — compara o selo APP_V local com o do arquivo publicado no repo.
    Falha de rede/offline = silencioso; nunca bloqueia o uso. */
-const APP_V = '2026-10-02b';
+const APP_V = '2026-10-02c';
 (function(){
   // Selo de versão VISÍVEL no canto da tela: qualquer print/print-screen mostra qual código
   // está rodando no aparelho (cópia antiga = selo antigo/ausente). Não entra nas capturas.
