@@ -122,11 +122,11 @@ Selo de versão: **2026-09-29e** (`APP_V`), sobre a atualização 2026-09-29d ac
 - Validação: teste novo em `tests/recovery.cjs` (coleta exclui fechada/analise, JavaScript gerado da janela é válido, ids de filtro/download presentes, `rotasAbertasDownload` com XLSX stub gera aba e valores numéricos corretos); `python tests/validate.py` OK.
 - Pendente: conferência visual no navegador logado (pop-up permitido) e deploy no Pages.
 
-## Atualização 02/10/2026 — filtros e impressão do resumo
+## Atualização 02/10/2026 — filtros, impressão do resumo (c/ PAGO e subtotal preto fosco) e cadastro de ajudantes
 
-Selo de versão: **2026-10-02b** (`APP_V`).
+Selo de versão: **2026-10-02c** (`APP_V`).
 
-- 📋 **Rotas abertas**: filtro por coluna incluído em **Média (R$/kg)**. O filtro lista os mesmos valores arredondados exibidos na tabela e também afeta os downloads filtrados.
-- **Resumo Geral — Interior/Capital por transportadora**: impressão como tabela contínua, com título e cabeçalho repetidos em cada página; cada transportadora (regiões + subtotal, se houver) permanece inteira em uma página. Fundo branco, sem as colunas **Entregou a NF** e **Boleto**; transportadora **PAGO** fica fora do documento e do TOTAL GERAL impresso. Subtotal impresso somente quando o grupo tem Interior e Capital; transportadoras com uma região não recebem subtotal.
-- O layout segue a organização da **image-2**; a tela e a planilha do fechamento não foram alteradas por essas regras específicas da impressão.
-- Validação: `python tests/validate.py` (11 testes, incluindo filtro de Média, tabela contínua e regras da impressão).
+- 📋 **Rotas abertas**: filtro por coluna incluído em **Média (R$/kg)**. O filtro lista os mesmos valores arredondados exibidos na tabela e também afeta os downloads filtrados (Excel e CSV).
+- **Resumo Geral — Interior/Capital por transportadora**: impressão como tabela contínua (`fechResumoSelectedGroups` compartilhado entre tela e impressão), com título e cabeçalho repetidos em cada página; cada transportadora (regiões + subtotal, se houver) permanece inteira em uma página. Fundo branco no documento, sem as colunas **Entregou a NF** e **Boleto**; transportadora **PAGO** é impressa e incluída no **TOTAL GERAL** impresso para coincidir exatamente com o total exibido na tabela filtrada. Subtotal impresso somente quando o grupo tem Interior e Capital (`skipSingleSub`), com fundo preto fosco (`#1f1f1f`) e texto branco (`#fff`).
+- 👷 **Cadastro de ajudantes & tripulação (Frotas)**: seção própria em `⚙️ Configurações` (`#sec-frota-trip`, persistida na chave `frota-tripulacao`) permitindo editar manualmente placa, motorista, 1º ajudante e 2º ajudante dos 5 veículos fixos padrão (`MFM8075`, `RBQ4C63`, `RSD1E71`, `NWN3975`, `NVP6191`) e adicionar/remover outras placas de Frotas, sincronizando imediatamente com o mapa aberto e preservando edições manuais do dia (`_ajudManual`).
+- Validação: `python tests/validate.py` (12 testes, incluindo igualdade do total impresso c/ PAGO, subtotal preto fosco/branco, filtro de Média e edição manual do cadastro de ajudantes/tripulação).
