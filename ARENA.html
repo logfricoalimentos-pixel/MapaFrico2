@@ -5000,8 +5000,15 @@ function renderFechResumo(){
     '<table class="fech-table fech-resumo"><thead><tr>' +
     '<th>Região</th><th>Transportadora</th><th>Código</th><th class="num">Peso transportado (kg)</th><th class="num">Abatimento (R$)</th>' +
     '<th class="num">Valor faturado (R$)</th><th class="num">Valor a ser pago (R$)</th><th>Entregou a NF</th><th>Boleto</th>' +
-    '</tr></thead><tbody>';
+    '</tr></thead>';
+  let cur = null;   // grupo atual (transportadora; TOTAL GERAL vira grupo próprio)
   for(const r of rows){
+    const gk = (r.t === 'tot') ? '__tot' : r.transp;
+    if(gk !== cur){
+      if(cur !== null) html += '</tbody>';
+      html += '<tbody class="grp">';
+      cur = gk;
+    }
     if(r.t === 'reg'){
       html += '<tr><td>' + r.regiao + '</td><td>' + esc(r.transp) + '</td><td class="mono">' + esc(r.codigo) + '</td>' +
         '<td class="num">' + fmtPeso2(r.peso) + '</td><td class="num">' + (r.abat ? fmtBRL(r.abat) : '') + '</td><td class="num">' + fmtBRL(r.fat) + '</td>' +
@@ -5026,10 +5033,14 @@ function renderFechResumo(){
 }
 /* 🖨 imprime o resumo agrupado (frame oculto p/ não levar o resto da tela) */
 function printResumoCss(){
-  return '*{-webkit-print-color-adjust:exact;print-color-adjust:exact}' +
-    'body{font-family:Arial,Helvetica,sans-serif;margin:12px;color:#0f172a}' +
+  return '@page{size:A4 landscape;margin:10mm}' +                                   // NOVO
+    '*{-webkit-print-color-adjust:exact;print-color-adjust:exact}' +
+    'body{font-family:Arial,Helvetica,sans-serif;margin:0;color:#0f172a}' +         // margin:0 (a margem agora vem do @page)
     'h3{margin:0 0 10px;font-size:15px;background:#0f172a;color:#fff;padding:8px 10px;border-radius:6px}' +
     'table{border-collapse:collapse;width:100%;font-size:12px}' +
+    'thead{display:table-header-group}' +                                          // NOVO: repete o cabeçalho em cada folha
+    'tr{break-inside:avoid;page-break-inside:avoid}' +                             // NOVO: nunca corta uma linha ao meio
+    'tbody.grp{break-inside:avoid;page-break-inside:avoid}' +                      // NOVO: transportadora + subtotal ficam juntos
     'th,td{border:1px solid #64748b;padding:6px 8px;text-align:left}' +
     'td.num,th.num{text-align:right}' +
     'thead th{background:#1e293b;color:#fff;font-weight:700}' +
@@ -8829,7 +8840,7 @@ async function init(){
 /* AUTO-CHECK DE VERSAO: avisa (somente quando roda em github.io) se a aba estiver com
    copia antiga em cache — compara o selo APP_V local com o do arquivo publicado no repo.
    Falha de rede/offline = silencioso; nunca bloqueia o uso. */
-const APP_V = '2026-09-29b';
+const APP_V = '2026-09-29c';
 (function(){
   // Selo de versão VISÍVEL no canto da tela: qualquer print/print-screen mostra qual código
   // está rodando no aparelho (cópia antiga = selo antigo/ausente). Não entra nas capturas.

@@ -142,9 +142,45 @@ test('KM Portaria 2026-09-29b: situação/grupos, só Pendente+Concluída, laran
   assert.ok(htmlNeg.includes('negociada · valor mantido') && !htmlNeg.includes('kp-dif'));
   assert.ok(html.includes('Aplicar KM real nas marcadas') && html.includes('id="kp-f-tipo"') && html.includes('id="kp-f-status"') && html.includes('id="kp-f-sit"') && html.includes('kp-group'));
 });
+test('resumo do fechamento: tbody.grp por transportadora e CSS de quebra p/ impressão',()=>{
+  const wrap={innerHTML:'', dataset:{}, addEventListener(){}};
+  const c=context({relEl:id=> id==='fech-resumo'?wrap:null, TRANSP_CODES:{}, numVal:x=>Number(x)||0,
+    fechGroups:()=>[{nome:'T1',key:'t1'},{nome:'T2',key:'t2'}],
+    fechGroupSel:g=>({s:{codigo:'7'+g.key, nf:'NF'+g.key, boleto:'B'+g.key, abat:0},
+      itens:[{sec:'capital',calc:{peso:10,total:100}},{sec:'interior',calc:{peso:5,total:60}}]}),
+    fechResumoRows:grupos=>{
+      const rows=[];
+      for(const g of grupos){
+        rows.push({t:'reg',regiao:'Capital',transp:g.transp,codigo:g.codigo,peso:10,abat:0,fat:100,pagar:100,nf:'',boleto:''});
+        rows.push({t:'reg',regiao:'Interior',transp:g.transp,codigo:g.codigo,peso:5,abat:0,fat:60,pagar:60,nf:'',boleto:''});
+        rows.push({t:'sub',transp:g.transp,codigo:g.codigo,peso:15,abat:0,fat:160,pagar:160,nf:'NF',boleto:'B'});
+      }
+      rows.push({t:'tot',peso:30,abat:0,fat:320,pagar:320});
+      return rows;
+    },
+    esc:s=>String(s==null?'':s).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch])),
+    fmtPeso2:v=>String(Number(v)||0), fmtBRL:v=>'R$ '+(Number(v)||0).toFixed(2)});
+  vm.runInContext(block('function renderFechResumo(){','function printResumo(){'),c);
+  c.renderFechResumo();
+  const cnt=(s,sub)=>s.split(sub).length-1;
+  const out=wrap.innerHTML;
+  assert.ok(out.includes('</tr></thead><tbody class="grp">'));      // sem <tbody> solto no cabeçalho
+  assert.ok(!out.includes('</tr></thead><tbody>'));
+  assert.equal(cnt(out,'<tbody class="grp">'),3);                   // T1, T2 e TOTAL GERAL
+  assert.equal(cnt(out,'</tbody>'),3);
+  const iSub1=out.indexOf('Subtotal — T1'), iClose1=out.indexOf('</tbody>');
+  assert.ok(iSub1>0 && iSub1<iClose1);                               // subtotal DENTRO do grupo da transportadora
+  const iLastGrp=out.lastIndexOf('<tbody class="grp">');
+  assert.ok(out.indexOf('<td>TOTAL GERAL</td>')>iLastGrp);           // total em grupo próprio
+  const iGrp2=out.indexOf('<tbody class="grp">',iClose1+1), iClose2=out.indexOf('</tbody>',iClose1+1), iSub2=out.indexOf('Subtotal — T2');
+  assert.ok(iSub2>iGrp2 && iSub2<iClose2);                           // T2 + subtotal no 2º grupo
+  const css=c.printResumoCss();
+  for(const x of ['@page{size:A4 landscape;margin:10mm}','body{font-family:Arial,Helvetica,sans-serif;margin:0;color:#0f172a}',
+    'thead{display:table-header-group}','tr{break-inside:avoid;page-break-inside:avoid}','tbody.grp{break-inside:avoid;page-break-inside:avoid}']) assert.ok(css.includes(x),x);
+});
 test('regressões: resumo por quinzena e impressão isolada permanecem',()=>{
-  for(const x of ['id="fh-resumo"','function fechRefOptions','function renderFechHist','A4 portrait','2026-09-29b','id="kp-f-sit"','function kpGroupRows','function kpKmJump','function kpSituation']) assert.ok(html.includes(x),x);
-  assert.ok(!html.includes("const APP_V = '2026-09-29a'"));
+  for(const x of ['id="fh-resumo"','function fechRefOptions','function renderFechHist','A4 portrait','2026-09-29c','id="kp-f-sit"','function kpGroupRows','function kpKmJump','function kpSituation','@page{size:A4 landscape;margin:10mm}','tbody class="grp"']) assert.ok(html.includes(x),x);
+  assert.ok(!html.includes("const APP_V = '2026-09-29b'"));
   assert.ok(!html.includes('tryAutoMigrarLote'));
 });
 test('migração: simulação não grava e aplicação usa comparação/flag após confirmação', async()=>{

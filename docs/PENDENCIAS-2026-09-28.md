@@ -90,3 +90,13 @@ Selo de versão: **2026-09-29b** (`APP_V`), sobre a atualização 2026-09-29a ac
 - Negociada (Neg?=Sim ou Valor Frete manual) segue atualizando **só o KM** — o valor negociado permanece; badge âmbar "negociada · valor mantido" no grupo 2.
 - Validação: `python tests/validate.py` (parser HTML, IDs únicos, `node --check` dos scripts inline) e `node --test tests/recovery.cjs` com teste ampliado cobrindo situação/grupos, exclusão de fechadas e análise, filtro Situação e a regra dos 10% (inclusive limites 100→110 não destaca, 100→111 destaca, vazio→5 destaca). Renderização agrupada conferida por HTML de linha/grupo em sandbox.
 - Pendente: conferência visual no navegador logado (a validação acima não equivale a teste de login/impressão em produção) e deploy no Pages.
+
+## Atualização 29/09/2026 (c) — Impressão do Resumo geral: quebras de página corretas e grupos por transportadora
+
+Selo de versão: **2026-09-29c** (`APP_V`), sobre a atualização 2026-09-29b acima.
+
+- `printResumoCss()` ganhou regras de quebra: `@page{size:A4 landscape;margin:10mm}` (a margem sai do `body`, que fica `margin:0`), `thead{display:table-header-group}` (cabeçalho repetido em cada folha), `tr{break-inside:avoid}` (nenhuma linha cortada ao meio) e `tbody.grp{break-inside:avoid}` (transportadora + subtotal nunca separados).
+- `renderFechResumo()` agora embrulha cada transportadora (linhas Capital/Interior + subtotal `res-sub`) em um `<tbody class="grp">` próprio; o TOTAL GERAL (`res-total`) fecha o grupo anterior e abre o seu. O cabeçalho da tabela termina em `</tr></thead>` (o primeiro `<tbody>` abre dentro do loop) e o fechamento `</tbody></table>` final permanece.
+- Na tela nada muda visualmente (o CSS de tela não zebrava por `tbody`); o efeito é só na impressão via `printResumo()`: o grupo inteiro salta para a folha seguinte quando não cabe.
+- O Resumo das quinzenas (`fhResPrint`) usa outro HTML/CSS e não foi alterado.
+- Validação: `python tests/validate.py` + `node --test tests/recovery.cjs` com teste novo renderizando `renderFechResumo()` em sandbox (3 grupos p/ 2 transportadoras + total, subtotais dentro do grupo certo) e conferindo as 5 regras novas do CSS de impressão.
