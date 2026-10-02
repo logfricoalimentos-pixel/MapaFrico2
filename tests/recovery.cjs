@@ -142,13 +142,14 @@ test('KM Portaria 2026-09-29b: situação/grupos, só Pendente+Concluída, laran
   assert.ok(htmlNeg.includes('negociada · valor mantido') && !htmlNeg.includes('kp-dif'));
   assert.ok(html.includes('Aplicar KM real nas marcadas') && html.includes('id="kp-f-tipo"') && html.includes('id="kp-f-status"') && html.includes('id="kp-f-sit"') && html.includes('kp-group'));
 });
-test('resumo do fechamento: tbody.grp por transportadora e CSS de quebra p/ impressão',()=>{
+test('resumo do fechamento: grupos na tela e tabela contínua/branca na impressão',()=>{
   const wrap={innerHTML:'', dataset:{}, addEventListener(){}};
   const c=context({relEl:id=> id==='fech-resumo'?wrap:null, TRANSP_CODES:{}, numVal:x=>Number(x)||0,
     fechGroups:()=>[{nome:'T1',key:'t1'},{nome:'T2',key:'t2'}],
     fechGroupSel:g=>({s:{codigo:'7'+g.key, nf:'NF'+g.key, boleto:'B'+g.key, abat:0},
       itens:[{sec:'capital',calc:{peso:10,total:100}},{sec:'interior',calc:{peso:5,total:60}}]}),
     fechResumoRows:grupos=>{
+      assert.equal(grupos[0].nf,'NFt1'); assert.equal(grupos[0].boleto,'Bt1'); // as colunas seguem visíveis no resumo da tela
       const rows=[];
       for(const g of grupos){
         rows.push({t:'reg',regiao:'Capital',transp:g.transp,codigo:g.codigo,peso:10,abat:0,fat:100,pagar:100,nf:'',boleto:''});
@@ -176,16 +177,54 @@ test('resumo do fechamento: tbody.grp por transportadora e CSS de quebra p/ impr
   assert.ok(iSub2>iGrp2 && iSub2<iClose2);                           // T2 + subtotal no 2º grupo
   const css=c.printResumoCss();
   for(const x of ['@page{size:A4 landscape;margin:10mm}','body{font-family:Arial,Helvetica,sans-serif;margin:0;color:#0f172a}',
-    'thead{display:table-header-group}','tr{break-inside:avoid;page-break-inside:avoid}','tbody.grp{break-inside:avoid;page-break-inside:avoid}',
-    'div.grp{break-inside:avoid;page-break-inside:avoid}','table{border-collapse:collapse;width:100%;font-size:12px;table-layout:fixed}']) assert.ok(css.includes(x),x);
-  // impressão: cada tbody.grp vira div.grp com table própria + thead repetido (Chrome ignora break-inside em tbody)
-  const stubTbl={querySelector:()=>({outerHTML:'<thead><tr><th>Região</th></tr></thead>'}),
-    querySelectorAll:()=>[{outerHTML:'<tbody class="grp"><tr><td>T1</td></tr></tbody>'},{outerHTML:'<tbody class="grp"><tr class="res-total"><td>TOT</td></tr></tbody>'}]};
-  const pg=c.printResumoGroupHtml(stubTbl);
-  assert.equal(cnt(pg,'<div class="grp">'),2);
-  assert.equal(cnt(pg,'<thead><tr><th>Região</th></tr></thead>'),2);          // cabeçalho em cada grupo
-  assert.ok(pg.indexOf('<div class="grp"><table>')===0 && pg.endsWith('</table></div>'));
-  assert.ok(pg.indexOf('<tbody class="grp"><tr><td>T1</td></tr></tbody>')<pg.indexOf('<tbody class="grp"><tr class="res-total">'));
+    '.print-table thead{display:table-header-group}','.print-table tr.carrier-pack{break-inside:avoid !important;page-break-inside:avoid !important}',
+    'td{white-space:nowrap}','.print-table{border-collapse:collapse;width:100%;font-size:11px;table-layout:fixed;background:#fff !important}',
+    '.carrier-data tr.res-sub td{background:#fff !important']) assert.ok(css.includes(x),x);
+  const printHtml=c.printResumoRowsHtml([
+    {t:'reg',regiao:'Interior',transp:'T1',codigo:'7',peso:5,abat:null,fat:60,pagar:60},
+    {t:'sub',transp:'T1',codigo:'7',peso:15,abat:0,fat:160,pagar:160},
+    {t:'tot',peso:15,abat:0,fat:160,pagar:160}
+  ],'01/09/2026 a 15/09/2026','02/10/2026');
+  assert.equal(cnt(printHtml,'class="print-table"'),1);                     // uma tabela externa contínua
+  assert.equal(cnt(printHtml,'class="carrier-data"'),2);                   // cada transportadora fica em um bloco indivisível
+  assert.equal(cnt(printHtml,'<thead>'),1);                                  // título + cabeçalho repetidos em cada página via CSS
+  assert.equal(cnt(printHtml,'class="print-carrier"'),2);
+  assert.ok(printHtml.includes('Subtotal — T1') && printHtml.includes('Período: 01/09/2026 a 15/09/2026'));
+});
+test('impressão do resumo: repete título/cabeçalho, mantém transportadoras inteiras, omite PAGO e NF/Boleto',()=>{
+  let printed='';
+  const iframe={style:{},contentDocument:{open(){},write:s=>{printed=s;},close(){}},contentWindow:{focus(){},print(){}},remove(){}};
+  const mix={key:'mix',nome:'Transportadora Mix'}, solo={key:'solo',nome:'Transportadora Solo'}, pago={key:'pago',nome:'PAGO'};
+  const data={
+    mix:[{sec:'interior',calc:{peso:5,total:50}},{sec:'capital',calc:{peso:7,total:70}}],
+    solo:[{sec:'interior',calc:{peso:3,total:30}}],
+    pago:[{sec:'capital',calc:{peso:99,total:999}}]
+  };
+  const c=context({relEl:id=>id==='fech-resumo'?{}:null,TRANSP_CODES:{},REL:{start:'2026-09-01',end:'2026-09-15'},
+    fechPeriodoTxt:()=> '01/09/2026 a 15/09/2026',fechGroups:()=>[mix,solo,pago],
+    fechGroupSel:g=>({s:{codigo:'COD-'+g.key,nf:'Sim',boleto:'Sim',abat:g.key==='mix'?10:0},itens:data[g.key]}),
+    numVal:x=>Number(x)||0,fmtPeso2:v=>String(Number(v)||0),fmtBRL:v=>'$'+(Number(v)||0).toFixed(2),
+    esc:s=>String(s==null?'':s).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch])),
+    document:{createElement:()=>iframe,body:{appendChild(){}}},setTimeout:()=>{},toast(){}});
+  vm.runInContext(block('function fechResumoRows(', 'function renderFechResumo(){'),c);
+  vm.runInContext(block('function printResumoCss(){','function renderFechFoot(){'),c);
+  c.printResumo();
+  const cnt=(s,sub)=>s.split(sub).length-1;
+  assert.ok(printed.includes('Transportadora Mix') && printed.includes('Transportadora Solo'));
+  assert.ok(!printed.includes('>PAGO</td>') && !printed.includes('>99</td>') && !printed.includes('$999.00'));
+  assert.ok(!printed.includes('Entregou a NF') && !printed.includes('Boleto'));
+  assert.equal(cnt(printed,'class="res-sub"'),1);                         // só a transportadora com as duas regiões
+  assert.equal(cnt(printed,'Subtotal —'),1);
+  assert.equal(cnt(printed,'class="print-table"'),1);                    // uma tabela externa contínua
+  assert.equal(cnt(printed,'class="carrier-data"'),3);                   // MIX, SOLO e TOTAL GERAL em blocos inteiros
+  assert.equal(cnt(printed,'<thead>'),1);                                  // título + colunas repetidos em cada página
+  assert.ok(printed.includes('<strong>RESUMO GERAL — INTERIOR/CAPITAL POR TRANSPORTADORA + TOTAL GERAL</strong>'));
+  assert.ok(printed.includes('<tr class="print-columns">'));
+  assert.equal(cnt(printed,'class="carrier-pack"'),3);
+  assert.equal((printed.match(/<th(?:\s|>)/g)||[]).length,8);             // título + as 7 colunas (sem NF/Boleto)
+  assert.ok(printed.includes('Período: 01/09/2026 a 15/09/2026'));
+  assert.ok(printed.includes('<td class="num">15</td>'));                // TOTAL GERAL exclui os 99 kg de PAGO
+  assert.ok(printed.includes('background:#fff !important'));
 });
 test('rotas abertas: coleta só Pendente/Concluída, janela c/ filtro por coluna e download Excel filtrado',()=>{
   let captured=null;
@@ -213,8 +252,13 @@ test('rotas abertas: coleta só Pendente/Concluída, janela c/ filtro por coluna
     const page=c.rotasWinHtml();
     const js=page.slice(page.indexOf('<script>')+8,page.lastIndexOf('</script>'));
     new vm.Script(js);                                             // JavaScript gerado é válido
-    for(const x of ['id="r-xls"','id="r-csv"','id="r-clear"','data-col="status"','data-col="transp"','data-col="destino"']) assert.ok(page.includes(x),x);
+    for(const x of ['id="r-xls"','id="r-csv"','id="r-clear"','data-col="status"','data-col="transp"','data-col="destino"','data-col="media"']) assert.ok(page.includes(x),x);
     assert.ok(js.includes('FILTERS') && js.includes('rotasSetRows') && js.includes('valOf'));
+    const filterLogic=js.slice(js.indexOf('let ROWS ='),js.indexOf('function render(){'));
+    const fc=context({document:{querySelector:()=>null}});vm.runInContext(filterLogic,fc);
+    vm.runInContext("ROWS=[{id:'a',d:'2026-09-21',media:8.004},{id:'b',d:'2026-09-22',media:8.01}]; FILTERS.media=new Set(['R$ 8,00/kg']);",fc);
+    assert.equal(vm.runInContext('filtered().length',fc),1);                 // filtro usa o mesmo arredondamento da coluna
+    assert.equal(vm.runInContext('filtered()[0].id',fc),'a');
     assert.ok(c.rotasAbertasDownload(rows)===true);
     assert.ok(captured && captured.n.startsWith('rotas-abertas-') && captured.n.endsWith('.xlsx'));
     const aoa=captured.wb.S[0][1].aoa;
@@ -225,7 +269,7 @@ test('rotas abertas: coleta só Pendente/Concluída, janela c/ filtro por coluna
   });
 });
 test('regressões: resumo por quinzena e impressão isolada permanecem',()=>{
-  for(const x of ['id="fh-resumo"','function fechRefOptions','function renderFechHist','A4 portrait','2026-09-29e','id="kp-f-sit"','function kpGroupRows','function kpKmJump','function kpSituation','@page{size:A4 landscape;margin:10mm}','tbody class="grp"','function printResumoGroupHtml','div.grp{break-inside:avoid','id="btn-rotas-window"','function rotasWinHtml','function rotasAbertasCollectRows']) assert.ok(html.includes(x),x);
+  for(const x of ['id="fh-resumo"','function fechRefOptions','function renderFechHist','A4 portrait','2026-10-02b','id="kp-f-sit"','function kpGroupRows','function kpKmJump','function kpSituation','@page{size:A4 landscape;margin:10mm}','tbody class="grp"','function printResumoRowsHtml','td{white-space:nowrap}','id="btn-rotas-window"','function rotasWinHtml','function rotasAbertasCollectRows']) assert.ok(html.includes(x),x);
   assert.ok(!html.includes("const APP_V = '2026-09-29d'"));
   assert.ok(!html.includes('tryAutoMigrarLote'));
 });

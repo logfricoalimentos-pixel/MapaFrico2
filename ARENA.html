@@ -5035,42 +5035,79 @@ function renderFechResumo(){
 }
 /* 🖨 imprime o resumo agrupado (frame oculto p/ não levar o resto da tela) */
 function printResumoCss(){
-  return '@page{size:A4 landscape;margin:10mm}' +                                   // NOVO
-    '*{-webkit-print-color-adjust:exact;print-color-adjust:exact}' +
-    'body{font-family:Arial,Helvetica,sans-serif;margin:0;color:#0f172a}' +         // margin:0 (a margem agora vem do @page)
-    'h3{margin:0 0 10px;font-size:15px;background:#0f172a;color:#fff;padding:8px 10px;border-radius:6px}' +
-    'table{border-collapse:collapse;width:100%;font-size:12px;table-layout:fixed}' +
-    'thead{display:table-header-group}' +                                          // NOVO: repete o cabeçalho em cada folha
-    'tr{break-inside:avoid;page-break-inside:avoid}' +                             // NOVO: nunca corta uma linha ao meio
-    'tbody.grp{break-inside:avoid;page-break-inside:avoid}' +                      // transportadora + subtotal juntos (onde o engine respeita)
-    'div.grp{break-inside:avoid;page-break-inside:avoid}' +                        // 2026-09-29d: o Chrome IGNORA break-inside em tbody => na impressão cada grupo vira div.grp com table própria
-    'th,td{border:1px solid #64748b;padding:6px 8px;text-align:left}' +
-    'td.num,th.num{text-align:right}' +
-    'thead th{background:#1e293b;color:#fff;font-weight:700}' +
-    'tbody tr:nth-child(odd) td{background:#f1f5f9}' +
-    'tbody tr.res-sub td,tbody tr.res-sub:nth-child(odd) td{background:#111827;color:#fff;font-weight:700;padding:3px 8px;line-height:1.25}' +
-    'tbody tr.res-total td,tbody tr.res-total:nth-child(odd) td{background:#15803d;color:#fff;font-weight:800}' +
-    'td.mono{font-family:ui-monospace,Consolas,monospace}';
+  return '@page{size:A4 landscape;margin:10mm}' +
+    '*{-webkit-print-color-adjust:exact;print-color-adjust:exact;box-sizing:border-box}' +
+    'html,body{background:#fff !important}' +
+    'body{font-family:Arial,Helvetica,sans-serif;margin:0;color:#0f172a}' +
+    '.print-table{border-collapse:collapse;width:100%;font-size:11px;table-layout:fixed;background:#fff !important}' +
+    '.print-table thead{display:table-header-group}' +
+    '.print-table tr,.carrier-data,.carrier-data tr{break-inside:avoid;page-break-inside:avoid}' +
+    '.print-table tr.carrier-pack{break-inside:avoid !important;page-break-inside:avoid !important}' +
+    '.print-table tr.carrier-pack>td.pack-cell{border:0 !important;padding:0 !important;background:#fff !important}' +
+    '.carrier-data{border-collapse:collapse;width:100%;table-layout:fixed;font-size:inherit;background:#fff !important}' +
+    '.carrier-data tr{break-inside:avoid !important;page-break-inside:avoid !important}' +
+    'th,td{border:1px solid #64748b;padding:5px 6px;text-align:left;vertical-align:middle;background:#fff !important;color:#0f172a}' +
+    'td{white-space:nowrap}' +
+    '.print-title th{border:0 !important;border-bottom:1px solid #64748b !important;padding:0 0 7px !important;text-align:left !important;white-space:normal}' +
+    '.print-title strong{display:block;font-size:14px;line-height:1.2;margin-bottom:3px}' +
+    '.print-title span{display:block;font-size:9px;font-weight:400;color:#334155}' +
+    '.print-columns th{font-weight:700;border-bottom:2px solid #334155;padding:5px 6px;vertical-align:bottom}' +
+    '.print-columns th.num,.carrier-data td.num{text-align:right;white-space:nowrap}' +
+    '.carrier-data tr.res-sub td{background:#fff !important;color:#0f172a;font-weight:700;border-top:2px solid #64748b}' +
+    '.carrier-data tr.res-total td{background:#fff !important;color:#0f172a;font-weight:800;border-top:2px solid #0f172a}' +
+    '.carrier-data td.mono{font-family:ui-monospace,Consolas,monospace}';
 }
-/* 2026-09-29d: o Chrome não honra break-inside:avoid em <tbody> (row-group). P/ garantir que
-   transportadora + subtotal NUNCA separem, a impressão monta UMA <table> por grupo dentro de
-   <div class="grp"> (div respeita break-inside:avoid). O thead vai junto p/ repetir o cabeçalho
-   e table-layout:fixed mantém as mesmas larguras de coluna em todas as tabelas. Na tela segue
-   sendo uma tabela só com tbody.grp. */
-function printResumoGroupHtml(tbl){
-  const thead = tbl.querySelector('thead');
-  const tbs = tbl.querySelectorAll('tbody');
-  let out = '';
-  for(const tb of tbs) out += '<div class="grp"><table>' + (thead ? thead.outerHTML : '') + tb.outerHTML + '</table></div>';
-  return out || tbl.outerHTML;
+/* O título e o cabeçalho ficam no thead (repetido pelo navegador em cada página). Cada
+   transportadora é uma linha indivisível da tabela externa, com sua tabela de dados aninhada,
+   para que região + subtotal nunca sejam separados entre páginas. */
+function printResumoRowsHtml(rows, periodo, gerado){
+  const colgroup = '<colgroup><col style="width:8%"><col style="width:23%"><col style="width:8%"><col style="width:17%"><col style="width:13%"><col style="width:15%"><col style="width:16%"></colgroup>';
+  const thead = '<thead><tr class="print-title"><th colspan="7"><strong>RESUMO GERAL — INTERIOR/CAPITAL POR TRANSPORTADORA + TOTAL GERAL</strong>' +
+    '<span>Período: ' + esc(periodo || '') + ' · Gerado em ' + esc(gerado || '') + '</span></th></tr><tr class="print-columns">' +
+    '<th>REGIÃO</th><th>TRANSPORTADORA</th><th>CÓDIGO</th><th class="num">PESO TRANSPORTADO (KG)</th>' +
+    '<th class="num">ABATIMENTO (R$)</th><th class="num">VALOR FATURADO (R$)</th><th class="num">VALOR A SER PAGO (R$)</th></tr></thead>';
+  const rowHtml = r=>{
+    if(r.t === 'reg') return '<tr><td>' + esc(r.regiao || '') + '</td><td>' + esc(r.transp || '') + '</td><td class="mono">' + esc(r.codigo || '') + '</td>' +
+      '<td class="num">' + fmtPeso2(r.peso) + '</td><td class="num">' + (r.abat ? fmtBRL(r.abat) : '') + '</td>' +
+      '<td class="num">' + fmtBRL(r.fat) + '</td><td class="num">' + fmtBRL(r.pagar) + '</td></tr>';
+    if(r.t === 'sub') return '<tr class="res-sub"><td></td><td>Subtotal — ' + esc(r.transp || '') + '</td><td class="mono">' + esc(r.codigo || '') + '</td>' +
+      '<td class="num">' + fmtPeso2(r.peso) + '</td><td class="num">' + (r.abat ? fmtBRL(r.abat) : '') + '</td>' +
+      '<td class="num">' + fmtBRL(r.fat) + '</td><td class="num">' + fmtBRL(r.pagar) + '</td></tr>';
+    return '<tr class="res-total"><td></td><td>TOTAL GERAL</td><td></td><td class="num">' + fmtPeso2(r.peso) + '</td>' +
+      '<td class="num">' + (r.abat ? fmtBRL(r.abat) : '') + '</td><td class="num">' + fmtBRL(r.fat) + '</td>' +
+      '<td class="num">' + fmtBRL(r.pagar) + '</td></tr>';
+  };
+  let groups = [], current = [], currentKey = null;
+  const flush = ()=>{
+    if(!current.length) return;
+    groups.push('<tbody class="print-carrier"><tr class="carrier-pack"><td class="pack-cell" colspan="7"><table class="carrier-data">' +
+      colgroup + '<tbody>' + current.map(rowHtml).join('') + '</tbody></table></td></tr></tbody>');
+    current = [];
+  };
+  for(const r of (rows || [])){
+    const key = r.t === 'tot' ? '__total_row__' : 'carrier:' + String(r.transp || '');
+    if(current.length && key !== currentKey) flush();
+    currentKey = key;
+    current.push(r);
+  }
+  flush();
+  return '<table class="print-table">' + colgroup + thead + groups.join('') + '</table>';
 }
 function printResumo(){
   const node = relEl('fech-resumo'); if(!node) return;
-  const tbl = node.querySelector('table'); if(!tbl){ toast('Nada para imprimir ainda — marque cargas no período', 'err'); return; }
+  const selecionados = fechGroups().map(g=> ({g: g, gs: fechGroupSel(g)})).filter(x=> x.gs.itens.length).map(x=> ({
+    transp: x.g.nome,
+    codigo: String(x.gs.s.codigo || '').trim() || TRANSP_CODES[x.g.key] || '',
+    abatimento: numVal(x.gs.s.abat),
+    cargas: x.gs.itens.map(it=> ({sec: it.sec, peso: it.calc.peso, total: it.calc.total}))
+  }));
+  const grupos = selecionados.filter(g=> String(g.transp || '').trim().toLocaleUpperCase('pt-BR') !== 'PAGO');
+  if(!grupos.length){ toast(selecionados.length ? 'A transportadora "PAGO" foi omitida; não há outras cargas marcadas para imprimir' : 'Nada para imprimir ainda — marque cargas no período', 'err'); return; }
+  const rows = fechResumoRows(grupos, true);
   const css = printResumoCss();
+  const gerado = new Date().toLocaleDateString('pt-BR');
   const head = '<html><head><meta charset="utf-8"><title>Resumo geral do fechamento</title><style>' + css + '</style></head><body>' +
-    '<h3>RESUMO GERAL DO FECHAMENTO — ' + esc(fechPeriodoTxt(REL)) + ' · gerado em ' + new Date().toLocaleDateString('pt-BR') + '</h3>' +
-    printResumoGroupHtml(tbl) + '</body></html>';
+    printResumoRowsHtml(rows, fechPeriodoTxt(REL), gerado) + '</body></html>';
   const f = document.createElement('iframe');
   f.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0';
   document.body.appendChild(f);
@@ -5984,7 +6021,7 @@ function rotasWinHtml(){
     '<th>Destino / Rota<span class="fa" data-col="destino" title="Filtrar esta coluna (estilo Excel)">▼</span></th>',
     '<th>Motorista<span class="fa" data-col="motorista" title="Filtrar esta coluna (estilo Excel)">▼</span></th>',
     '<th>Transportadora<span class="fa" data-col="transp" title="Filtrar esta coluna (estilo Excel)">▼</span></th>',
-    '<th class="num">KM</th><th class="num">Peso (kg)</th><th class="num">Total (R$)</th><th class="num">Média (R$/kg)</th>',
+    '<th class="num">KM</th><th class="num">Peso (kg)</th><th class="num">Total (R$)</th><th class="num">Média (R$/kg)<span class="fa" data-col="media" title="Filtrar esta coluna (estilo Excel)">▼</span></th>',
     '</tr></thead><tbody id="body"></tbody><tfoot id="foot"></tfoot></table>',
     '<div class="empty" id="empty" hidden>Carregando…</div>',
     '</div>',
@@ -5994,7 +6031,7 @@ function rotasWinHtml(){
     "'use strict';",
     "let ROWS = null; const FILTERS = {};",
     "const $ = s => document.querySelector(s);",
-    "const COLS = [{k:'status'},{k:'sec'},{k:'ordem'},{k:'placa'},{k:'destino'},{k:'motorista'},{k:'transp'}];",
+    "const COLS = [{k:'status'},{k:'sec'},{k:'ordem'},{k:'placa'},{k:'destino'},{k:'motorista'},{k:'transp'},{k:'media'}];",
     "const SEC_LBL = {capital:'Capital', interior:'Interior', frotas:'Frotas'};",
     "const ST_LBL = {pendente:'Pendente', concluida:'Concluída'};",
     "function op(){ const o = window.opener; return (o && !o.closed) ? o : null; }",
@@ -6004,7 +6041,7 @@ function rotasWinHtml(){
     "function fmtBRL(v){ return 'R$ '+(Number(v)||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }",
     "function fmtPeso(v){ return (Number(v)||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }",
     "function fmtMedia(v){ return v==null? '—' : 'R$ '+Number(v).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+'/kg'; }",
-    "function valOf(r,k){ if(k==='sec') return SEC_LBL[r.sec]||r.sec; if(k==='status') return ST_LBL[r.status]||r.status; return String(r[k]==null?'':r[k]); }",
+    "function valOf(r,k){ if(k==='sec') return SEC_LBL[r.sec]||r.sec; if(k==='status') return ST_LBL[r.status]||r.status; if(k==='media') return fmtMedia(r.media); return String(r[k]==null?'':r[k]); }",
     "function keyOf(r){ return r.d+'|'+r.sec+'|'+r.id; }",
     "function filtered(){",
     "  if(!ROWS) return [];",
@@ -9136,7 +9173,7 @@ async function init(){
 /* AUTO-CHECK DE VERSAO: avisa (somente quando roda em github.io) se a aba estiver com
    copia antiga em cache — compara o selo APP_V local com o do arquivo publicado no repo.
    Falha de rede/offline = silencioso; nunca bloqueia o uso. */
-const APP_V = '2026-09-29e';
+const APP_V = '2026-10-02b';
 (function(){
   // Selo de versão VISÍVEL no canto da tela: qualquer print/print-screen mostra qual código
   // está rodando no aparelho (cópia antiga = selo antigo/ausente). Não entra nas capturas.

@@ -121,3 +121,12 @@ Selo de versão: **2026-09-29e** (`APP_V`), sobre a atualização 2026-09-29d ac
 - **⬇ Excel (filtrado)** gera o `.xlsx` na aba principal (`rotasAbertasDownload`, que tem o XLSX; aba "Rotas abertas", só as linhas filtradas, com auditoria e toast); **⬇ CSV (filtrado)** funciona standalone (`;` + BOM p/ Excel pt-BR).
 - Validação: teste novo em `tests/recovery.cjs` (coleta exclui fechada/analise, JavaScript gerado da janela é válido, ids de filtro/download presentes, `rotasAbertasDownload` com XLSX stub gera aba e valores numéricos corretos); `python tests/validate.py` OK.
 - Pendente: conferência visual no navegador logado (pop-up permitido) e deploy no Pages.
+
+## Atualização 02/10/2026 — filtros e impressão do resumo
+
+Selo de versão: **2026-10-02b** (`APP_V`).
+
+- 📋 **Rotas abertas**: filtro por coluna incluído em **Média (R$/kg)**. O filtro lista os mesmos valores arredondados exibidos na tabela e também afeta os downloads filtrados.
+- **Resumo Geral — Interior/Capital por transportadora**: impressão como tabela contínua, com título e cabeçalho repetidos em cada página; cada transportadora (regiões + subtotal, se houver) permanece inteira em uma página. Fundo branco, sem as colunas **Entregou a NF** e **Boleto**; transportadora **PAGO** fica fora do documento e do TOTAL GERAL impresso. Subtotal impresso somente quando o grupo tem Interior e Capital; transportadoras com uma região não recebem subtotal.
+- O layout segue a organização da **image-2**; a tela e a planilha do fechamento não foram alteradas por essas regras específicas da impressão.
+- Validação: `python tests/validate.py` (11 testes, incluindo filtro de Média, tabela contínua e regras da impressão).
