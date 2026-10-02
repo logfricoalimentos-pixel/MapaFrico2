@@ -1190,6 +1190,7 @@ html.gerencial-request #settings{display:none!important}
         <li><b>🎨 Cores de status no Mapa de Carregamento</b>: linha <b>verde claro</b> = carga <b>Concluída</b> (✔ Concluir) · linha <b>cinza prateado</b>, com letras em <b>cinza escuro e itálico</b> = carga <b>Fechada</b> (🔒 fechamento de frete já feito — não pode ser editada, só reaberta pelo ↺ do fechamento) · sem cor = <b>Pendente</b>. As cores valem na tela e nos prints A4 do mapa.</li>
         <li><b>📋 Fechamento de Fretes — filtro por Status</b>: além dos filtros de texto/valor e do <b>Tipo</b> (Capital/Interior), dá para filtrar por <b>Status</b>: <b>Pendente</b>, <b>Concluída</b>, <b>Em análise (antigo)</b> ou <b>Fechada</b>. Filtrar por <b>Fechada</b> marca &quot;Exibir fechadas&quot; sozinho (e desmarcar a caixa volta o filtro para Todas).</li>
         <li><b>📥 KM Portaria — seleção por linha + filtros</b>: a prévia da planilha da portaria ganhou <b>✓ em cada linha</b>, e o botão <b>&quot;Aplicar KM real nas marcadas&quot;</b> grava o KM <b>somente nas ordens selecionadas</b> (a prévia já abre com todas as que mudam marcadas; há <b>Marcar do filtro</b>, <b>Inverter</b> e <b>Desmarcar tudo</b>). Quando o <b>KM do mapa já é igual</b> ao da planilha a linha fica <b>travada (🔒), sem ✓</b> — não há o que aplicar. As linhas são <b>sempre agrupadas por situação</b>: <b>1 · atualiza</b>, <b>2 · negociada · valor mantido</b> e <b>3 · KM já igual</b> (🔒). A prévia mostra <b>só status Pendente e Concluída</b>; carga <b>FECHADA</b> continua <b>nunca alterada</b> e fica <b>fora da prévia</b> (contada à parte no rodapé). Filtros: <b>Tipo</b> (Capital / Interior / Frotas), <b>Status</b> (Pendente / Concluída), <b>Situação</b> (grupos 1/2/3), <b>Data</b>, <b>Ordem</b> e <b>Destino / Rota</b>, mais as colunas <b>Destino / Rota</b> e <b>Status</b> na tabela. Linha em <b>laranja ⚠️</b> = KM real mais de 10% acima do KM atual (conferir antes de marcar); <b>negociada</b> atualiza só o KM (o valor negociado permanece). A seleção é mantida ao filtrar e o rodapé da barra mostra quantas linhas estão marcadas, quantas em laranja e quantas fechadas ficaram fora.</li>
+      <li><b>📋 Rotas abertas (Concluídas & Pendentes)</b>: botão azul no painel de Fechamento abre uma <b>janela própria</b> com todas as cargas <b>não fechadas</b> de todos os dias (uma linha por carga: Status, Faturamento, Entrega, Tipo, Ordem, Placa, Destino, Motorista, Transportadora, KM, Peso, Total e Média) e totais no rodapé. <b>Filtro por coluna estilo Excel</b>: o ▼ no cabeçalho abre busca + checklist (colunas combinam em <b>E</b>; valores marcados somam em <b>OU</b>; ▼ amarelo = coluna filtrada), mais períodos de Faturamento/Entrega na barra. <b>⬇ Excel / ⬇ CSV baixam SOMENTE as linhas filtradas</b> (o Excel é gerado pela aba principal, que tem o XLSX; o CSV funciona sozinho). Cargas fechadas e &quot;Em análise&quot; ficam fora.</li>
         <li><b>📋 Fechamento de Fretes — layout</b>: a coluna <b>Status</b> fica <b>grudada na direita</b> e continua visível mesmo rolando a tabela na horizontal; o selo verde <b>KM</b> (km da portaria) fica <b>dentro da coluna KM</b> (antes vazava para a coluna Diárias); as colunas <b>KM</b>, <b>Data Inicial</b>, Peso e Diárias têm a largura ajustada ao próprio texto (a tabela não estica mais além do necessário).</li>
         <li><b>🚫 Status &quot;Em Análise&quot; aposentado</b>: o app não oferece mais esse status — use <b>✔ Concluir</b>. Não existe mais o botão 🔍 Marcar Em Análise nem as opções &quot;devolver p/ Em Análise&quot;: <b>reabrir</b> uma carga fechada (↺) volta <b>sempre para Pendente</b>. Cargas antigas que já estavam &quot;Em Análise&quot; foram mantidas como estavam e seguem aparecendo com esse rótulo (marcado como antigo) onde já apareciam.</li>
         <li><b>Margem configurável (padrão +10%)</b> no valor previsto de cargas não negociadas — em Configurações dá p/ poner 0 ou qualquer X%; negociadas (Valor Frete manual ou Neg? = Sim) mantêm o valor fechado.</li>
@@ -1610,6 +1611,7 @@ html.gerencial-request #settings{display:none!important}
       <div id="fech-resumo"></div>
     </details>
     <button class="btn" type="button" id="btn-hist-window" style="background:#ef4444;color:#000;margin-top:12px">📚 Cargas fechadas — abrir janela</button>
+    <button class="btn" type="button" id="btn-rotas-window" style="background:#0ea5e9;color:#000;margin-top:12px;margin-left:8px" title="Janela com TODAS as rotas Concluídas e Pendentes de todos os dias: uma linha por carga, filtro por coluna estilo Excel (▼ no cabeçalho), totais no rodapé e download Excel/CSV só das linhas filtradas">📋 Rotas abertas (Concluídas & Pendentes) — abrir janela</button>
     <details class="fech-hist" id="fech-hist">
       <summary>📚 Fechamentos anteriores (por mês/quinzena — resumo, reabrir, baixar de novo)</summary>
       <div class="fh-filter">
@@ -5864,6 +5866,286 @@ function histWinRefresh(){
   });
 }
 
+/* ===== Rotas abertas (Concluídas & Pendentes): janela c/ filtro por coluna (estilo Excel) e download ===== */
+/* Uma linha por carga NÃO fechada de todos os dias salvos (status Pendente ou Concluída),
+   mesmo espírito do 📚 Fechamentos anteriores — mas p/ rotas abertas. */
+async function rotasAbertasCollectRows(){
+  if(!canEditOperational()) throw new Error("Sessão sem permissão");
+  const out=[]; let days=[];
+  try{ const keys=await Stor.list(); days=keys.filter(k=>k.startsWith('map:')).map(k=>k.slice(4)).filter(d=>/^\d{4}-\d{2}-\d{2}$/.test(d)); }catch(e){}
+  if(currentMapDate && !days.includes(currentMapDate)) days.push(currentMapDate);
+  days.sort();
+  for(const d of days){
+    let rec=null;
+    try{ rec=(d===currentMapDate)?{data:DATA, dtEntrega:dtEntrega}:relNormalizeRec(await Stor.get('map:'+d)); }catch(e){ continue; }
+    if(!rec||!rec.data) continue;
+    const entD=(d===currentMapDate?dtEntrega:rec.dtEntrega)||'';
+    for(const sec of SECTIONS){
+      for(const row of (rec.data[sec]||[])){
+        if(!row||relIsFech(row)) continue;
+        const st=relStatusOf(row); if(st!=='pendente'&&st!=='concluida') continue;   // fechadas/analise ficam fora
+        const fr=calcularFrete(sec,row)||{}; const tot=numVal(fr.total), psi=numVal(row.peso);
+        out.push({status:st, d:d, sec:sec, id:row.id||'', ordem:String(row.carga||''), placa:row.placa||'',
+          destino:String(row.destino||''), motorista:row.motorista||'', transp:row.transportadora||'',
+          entrega:row.entrega||entD||'', km:(row.km===''||row.km==null)?'':numVal(row.km),
+          peso:psi, total:tot, media:(tot>0&&psi>0)?tot/psi:null});
+      }
+    }
+  }
+  return out;
+}
+const RA_SEC={capital:'Capital', interior:'Interior', frotas:'Frotas'};
+/* download Excel (na aba principal, que tem o XLSX) só das linhas filtradas da janela */
+function rotasAbertasDownload(rows){
+  if(typeof XLSX === 'undefined'){ toast('❌ Biblioteca XLSX não carregada (sem internet para o CDN?)', 'err'); return false; }
+  const aoa=[['Status','Faturamento','Entrega','Tipo','Ordem','Placa','Destino / Rota','Motorista','Transportadora','KM','Peso (kg)','Total (R$)','Média (R$/kg)']];
+  for(const r of (rows||[])){
+    aoa.push([r.status==='concluida'?'Concluída':'Pendente', fmtBR(r.d), r.entrega?fmtBR(r.entrega):'', RA_SEC[r.sec]||r.sec,
+      r.ordem||'', r.placa||'', r.destino||'', r.motorista||'', r.transp||'',
+      r.km===''?'':Number(r.km), Number(r.peso)||0, Number(r.total)||0, r.media==null?'':Math.round(Number(r.media)*100)/100]);
+  }
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), 'Rotas abertas');
+  const name='rotas-abertas-' + (currentMapDate||new Date().toISOString().slice(0,10)) + '.xlsx';
+  XLSX.writeFile(wb, name);
+  audit('rotas-abertas-download', name + ': ' + (rows||[]).length + ' linha(s) filtrada(s)');
+  toast('⬇ Excel gerado: ' + name + ' (' + (rows||[]).length + ' linha(s))', 'ok');
+  return true;
+}
+function rotasWinHtml(){
+  const CSS = [
+    ':root{--line:#e2e8f0;--ink:#0f172a;--muted:#64748b}',
+    '*{box-sizing:border-box}html,body{margin:0;padding:0}',
+    'body{background:#f1f5f9;color:var(--ink);font:13.5px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;height:100vh;display:flex;flex-direction:column}',
+    'header{background:#0c4a6e;color:#fff;padding:12px 16px;box-shadow:0 2px 8px rgba(0,0,0,.25)}',
+    'header h1{font-size:16.5px;margin:0;display:flex;align-items:center;gap:8px;flex-wrap:wrap}',
+    'header h1 .sub{font-size:12px;font-weight:400;color:#bae6fd}',
+    '.h-actions{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}',
+    '.bar{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;background:#fff;border-bottom:1px solid var(--line);padding:10px 16px;position:sticky;top:0;z-index:5}',
+    '.bar label{font-size:10.5px;color:var(--muted);display:flex;flex-direction:column;gap:3px;text-transform:uppercase;letter-spacing:.2px}',
+    '.bar input,.bar select{border:1px solid var(--line);border-radius:7px;padding:5px 7px;font:inherit;font-size:12.5px;min-width:86px;background:#fff;color:var(--ink)}',
+    '.btn{border:1px solid var(--line);background:#fff;border-radius:8px;padding:6px 10px;font:inherit;font-size:12.5px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}',
+    '.btn:hover{background:#f8fafc;border-color:#cbd5e1}',
+    '.btn.mini{padding:2px 6px;font-size:12px;border-radius:6px}',
+    '.btn.green{background:#15803d;border-color:#14532d;color:#fff;font-weight:700}',
+    '.btn.green:hover{background:#166534;color:#fff}',
+    '.btn:disabled{opacity:.5;cursor:default}',
+    '#status{background:#eff6ff;border-bottom:1px solid #bfdbfe;color:#1e40af;font-size:12.5px;padding:7px 16px;min-height:16px;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}',
+    '.scroll{flex:1;overflow:auto;padding:12px 16px 16px}',
+    'table{border-collapse:separate;border-spacing:0;width:100%;font-size:12.5px;background:#fff;border:1px solid var(--line);border-radius:10px;overflow:hidden}',
+    'thead th{position:sticky;top:0;z-index:2;background:#1f2937;border-bottom:1px solid #111827;border-right:1px solid #111827;padding:7px 8px;text-align:left;white-space:nowrap;font-size:10.5px;color:#fff;letter-spacing:.2px;text-transform:uppercase}',
+    'thead th.num{text-align:right}',
+    'thead th .fa{cursor:pointer;margin-left:5px;font-size:9px;opacity:.7;padding:2px 3px;border-radius:4px}',
+    'thead th .fa:hover{background:#374151;opacity:1}',
+    'thead th .fa.on{color:#fbbf24;opacity:1}',
+    'tbody td{border-bottom:1px solid var(--line);border-right:1px solid var(--line);padding:4px 7px;vertical-align:middle;white-space:nowrap}',
+    'tbody tr:nth-child(even) td{background:#fbfdff}',
+    'tbody tr:hover td{background:#f0f7ff}',
+    'td.num{text-align:right;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}',
+    'td.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.4px}',
+    '.b{display:inline-block;padding:1px 7px;border-radius:999px;font-size:10.5px;font-weight:700;letter-spacing:.2px}',
+    '.b.cap{background:#ede9fe;color:#6d28d9}.b.int{background:#fef3c7;color:#b45309}.b.fro{background:#e0f2fe;color:#0369a1}',
+    '.b.pend{background:#e2e8f0;color:#334155}.b.concl{background:#bbf7d0;color:#166534}',
+    '.dim{color:#b6c2d2}',
+    'tfoot td{position:sticky;bottom:0;z-index:2;background:#f1f5f9;font-weight:700;border-top:2px solid #94a3b8;border-right:1px solid var(--line);padding:6px 7px;white-space:nowrap}',
+    'tfoot td.num{text-align:right;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}',
+    '.empty{color:var(--muted);text-align:center;padding:26px;font-size:13px;background:#fff;border:1px dashed #cbd5e1;border-radius:10px;margin-top:12px}',
+    '.dd{position:fixed;z-index:60;background:#fff;border:1px solid var(--line);border-radius:9px;box-shadow:0 10px 26px rgba(15,23,42,.22);padding:8px;width:236px;display:flex;flex-direction:column;gap:6px}',
+    '.dd input[type=search]{border:1px solid var(--line);border-radius:6px;padding:4px 6px;font:inherit;font-size:12px}',
+    '.dd .list{overflow:auto;border:1px solid var(--line);border-radius:6px;max-height:200px}',
+    '.dd .list label{display:flex;gap:6px;align-items:center;padding:3px 6px;font-size:12px;cursor:pointer;white-space:nowrap}',
+    '.dd .list label:hover{background:#f0f7ff}',
+    '.dd .acts{display:flex;gap:6px;justify-content:flex-end}',
+    'footer{padding:8px 16px;background:#fff;border-top:1px solid var(--line);display:flex;gap:10px;justify-content:space-between;align-items:center;flex-wrap:wrap;font-size:12px;color:var(--muted)}'
+  ].join('\n');
+  const BODY = [
+    '<header><h1>📋 Rotas abertas — Concluídas & Pendentes <span class="sub">uma linha por carga · filtro por coluna (estilo Excel) · download só do filtrado</span>',
+    '<span class="h-actions">',
+    '<button class="btn green" id="r-xls" title="Baixa em Excel SOMENTE as linhas da listagem filtrada">⬇ Excel (filtrado)</button>',
+    '<button class="btn" id="r-csv" title="Baixa em CSV (separador ; com BOM) SOMENTE as linhas da listagem filtrada">⬇ CSV (filtrado)</button>',
+    '<button class="btn" id="r-reload" title="Recarrega a lista do banco (depois de alterações feitas em outras telas)">🔄 Atualizar</button>',
+    '<button class="btn" id="r-close" title="Fecha esta janela">✕ Fechar janela</button>',
+    '</span></header>',
+    '<div class="bar">',
+    '<label>Faturamento de<input type="date" id="r-d1"></label>',
+    '<label>até<input type="date" id="r-d2"></label>',
+    '<label>Entrega de<input type="date" id="r-e1"></label>',
+    '<label>até<input type="date" id="r-e2"></label>',
+    '<button class="btn mini" id="r-clear" title="Limpa os períodos e TODOS os filtros de coluna">🧹 Limpar filtros</button>',
+    '</div>',
+    '<div id="status"><span id="status-txt">⏳ Carregando as rotas abertas…</span><span id="status-tot"></span></div>',
+    '<div class="scroll">',
+    '<table id="tbl"><thead><tr>',
+    '<th>Status<span class="fa" data-col="status" title="Filtrar esta coluna (estilo Excel)">▼</span></th>',
+    '<th>Faturamento</th><th>Entrega</th>',
+    '<th>Tipo<span class="fa" data-col="sec" title="Filtrar esta coluna (estilo Excel)">▼</span></th>',
+    '<th>Ordem<span class="fa" data-col="ordem" title="Filtrar esta coluna (estilo Excel)">▼</span></th>',
+    '<th>Placa<span class="fa" data-col="placa" title="Filtrar esta coluna (estilo Excel)">▼</span></th>',
+    '<th>Destino / Rota<span class="fa" data-col="destino" title="Filtrar esta coluna (estilo Excel)">▼</span></th>',
+    '<th>Motorista<span class="fa" data-col="motorista" title="Filtrar esta coluna (estilo Excel)">▼</span></th>',
+    '<th>Transportadora<span class="fa" data-col="transp" title="Filtrar esta coluna (estilo Excel)">▼</span></th>',
+    '<th class="num">KM</th><th class="num">Peso (kg)</th><th class="num">Total (R$)</th><th class="num">Média (R$/kg)</th>',
+    '</tr></thead><tbody id="body"></tbody><tfoot id="foot"></tfoot></table>',
+    '<div class="empty" id="empty" hidden>Carregando…</div>',
+    '</div>',
+    '<footer><span>▼ no cabeçalho = filtro por coluna (busca + checklist; colunas combinam em <b>E</b>, valores marcados somam em <b>OU</b>) · ⬇ leva só as linhas filtradas</span><span>janela aberta pelo Mapa de Carregamento — manter a aba principal aberta p/ o Excel</span></footer>'
+  ].join('\n');
+  const JS = [
+    "'use strict';",
+    "let ROWS = null; const FILTERS = {};",
+    "const $ = s => document.querySelector(s);",
+    "const COLS = [{k:'status'},{k:'sec'},{k:'ordem'},{k:'placa'},{k:'destino'},{k:'motorista'},{k:'transp'}];",
+    "const SEC_LBL = {capital:'Capital', interior:'Interior', frotas:'Frotas'};",
+    "const ST_LBL = {pendente:'Pendente', concluida:'Concluída'};",
+    "function op(){ const o = window.opener; return (o && !o.closed) ? o : null; }",
+    "function esc(s){ return String(s==null?'':s).replace(/[&<>\"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',\"'\":'&#39;'}[c])); }",
+    "function norm(s){ return String(s==null?'':s).toUpperCase().normalize('NFD').replace(/[\\\\u0300-\\\\u036f]/g,'').trim(); }",
+    "function fmtBR(iso){ if(!iso) return ''; const p=String(iso).split('-'); return p.length===3? p[2]+'/'+p[1]+'/'+p[0] : iso; }",
+    "function fmtBRL(v){ return 'R$ '+(Number(v)||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }",
+    "function fmtPeso(v){ return (Number(v)||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }",
+    "function fmtMedia(v){ return v==null? '—' : 'R$ '+Number(v).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+'/kg'; }",
+    "function valOf(r,k){ if(k==='sec') return SEC_LBL[r.sec]||r.sec; if(k==='status') return ST_LBL[r.status]||r.status; return String(r[k]==null?'':r[k]); }",
+    "function keyOf(r){ return r.d+'|'+r.sec+'|'+r.id; }",
+    "function filtered(){",
+    "  if(!ROWS) return [];",
+    "  const v = id => { const el=$(id); return el ? String(el.value||'').trim() : ''; };",
+    "  const ds=v('#r-d1'), de=v('#r-d2'), es=v('#r-e1'), ee=v('#r-e2');",
+    "  return ROWS.filter(r=>{",
+    "    if(ds && r.d < ds) return false; if(de && r.d > de) return false;",
+    "    const ent = r.entrega || r.d; if(es && ent < es) return false; if(ee && ent > ee) return false;",
+    "    for(const c of COLS){ const set=FILTERS[c.k]; if(set && !set.has(valOf(r,c.k))) return false; }",
+    "    return true;",
+    "  });",
+    "}",
+    "function render(){",
+    "  const body=$('#body'), foot=$('#foot'), tbl=$('#tbl'), empty=$('#empty'), st=$('#status-txt'), tot=$('#status-tot');",
+    "  if(ROWS === null){ body.innerHTML=''; foot.innerHTML=''; empty.hidden=false; empty.textContent='Carregando…'; tbl.style.display='none'; return; }",
+    "  const rows = filtered();",
+    "  rows.sort((a,b)=> String(b.d).localeCompare(String(a.d)) || String(a.ordem).localeCompare(String(b.ordem),'pt-BR',{numeric:true}) || String(a.sec).localeCompare(String(b.sec)));",
+    "  for(const c of COLS){ const fa=document.querySelector('.fa[data-col=\\\"'+c.k+'\\\"]'); if(fa) fa.classList.toggle('on', !!FILTERS[c.k]); }",
+    "  if(!rows.length){",
+    "    body.innerHTML=''; foot.innerHTML=''; tbl.style.display='none'; empty.hidden=false;",
+    "    empty.textContent = ROWS.length ? 'Nenhuma rota nos filtros atuais — ajuste os filtros (▼ nas colunas) ou limpe tudo.' : 'Nenhuma rota Concluída/Pendente encontrada.';",
+    "  } else {",
+    "    tbl.style.display=''; empty.hidden=true;",
+    "    body.innerHTML = rows.map(r=>",
+    "      '<tr data-k=\\\"'+esc(keyOf(r))+'\\\">'+",
+    "      '<td><span class=\\\"b '+(r.status==='concluida'?'concl':'pend')+'\\\">'+(ST_LBL[r.status]||r.status)+'</span></td>'+",
+    "      '<td>'+(r.d?fmtBR(r.d):'—')+'</td>'+",
+    "      '<td>'+(r.entrega?fmtBR(r.entrega):'<span class=\\\"dim\\\">—</span>')+'</td>'+",
+    "      '<td><span class=\\\"b '+(r.sec==='capital'?'cap':r.sec==='interior'?'int':'fro')+'\\\">'+(SEC_LBL[r.sec]||r.sec)+'</span></td>'+",
+    "      '<td class=\\\"mono\\\"><b>'+esc(r.ordem||'—')+'</b></td>'+",
+    "      '<td class=\\\"mono\\\">'+esc(r.placa||'—')+'</td>'+",
+    "      '<td>'+esc(r.destino||'')+'</td>'+",
+    "      '<td>'+esc(r.motorista||'')+'</td>'+",
+    "      '<td>'+esc(r.transp||'')+'</td>'+",
+    "      '<td class=\\\"num\\\">'+(r.km===''?'<span class=\\\"dim\\\">—</span>':fmtPeso(r.km))+'</td>'+",
+    "      '<td class=\\\"num\\\">'+fmtPeso(r.peso)+'</td>'+",
+    "      '<td class=\\\"num\\\">'+fmtBRL(r.total)+'</td>'+",
+    "      '<td class=\\\"num\\\">'+fmtMedia(r.media)+'</td></tr>').join('');",
+    "    let peso=0,total=0; for(const r of rows){ peso+=Number(r.peso)||0; total+=Number(r.total)||0; }",
+    "    const nP=rows.filter(r=>r.status==='pendente').length, nC=rows.length-nP;",
+    "    foot.innerHTML='<tr><td>Totais ('+rows.length+' carga(s) · '+nP+' Pendente · '+nC+' Concluída)</td><td colspan=\\\"9\\\"></td><td class=\\\"num\\\">'+fmtPeso(peso)+'</td><td class=\\\"num\\\">'+fmtBRL(total)+'</td><td class=\\\"num\\\">'+((total>0&&peso>0)?fmtMedia(total/peso):'—')+'</td></tr>';",
+    "  }",
+    "  const nP=rows.filter(r=>r.status==='pendente').length, nC=rows.length-nP;",
+    "  st.textContent = ROWS.length ? ('📋 '+rows.length+' rota(s) listada(s) · '+nP+' Pendente · '+nC+' Concluída (de '+ROWS.length+' abertas no total)') : 'Nenhuma rota aberta encontrada.';",
+    "  tot.textContent = ROWS.length ? ('Peso '+fmtPeso(rows.reduce((a,r)=>a+(Number(r.peso)||0),0))+' kg · Total '+fmtBRL(rows.reduce((a,r)=>a+(Number(r.total)||0),0))) : '';",
+    "}",
+    "/* ---- filtro por coluna (estilo Excel): ▼ abre dropdown com busca + checklist ---- */",
+    "let DD = null;",
+    "function closeDd(){ if(DD){ DD.remove(); DD=null; } }",
+    "function openDd(col, anchor){",
+    "  closeDd();",
+    "  const cur = FILTERS[col.k] || null;",
+    "  const vals = Array.from(new Set((ROWS||[]).map(r=>valOf(r,col.k)))).sort((a,b)=>String(a).localeCompare(String(b),'pt-BR',{numeric:true}));",
+    "  const dd = document.createElement('div'); dd.className='dd';",
+    "  dd.innerHTML = '<input type=\\\"search\\\" placeholder=\\\"buscar…\\\" autocomplete=\\\"off\\\">' +",
+    "    '<div class=\\\"list\\\">' + (vals.length ? vals.map(v2=>'<label><input type=\\\"checkbox\\\" value=\\\"'+esc(v2)+'\\\"'+((!cur||cur.has(v2))?' checked':'')+'> '+esc(v2||'(vazio)')+'</label>').join('') : '<label class=\\\"dim\\\">sem valores</label>') + '</div>' +",
+    "    '<div class=\\\"acts\\\"><button class=\\\"btn mini\\\" data-a=\\\"all\\\">Tudo</button><button class=\\\"btn mini\\\" data-a=\\\"none\\\">Limpar</button><button class=\\\"btn mini\\\" data-a=\\\"ok\\\">OK</button></div>';",
+    "  document.body.appendChild(dd);",
+    "  const rc = anchor.getBoundingClientRect();",
+    "  dd.style.left = Math.max(8, Math.min(window.innerWidth-246, rc.left)) + 'px';",
+    "  dd.style.top = Math.max(8, Math.min(window.innerHeight-300, rc.bottom+4)) + 'px';",
+    "  DD = dd;",
+    "  dd.querySelector('input').addEventListener('input', e=>{ const q=norm(e.target.value); for(const lb of dd.querySelectorAll('.list label')) lb.style.display = norm(lb.textContent).indexOf(q)>=0 ? '' : 'none'; });",
+    "  dd.addEventListener('click', e=>{",
+    "    const b=e.target.closest('[data-a]'); if(!b) return;",
+    "    const a=b.getAttribute('data-a');",
+    "    if(a==='all'){ for(const cb of dd.querySelectorAll('.list input')) cb.checked=true; return; }",
+    "    if(a==='none'){ delete FILTERS[col.k]; closeDd(); render(); return; }",
+    "    const sel=new Set(); for(const cb of dd.querySelectorAll('.list input')) if(cb.checked) sel.add(cb.value);",
+    "    if(sel.size===vals.length) delete FILTERS[col.k]; else FILTERS[col.k]=sel;",
+    "    closeDd(); render();",
+    "  });",
+    "}",
+    "document.addEventListener('click', e=>{ if(DD && !DD.contains(e.target) && !e.target.closest('.fa')) closeDd(); });",
+    "for(const fa of document.querySelectorAll('thead .fa')){ fa.addEventListener('click', e=>{ e.stopPropagation(); const col=COLS.find(c2=>c2.k===e.target.getAttribute('data-col')); if(col) openDd(col, e.target); }); }",
+    "/* ---- downloads: Excel pela aba principal (XLSX), CSV standalone ---- */",
+    "function dlCsv(){",
+    "  const rows = filtered();",
+    "  const head=['Status','Faturamento','Entrega','Tipo','Ordem','Placa','Destino / Rota','Motorista','Transportadora','KM','Peso (kg)','Total (R$)','Média (R$/kg)'];",
+    "  const q=s=>'\\\"'+String(s==null?'':s).replace(/\\\"/g,'\\\"\\\"')+'\\\"';",
+    "  const lines=[head.map(q).join(';')];",
+    "  for(const r of rows) lines.push([ST_LBL[r.status]||r.status, fmtBR(r.d), r.entrega?fmtBR(r.entrega):'', SEC_LBL[r.sec]||r.sec, r.ordem, r.placa, r.destino, r.motorista, r.transp, r.km===''?'':r.km, r.peso, r.total, r.media==null?'':Number(r.media).toFixed(2)].map(q).join(';'));",
+    "  const blob=new Blob(['\\uFEFF'+lines.join('\\r\\n')],{type:'text/csv;charset=utf-8'});",
+    "  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='rotas-abertas-'+new Date().toISOString().slice(0,10)+'.csv';",
+    "  document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },1500);",
+    "}",
+    "document.getElementById('r-xls').addEventListener('click', ()=>{",
+    "  const o=op(); if(!o || !o.rotasAbertasDownload){ alert('⚠️ A aba principal do Mapa foi fechada — mantenha-a aberta para baixar o Excel.'); return; }",
+    "  o.rotasAbertasDownload(filtered());",
+    "});",
+    "document.getElementById('r-csv').addEventListener('click', dlCsv);",
+    "document.getElementById('r-reload').addEventListener('click', ()=>{",
+    "  const o=op(); if(!o){ alert('⚠️ A aba principal do Mapa foi fechada.'); return; }",
+    "  rotasSetStatus('⏳ Recarregando…'); o.rotasWinRefresh();",
+    "});",
+    "document.getElementById('r-close').addEventListener('click', ()=> window.close());",
+    "const F_IDS=['#r-d1','#r-d2','#r-e1','#r-e2'];",
+    "for(const id of F_IDS){ const el=$(id); if(!el) continue; el.addEventListener('input', render); el.addEventListener('change', render); }",
+    "document.getElementById('r-clear').addEventListener('click', ()=>{ for(const id of F_IDS){ const el=$(id); if(el) el.value=''; } for(const k of Object.keys(FILTERS)) delete FILTERS[k]; closeDd(); render(); });",
+    "function rotasSetRows(rows){ ROWS = Array.isArray(rows) ? rows : []; render(); }",
+    "function rotasSetStatus(t){ const el=$('#status-txt'); if(el) el.textContent = t; }",
+    "window.rotasSetRows = rotasSetRows; window.rotasSetStatus = rotasSetStatus;"
+  ].join('\n');
+  return '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">' +
+    '<meta name="viewport" content="width=device-width, initial-scale=1">' +
+    '<meta name="referrer" content="no-referrer">' +
+    '<title>📋 Rotas abertas — Concluídas & Pendentes</title>' +
+    '<style>' + CSS + '</style></head><body>' + BODY +
+    '<script>' + JS + '<\/script></body></html>';
+}
+let ROTAS_WIN = null;
+function openRotasWin(){
+  if(!requireOperational()) return;
+  if(ROTAS_WIN && !ROTAS_WIN.closed){
+    try{ ROTAS_WIN.focus(); }catch(e){}
+    rotasWinRefresh();
+    return;
+  }
+  let w = null;
+  try{ w = window.open('', 'rotas-abertas', 'width=1520,height=880,menubar=no,toolbar=no,location=no,status=no,scrollbars=yes,resizable=yes'); }catch(e){}
+  if(!w){ toast('️ O navegador bloqueou a nova janela — permita pop-ups p/ este site e clique de novo', 'err'); return; }
+  ROTAS_WIN = w;
+  try{
+    w.document.open();
+    w.document.write(rotasWinHtml());
+    w.document.close();
+  }catch(e){ console.error(e); }
+  rotasWinRefresh();
+}
+function rotasWinRefresh(){
+  if(!canEditOperational()){ if(ROTAS_WIN && !ROTAS_WIN.closed) ROTAS_WIN.close(); return; }
+  const w = ROTAS_WIN;
+  if(!w || w.closed) return;
+  try{ if(w.rotasSetStatus) w.rotasSetStatus('⏳ Carregando as rotas abertas…'); }catch(e){}
+  rotasAbertasCollectRows().then(rows=>{
+    try{ if(w.closed) return; if(w.rotasSetRows) w.rotasSetRows(rows); }catch(e){}
+  }).catch(err=>{
+    try{ if(!w.closed && w.rotasSetStatus) w.rotasSetStatus('❌ Falha ao carregar: ' + (err && err.message ? err.message : err)); }catch(e){}
+  });
+}
+
 /* ---- histórico: baixar de novo / reabrir ---- */
 function fechRsPanel(id){
   const f = FECHAMENTOS.find(x=> x.id === id); if(!f) return '';
@@ -8050,6 +8332,7 @@ function bindDropdown(rootId, toggleId, menuId){
 }
 function bindStatic(){
   $("#btn-hist-window").addEventListener("click", openHistWin);
+  $("#btn-rotas-window").addEventListener("click", openRotasWin);
   const captureRoot = $('#capture-root');
 
   /* AUDITORIA: cabeçalho recolhível (desktop e celular) — abre/fecha o menu de ações.
@@ -8853,7 +9136,7 @@ async function init(){
 /* AUTO-CHECK DE VERSAO: avisa (somente quando roda em github.io) se a aba estiver com
    copia antiga em cache — compara o selo APP_V local com o do arquivo publicado no repo.
    Falha de rede/offline = silencioso; nunca bloqueia o uso. */
-const APP_V = '2026-09-29d';
+const APP_V = '2026-09-29e';
 (function(){
   // Selo de versão VISÍVEL no canto da tela: qualquer print/print-screen mostra qual código
   // está rodando no aparelho (cópia antiga = selo antigo/ausente). Não entra nas capturas.

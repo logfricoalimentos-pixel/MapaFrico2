@@ -110,3 +110,14 @@ Selo de versão: **2026-09-29d** (`APP_V`), sobre a atualização 2026-09-29c ac
 - Na **tela** nada muda: continua uma única tabela com `<tbody class="grp">` por transportadora.
 - `printResumoCss()` também passou a incluir `div.grp{...}` e `table-layout:fixed` na regra `table`.
 - Validação: teste do resumo ampliado — `printResumoGroupHtml()` com DOM stub gera 2 `div.grp` com thead repetido e ordem preservada; CSS confere as regras novas. `python tests/validate.py` + `node --test tests/recovery.cjs` verdes.
+
+## Atualização 29/09/2026 (e) — 📋 Rotas abertas: janela baixável p/ Concluídas & Pendentes com filtro por coluna (estilo Excel)
+
+Selo de versão: **2026-09-29e** (`APP_V`), sobre a atualização 2026-09-29d acima.
+
+- Botão azul **📋 Rotas abertas (Concluídas & Pendentes) — abrir janela** ao lado do 📚 Cargas fechadas, no painel de Fechamento de Fretes. Abre janela própria (`openRotasWin`, mesmo espírito da 📚: `window.open` + `rotasSetRows`/`rotasSetStatus` alimentados pela aba principal).
+- `rotasAbertasCollectRows()`: uma linha por carga **não fechada** de todos os dias salvos, somente status **Pendente** e **Concluída** (fechadas e "Em análise" ficam fora), com Status, Faturamento, Entrega, Tipo, Ordem, Placa, Destino/Rota, Motorista, Transportadora, KM, Peso, Total e Média; totais (peso/total/média e contagens por status) no rodapé.
+- **Filtro por coluna estilo Excel**: ▼ no cabeçalho (Status, Tipo, Ordem, Placa, Destino, Motorista, Transportadora) abre dropdown com busca + checklist; colunas combinam em **E**, valores marcados somam em **OU**; ▼ amarelo indica coluna filtrada; barra tem períodos de Faturamento/Entrega e 🧹 limpa tudo.
+- **⬇ Excel (filtrado)** gera o `.xlsx` na aba principal (`rotasAbertasDownload`, que tem o XLSX; aba "Rotas abertas", só as linhas filtradas, com auditoria e toast); **⬇ CSV (filtrado)** funciona standalone (`;` + BOM p/ Excel pt-BR).
+- Validação: teste novo em `tests/recovery.cjs` (coleta exclui fechada/analise, JavaScript gerado da janela é válido, ids de filtro/download presentes, `rotasAbertasDownload` com XLSX stub gera aba e valores numéricos corretos); `python tests/validate.py` OK.
+- Pendente: conferência visual no navegador logado (pop-up permitido) e deploy no Pages.

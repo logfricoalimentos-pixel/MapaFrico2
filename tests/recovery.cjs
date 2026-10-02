@@ -187,9 +187,46 @@ test('resumo do fechamento: tbody.grp por transportadora e CSS de quebra p/ impr
   assert.ok(pg.indexOf('<div class="grp"><table>')===0 && pg.endsWith('</table></div>'));
   assert.ok(pg.indexOf('<tbody class="grp"><tr><td>T1</td></tr></tbody>')<pg.indexOf('<tbody class="grp"><tr class="res-total">'));
 });
+test('rotas abertas: coleta só Pendente/Concluída, janela c/ filtro por coluna e download Excel filtrado',()=>{
+  let captured=null;
+  const rec={dtEntrega:'2026-09-22',data:{
+    capital:[{id:'r1',carga:'10',stFech:'pendente',peso:10,km:40,destino:'GOIANIA',placa:'AAA1',motorista:'M1',transportadora:'T1'}],
+    interior:[{id:'r2',carga:'20',stFech:'concluida',peso:5,km:10,destino:'JATAI',placa:'BBB2',motorista:'M2',transportadora:'T2'}],
+    frotas:[{id:'r3',carga:'30',stFech:'fechado',peso:1,km:1},{id:'r4',carga:'40',stFech:'analise',peso:1,km:1}]}};
+  const c=context({canEditOperational:()=>true,requireOperational:()=>true,SECTIONS:['frotas','capital','interior'],
+    numVal:x=>Number(x)||0,isNegSim:r=>String(r.neg||'').toLowerCase()==='sim',
+    relIsFech:r=>r.stFech==='fechado',relStatusOf:r=>r.stFech==='fechado'?'fechada':r.stFech==='concluida'?'concluida':r.stFech==='analise'?'analise':'pendente',
+    relNormalizeRec:r=>r,calcularFrete:(sec,r)=>({total:(Number(r.km)||0)*2}),
+    Stor:{list:async()=>['map:2026-09-21'],get:async()=>rec},currentMapDate:'',DATA:rec.data,dtEntrega:'',
+    fmtBR:d=>{const p=String(d||'').split('-');return p.length===3?p[2]+'/'+p[1]+'/'+p[0]:String(d||'');},
+    toast:()=>{},audit:()=>{},
+    XLSX:{utils:{book_new:()=>({S:[]}),aoa_to_sheet:a=>({aoa:a}),book_append_sheet:(wb,ws,n)=>{wb.S.push([n,ws]);}},
+      writeFile:(wb,n)=>{captured={n,wb};}}});
+  vm.runInContext(block('/* ===== Rotas abertas','/* ---- histórico: baixar de novo'),c);
+  return c.rotasAbertasCollectRows().then(rows=>{
+    assert.equal(rows.length,2);                                   // fechada e "em análise" ficam fora
+    assert.equal(rows.find(r=>r.id==='r1').status,'pendente');
+    assert.equal(rows.find(r=>r.id==='r2').status,'concluida');
+    assert.equal(rows.find(r=>r.id==='r1').total,80);
+    assert.equal(rows.find(r=>r.id==='r1').media,8);
+    assert.equal(rows.find(r=>r.id==='r1').entrega,'2026-09-22');
+    const page=c.rotasWinHtml();
+    const js=page.slice(page.indexOf('<script>')+8,page.lastIndexOf('</script>'));
+    new vm.Script(js);                                             // JavaScript gerado é válido
+    for(const x of ['id="r-xls"','id="r-csv"','id="r-clear"','data-col="status"','data-col="transp"','data-col="destino"']) assert.ok(page.includes(x),x);
+    assert.ok(js.includes('FILTERS') && js.includes('rotasSetRows') && js.includes('valOf'));
+    assert.ok(c.rotasAbertasDownload(rows)===true);
+    assert.ok(captured && captured.n.startsWith('rotas-abertas-') && captured.n.endsWith('.xlsx'));
+    const aoa=captured.wb.S[0][1].aoa;
+    assert.equal(aoa.length,3);                                    // cabeçalho + 2 linhas
+    assert.equal(aoa[0][0],'Status'); assert.equal(aoa[0][12],'Média (R$/kg)');
+    assert.equal(aoa[1][0],'Pendente'); assert.equal(aoa[1][3],'Capital'); assert.equal(aoa[1][9],40); assert.equal(aoa[1][11],80); assert.equal(aoa[1][12],8);
+    assert.equal(aoa[2][0],'Concluída'); assert.equal(aoa[2][3],'Interior');
+  });
+});
 test('regressões: resumo por quinzena e impressão isolada permanecem',()=>{
-  for(const x of ['id="fh-resumo"','function fechRefOptions','function renderFechHist','A4 portrait','2026-09-29d','id="kp-f-sit"','function kpGroupRows','function kpKmJump','function kpSituation','@page{size:A4 landscape;margin:10mm}','tbody class="grp"','function printResumoGroupHtml','div.grp{break-inside:avoid']) assert.ok(html.includes(x),x);
-  assert.ok(!html.includes("const APP_V = '2026-09-29c'"));
+  for(const x of ['id="fh-resumo"','function fechRefOptions','function renderFechHist','A4 portrait','2026-09-29e','id="kp-f-sit"','function kpGroupRows','function kpKmJump','function kpSituation','@page{size:A4 landscape;margin:10mm}','tbody class="grp"','function printResumoGroupHtml','div.grp{break-inside:avoid','id="btn-rotas-window"','function rotasWinHtml','function rotasAbertasCollectRows']) assert.ok(html.includes(x),x);
+  assert.ok(!html.includes("const APP_V = '2026-09-29d'"));
   assert.ok(!html.includes('tryAutoMigrarLote'));
 });
 test('migração: simulação não grava e aplicação usa comparação/flag após confirmação', async()=>{
