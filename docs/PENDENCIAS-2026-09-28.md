@@ -78,3 +78,46 @@ Selo de versão: **2026-09-29a** (`APP_V`), mantida a recuperação 2026-09-28b 
 - `kmPortScanRec`/`kmPortScan` agora devolvem `destino`, `status` e a lista `locked` (fechadas encontradas); `KP_STATE` virou `var` (estado global, testável em sandbox).
 - Validação: `python tests/validate.py` (parser HTML, IDs únicos, `node --check` dos scripts inline e `node --test tests/recovery.cjs`), com teste novo cobrindo scan/seleção/filtros/HTML da linha. Renderização e gravação conferidas também em DOM (jsdom) com `Stor` falso: apenas a linha marcada foi gravada.
 - Pendente: conferência visual no navegador logado (a validação acima não equivale a teste de login/impressão em produção) e deploy no Pages.
+
+## Atualização 29/09/2026 (b) — KM Portaria: filtro Situação, grupos fixos, só Pendente/Concluída e destaque laranja >10%
+
+Selo de versão: **2026-09-29b** (`APP_V`), sobre a atualização 2026-09-29a acima.
+
+- **Filtro novo: Situação** (`#kp-f-sit`) com os 3 grupos fixos da prévia: **1 · atualiza**, **2 · negociada · valor mantido**, **3 · KM já igual** (🔒, sem ✓). A classificação (`kpSituation`) vale KM já igual > negociada > atualiza: carga negociada com KM já igual entra no grupo 3 (nada a aplicar).
+- **A prévia mostra SOMENTE status Pendente e Concluída.** Carga **FECHADA continua nunca alterada** e agora fica **fora da prévia** — continua contada no scan (`scan.locked`/`fechSkipped`) para o rodapé, o toast e a auditoria; `kpMatch` rejeita qualquer linha que não seja pendente/concluída (defesa em profundidade, inclusive se um dado antigo aparecer). O select de Status passou a ter só Todos / Pendente / Concluída.
+- **Agrupamento SEMPRE por situação**, na ordem fixa 1 → 2 → 3 (`kpGroupRows`), com cabeçalho de grupo informando linhas, marcadas e laranjas do grupo; dentro do grupo mantém a ordenação por data, seção e ordem. Grupos vazios não aparecem.
+- **Destaque laranja (`tr.kp-dif` + ⚠️ na coluna KM)** quando o **KM real é mais de 10% acima do KM atual** (`kpKmJump`: `novo > atual × 1,1`; KM atual vazio/0 com KM real válido também destaca). O `<td>` do KM ganha `title` com o percentual de salto. Contadores de laranjas no rodapé da barra e no cabeçalho do grupo.
+- Negociada (Neg?=Sim ou Valor Frete manual) segue atualizando **só o KM** — o valor negociado permanece; badge âmbar "negociada · valor mantido" no grupo 2.
+- Validação: `python tests/validate.py` (parser HTML, IDs únicos, `node --check` dos scripts inline) e `node --test tests/recovery.cjs` com teste ampliado cobrindo situação/grupos, exclusão de fechadas e análise, filtro Situação e a regra dos 10% (inclusive limites 100→110 não destaca, 100→111 destaca, vazio→5 destaca). Renderização agrupada conferida por HTML de linha/grupo em sandbox.
+- Pendente: conferência visual no navegador logado (a validação acima não equivale a teste de login/impressão em produção) e deploy no Pages.
+
+## Atualização 29/09/2026 (c) — Impressão do Resumo geral: quebras de página corretas e grupos por transportadora
+
+Selo de versão: **2026-09-29c** (`APP_V`), sobre a atualização 2026-09-29b acima.
+
+- `printResumoCss()` ganhou regras de quebra: `@page{size:A4 landscape;margin:10mm}` (a margem sai do `body`, que fica `margin:0`), `thead{display:table-header-group}` (cabeçalho repetido em cada folha), `tr{break-inside:avoid}` (nenhuma linha cortada ao meio) e `tbody.grp{break-inside:avoid}` (transportadora + subtotal nunca separados).
+- `renderFechResumo()` agora embrulha cada transportadora (linhas Capital/Interior + subtotal `res-sub`) em um `<tbody class="grp">` próprio; o TOTAL GERAL (`res-total`) fecha o grupo anterior e abre o seu. O cabeçalho da tabela termina em `</tr></thead>` (o primeiro `<tbody>` abre dentro do loop) e o fechamento `</tbody></table>` final permanece.
+- Na tela nada muda visualmente (o CSS de tela não zebrava por `tbody`); o efeito é só na impressão via `printResumo()`: o grupo inteiro salta para a folha seguinte quando não cabe.
+- O Resumo das quinzenas (`fhResPrint`) usa outro HTML/CSS e não foi alterado.
+- Validação: `python tests/validate.py` + `node --test tests/recovery.cjs` com teste novo renderizando `renderFechResumo()` em sandbox (3 grupos p/ 2 transportadoras + total, subtotais dentro do grupo certo) e conferindo as 5 regras novas do CSS de impressão.
+
+## Atualização 29/09/2026 (d) — Impressão: transportadora + subtotal NUNCA em folhas separadas
+
+Selo de versão: **2026-09-29d** (`APP_V`), sobre a atualização 2026-09-29c acima.
+
+- Motivo: o Chrome **ignora** `break-inside:avoid`/`page-break-inside:avoid` em row-groups de tabela (`<tbody>`) — na prática o grupo da transportadora continuava separando (linha Capital numa folha, subtotal na seguinte), como visto no print de conferência.
+- Solução: `printResumoGroupHtml(tbl)` — na **impressão** (iframe do `printResumo()`), cada `<tbody class="grp">` vira um `<div class="grp">` contendo uma `<table>` própria com o `<thead>` repetido; `div.grp{break-inside:avoid;page-break-inside:avoid}` é respeitado pelo Chrome/Firefox, então o grupo inteiro salta para a folha seguinte quando não cabe. `table-layout:fixed` + thead idêntico mantêm as larguras de coluna iguais entre as tabelas.
+- Na **tela** nada muda: continua uma única tabela com `<tbody class="grp">` por transportadora.
+- `printResumoCss()` também passou a incluir `div.grp{...}` e `table-layout:fixed` na regra `table`.
+- Validação: teste do resumo ampliado — `printResumoGroupHtml()` com DOM stub gera 2 `div.grp` com thead repetido e ordem preservada; CSS confere as regras novas. `python tests/validate.py` + `node --test tests/recovery.cjs` verdes.
+
+## Atualização 29/09/2026 (e) — 📋 Rotas abertas: janela baixável p/ Concluídas & Pendentes com filtro por coluna (estilo Excel)
+
+Selo de versão: **2026-09-29e** (`APP_V`), sobre a atualização 2026-09-29d acima.
+
+- Botão azul **📋 Rotas abertas (Concluídas & Pendentes) — abrir janela** ao lado do 📚 Cargas fechadas, no painel de Fechamento de Fretes. Abre janela própria (`openRotasWin`, mesmo espírito da 📚: `window.open` + `rotasSetRows`/`rotasSetStatus` alimentados pela aba principal).
+- `rotasAbertasCollectRows()`: uma linha por carga **não fechada** de todos os dias salvos, somente status **Pendente** e **Concluída** (fechadas e "Em análise" ficam fora), com Status, Faturamento, Entrega, Tipo, Ordem, Placa, Destino/Rota, Motorista, Transportadora, KM, Peso, Total e Média; totais (peso/total/média e contagens por status) no rodapé.
+- **Filtro por coluna estilo Excel**: ▼ no cabeçalho (Status, Tipo, Ordem, Placa, Destino, Motorista, Transportadora) abre dropdown com busca + checklist; colunas combinam em **E**, valores marcados somam em **OU**; ▼ amarelo indica coluna filtrada; barra tem períodos de Faturamento/Entrega e 🧹 limpa tudo.
+- **⬇ Excel (filtrado)** gera o `.xlsx` na aba principal (`rotasAbertasDownload`, que tem o XLSX; aba "Rotas abertas", só as linhas filtradas, com auditoria e toast); **⬇ CSV (filtrado)** funciona standalone (`;` + BOM p/ Excel pt-BR).
+- Validação: teste novo em `tests/recovery.cjs` (coleta exclui fechada/analise, JavaScript gerado da janela é válido, ids de filtro/download presentes, `rotasAbertasDownload` com XLSX stub gera aba e valores numéricos corretos); `python tests/validate.py` OK.
+- Pendente: conferência visual no navegador logado (pop-up permitido) e deploy no Pages.
