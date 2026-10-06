@@ -5367,8 +5367,21 @@ function fechRefOptions(refDate){
 }
 /* referência de um fechamento — novos usam f.ref; os legados derivam da data do fechamento */
 function fechRefOf(f){
-  if(f && f.ref && f.ref.label) return f.ref;
-  const d = (f && (f.dataFech || (f.criadoEm ? String(f.criadoEm).slice(0, 10) : ''))) || '';
+  /* Não dependa de label para reconhecer a referência. Dados antigos (ou uma
+     gravação interrompida) podem ter somente ano/mês/quinzena; nesse caso o
+     fechamento ainda precisa aparecer no agrupamento correto. */
+  const r = f && f.ref;
+  if(r){
+    const ano = Number(r.ano), mes = Number(r.mes), q = Number(r.quinzena);
+    if(Number.isInteger(ano) && ano >= 2000 && Number.isInteger(mes) && mes >= 1 && mes <= 12 && (q === 1 || q === 2)){
+      return {ano: ano, mes: mes, quinzena: q, label: quinzenaLabel(ano, mes, q)};
+    }
+  }
+  /* Fechamentos criados por versões anteriores não tinham ref. Neles, a
+     referência deve vir do período que foi fechado (start), e não da data em
+     que o usuário confirmou o fechamento; isso evita mover Setembro Q2 para
+     Outubro Q1. */
+  const d = (f && (f.start || f.dataFech || (f.criadoEm ? String(f.criadoEm).slice(0, 10) : ''))) || '';
   if(!/^\d{4}-\d{2}-\d{2}$/.test(d)) return {ano: 0, mes: 0, quinzena: 0, label: '(sem referência)'};
   const ano = +d.slice(0, 4), mes = +d.slice(5, 7), q = +d.slice(8, 10) <= 15 ? 1 : 2;
   return {ano: ano, mes: mes, quinzena: q, label: quinzenaLabel(ano, mes, q)};
@@ -5449,6 +5462,10 @@ async function fechConfirm(){
     for(const d of datas) await relPersistDate(d);   // grava cada dia alterado (atual = mapa ao vivo)
     FECHAMENTOS.push(fech);
     await Stor.set('fechamentos', FECHAMENTOS);
+    /* Atualiza a relação imediatamente. Antes ela só era redesenhada ao
+       reabrir a tela, deixando o fechamento recém-criado fora da lista até
+       uma nova abertura do painel. */
+    renderFechHist();
   }catch(err){
     console.error(err);
     for(const x of sel) for(const it of x.itens){
