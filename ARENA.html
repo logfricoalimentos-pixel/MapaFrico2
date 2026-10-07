@@ -1890,6 +1890,12 @@ let ROTAS_DIAS = {};      // rota (Nº Carga normalizado) -> dias (para automati
 let TRANSP_CODES = {};    // transportadora (normKw) -> código p/ coluna CÓDIGO do fechamento
 let TRANSP_ZAP = {};      // transportadora (normKw) -> whatsapp (link p/ mandar o relatório)
 let FECHAMENTOS = [];     // fechamentos quinzenais já feitos (status Pendente->Fechado das cargas)
+const FECH_STORAGE_PREFIX = 'fechamento:'; // uma chave por fechamento: impede sobrescrita do array inteiro
+let FECH_LOCAL_PENDING = [];             // itens locais não vistos no snapshot remoto; validados contra os mapas
+let FECH_TOMBSTONES = new Set();
+let FECH_RECOVERY_PROMISE = null;
+let FECH_RECOVERY_SCANNED = false;
+let FECH_CONFIRM_BUSY = false;
 const APP_PARAMS = new URLSearchParams(location.search);
 const GERENCIAL_PAGE = APP_PARAMS.get('painel') === 'gerencial';
 const GERENCIAL_INITIAL_DATE = /^\d{4}-\d{2}-\d{2}$/.test(APP_PARAMS.get('data') || '') ? APP_PARAMS.get('data') : '';
@@ -2049,8 +2055,14 @@ function supaHeaders(extra){
   }, extra || {});
 }
 const Stor = {
-  async get(k){
-    // 1) tenta o banco (fonte da verdade)
+  /* Retorna os snapshots remoto e local sem descartar o local antes que o chamador
+     possa reconciliar uma gravação que ficou somente no cache (ex.: fechamentos). */
+  async getPair(k){
+    let localFound = false, localValue = null;
+    try{
+      const cached = localStorage.getItem('mapa:'+k);
+      if(cached != null){ localFound = true; localValue = JSON.parse(cached); }
+    }catch(e){}
     try{
       const res = await fetch(SUPA_REST + '?key=eq.' + encodeURIComponent(k) + '&select=value', {
         headers: supaHeaders()
@@ -2058,15 +2070,17 @@ const Stor = {
       if(res.ok){
         const rows = await res.json();
         if(Array.isArray(rows) && rows.length){
-          try{ localStorage.setItem('mapa:'+k, JSON.stringify(rows[0].value)); }catch(e){}
-          return rows[0].value;
-        }
-        if(Array.isArray(rows) && rows.length === 0){
-          // chave não existe no banco — não força erro, cai no cache local abaixo
+          const remoteValue = rows[0].value;
+          try{ localStorage.setItem('mapa:'+k, JSON.stringify(remoteValue)); }catch(e){}
+          return {remoteFound:true, remoteValue:remoteValue, localFound:localFound, localValue:localValue};
         }
       }
-    }catch(e){ /* rede indisponível — cai no cache local */ }
-    try{ const v = localStorage.getItem('mapa:'+k); return v==null? null : JSON.parse(v); }catch(e){ return null; }
+    }catch(e){ /* rede indisponível — usa o cache local */ }
+    return {remoteFound:false, remoteValue:null, localFound:localFound, localValue:localValue};
+  },
+  async get(k){
+    const pair = await this.getPair(k);
+    return pair.remoteFound ? pair.remoteValue : (pair.localFound ? pair.localValue : null);
   },
   async set(k, v){
     try{ localStorage.setItem('mapa:'+k, JSON.stringify(v)); }catch(e){}
@@ -2094,14 +2108,20 @@ const Stor = {
     }catch(e){}
   },
   async list(){
+    let remoteKeys = [];
     try{
       const res = await fetch(SUPA_REST + '?select=key', { headers: supaHeaders() });
       if(res.ok){
         const rows = await res.json();
-        if(Array.isArray(rows)) return rows.map(r=>r.key);
+        if(Array.isArray(rows)) remoteKeys = rows.map(r=>r.key).filter(Boolean);
       }
     }catch(e){}
-    try{ return Object.keys(localStorage).filter(k=>k.startsWith('mapa:')).map(k=>k.slice(5)); }catch(e){ return []; }
+    /* União intencional: chaves gravadas somente em localStorage também precisam
+       participar da recuperação/migração quando o REST estiver indisponível ou
+       quando uma gravação local ainda não chegou ao Supabase. */
+    let localKeys = [];
+    try{ localKeys = Object.keys(localStorage).filter(k=>k.startsWith('mapa:')).map(k=>k.slice(5)); }catch(e){}
+    return Array.from(new Set([...remoteKeys, ...localKeys]));
   }
 };
 
@@ -2963,12 +2983,14 @@ async function switchToDate(dateStr){
   if(dashVisible) await loadDashboard();
 }
 async function loadSettings(){
-  const [reg, ff, ck, ik, hc, av, rd, tc, fc, tz, wa, mg, ft] = await Promise.all([
+  const fechamentosPair = Stor.getPair('fechamentos');
+  const [reg, ff, ck, ik, hc, av, rd, tc, tz, wa, mg, ft] = await Promise.all([
     Stor.get('fleet-registry'), Stor.get('fixed-frotas'), Stor.get('capital-keywords'),
     Stor.get('interior-keywords'), Stor.get('hidden-cols'), Stor.get('availability'),
-    Stor.get('routes-days'), Stor.get('transp-codes'), Stor.get('fechamentos'), Stor.get('transp-zap'), Stor.get('wa-auto'),
+    Stor.get('routes-days'), Stor.get('transp-codes'), Stor.get('transp-zap'), Stor.get('wa-auto'),
     Stor.get('margem-frete'), Stor.get('frota-tripulacao')
   ]);
+  const fcPair = await fechamentosPair;
   // pré-cadastro padrão de transportadoras sempre mesclado; o salvo pelo usuário tem prioridade
   REGISTRY = Object.assign({}, DEFAULT_REGISTRY);
   if(reg && typeof reg === 'object'){
@@ -3024,8 +3046,8 @@ async function loadSettings(){
   WA_AUTO = Object.assign({prov:'evolution', base:'', key:'', inst:'', tpl:''}, (wa && typeof wa === 'object') ? wa : {});
   // margem % sobre não negociadas (padrão 10; 0 = sem margem)
   MARGEM_FRETE = (mg == null || mg === '') ? 10 : Math.max(0, Math.min(100, Number(mg) || 0));
-  // histórico de fechamentos quinzenais
-  FECHAMENTOS = Array.isArray(fc) ? fc : [];
+  // histórico: mescla o legado com registros individuais e normaliza apenas refs ausentes/inválidas
+  FECHAMENTOS = await fechLoadAll(fcPair);
 }
 function saveSettings(){
   Stor.set('fleet-registry', REGISTRY);
@@ -4929,7 +4951,7 @@ function fechPrintPng(g, gs){
   document.body.appendChild(a); a.click(); a.remove();
   return true;
 }
-function openFech(){
+async function openFech(){
   FECH_COPY_IDX = 0;
   if(!requireOperational()) return;
   if(!REL.loaded){ toast('Carregue um período no relatório antes de fechar', 'err'); return; }
@@ -4938,6 +4960,13 @@ function openFech(){
   const stf = relEl('fech-st-filter'); if(stf) stf.value = '';
   const mask = relEl('fech-mask'); if(mask) mask.hidden = false;
   relEl('fech-per').textContent = 'Período: ' + fechPeriodoTxt(REL) + ' (pela DATA DE ENTREGA) · entram cargas PENDENTES e CONCLUÍDAS (verde claro) · use o ▸ p/ marcar cargas individuais · use o ✏️ na lista de cargas p/ abrir a janela de edição do mapa';
+  renderFechTable();
+  const hist = relEl('fech-hist-rows'); if(hist) hist.innerHTML = '<div class="empty">Verificando histórico no Supabase/localStorage e conciliando cargas fechadas…</div>';
+  try{
+    const pair = await Stor.getPair('fechamentos');
+    await fechLoadAll(pair);
+    await fechRecoverFromMaps();
+  }catch(e){ console.warn('[Fechamentos][auditoria] falha na leitura/reconciliação',e); }
   renderFechTable();
   renderFechHist();
 }
@@ -5365,28 +5394,537 @@ function fechRefOptions(refDate){
   };
   return [mk(py, pm, 1), mk(py, pm, 2), mk(y, m, 1), mk(y, m, 2)];
 }
-/* referência de um fechamento — novos usam f.ref; os legados derivam da data do fechamento */
-function fechRefOf(f){
-  /* Não dependa de label para reconhecer a referência. Dados antigos (ou uma
-     gravação interrompida) podem ter somente ano/mês/quinzena; nesse caso o
-     fechamento ainda precisa aparecer no agrupamento correto. */
-  const r = f && f.ref;
-  if(r){
-    const ano = Number(r.ano), mes = Number(r.mes), q = Number(r.quinzena);
-    if(Number.isInteger(ano) && ano >= 2000 && Number.isInteger(mes) && mes >= 1 && mes <= 12 && (q === 1 || q === 2)){
-      return {ano: ano, mes: mes, quinzena: q, label: quinzenaLabel(ano, mes, q)};
+/* Normalização de referências e camada de persistência por fechamento.
+   A chave legada "fechamentos" contém um ARRAY completo; um upsert desse array
+   podia apagar gravações feitas por outra aba/dispositivo (última escrita vence).
+   O legado é lido/migrado, mas cada fechamento novo passa a ter chave própria. */
+function fechRecordKey(id){ return FECH_STORAGE_PREFIX + encodeURIComponent(String(id == null ? '' : id)); }
+function fechRecordTime(f){
+  for(const key of ['atualizadoEm','updatedAt','criadoEm']){
+    const value=Date.parse(f&&f[key]||'');
+    if(Number.isFinite(value))return value;
+  }
+  return 0;
+}
+function fechRefValid(ano, mes, q){
+  return Number.isInteger(+ano) && +ano >= 2000 && Number.isInteger(+mes) && +mes >= 1 && +mes <= 12 && (+q === 1 || +q === 2);
+}
+function fechRefMake(ano, mes, q){
+  ano = +ano; mes = +mes; q = +q;
+  return fechRefValid(ano, mes, q) ? {ano:ano, mes:mes, quinzena:q, label:quinzenaLabel(ano, mes, q)} : null;
+}
+function fechRefFromText(value, yearHint){
+  const raw = String(value == null ? '' : value);
+  const text = norm(raw).replace(/[–—]/g, '-');
+  const qm = text.match(/(?:QUINZENA|\bQ)\s*[-:#]?\s*([12])(?:\D|$)/);
+  if(!qm) return null;
+  let mes = 0, ano = 0;
+  const ym = text.match(/\b(20\d{2})\s*[-/.]\s*(0?[1-9]|1[0-2])\b/);
+  const my = text.match(/(?:^|[^\d])(0?[1-9]|1[0-2])\s*[/.-]\s*(20\d{2})(?:\D|$)/);
+  if(ym){ ano = +ym[1]; mes = +ym[2]; }
+  else if(my){ mes = +my[1]; ano = +my[2]; }
+  if(!mes){
+    for(let i=0; i<MESES_NOME.length; i++){
+      const mn = norm(MESES_NOME[i]);
+      if(text.includes(mn)){ mes = i + 1; break; }
     }
   }
-  /* Fechamentos criados por versões anteriores não tinham ref. Neles, a
-     referência deve vir do período que foi fechado (start), e não da data em
-     que o usuário confirmou o fechamento; isso evita mover Setembro Q2 para
-     Outubro Q1. */
-  const d = (f && (f.start || f.dataFech || (f.criadoEm ? String(f.criadoEm).slice(0, 10) : ''))) || '';
-  if(!/^\d{4}-\d{2}-\d{2}$/.test(d)) return {ano: 0, mes: 0, quinzena: 0, label: '(sem referência)'};
-  const ano = +d.slice(0, 4), mes = +d.slice(5, 7), q = +d.slice(8, 10) <= 15 ? 1 : 2;
-  return {ano: ano, mes: mes, quinzena: q, label: quinzenaLabel(ano, mes, q)};
+  if(!ano){ const y = text.match(/\b(20\d{2})\b/); if(y) ano = +y[1]; }
+  if(!ano) ano = Number(yearHint) || 0;
+  if(!ano && mes) return {ano:0,mes:mes,quinzena:+qm[1],label:quinzenaLabel(0,mes,+qm[1])};
+  return fechRefMake(ano, mes, +qm[1]);
+}
+function fechRefExplicit(ref, yearHint){
+  if(!ref) return null;
+  if(typeof ref === 'object' && !Array.isArray(ref)){
+    const ano = Number(ref.ano != null ? ref.ano : ref.year);
+    const mesNum = Number(ref.mes != null ? ref.mes : ref.month);
+    const q = Number(ref.quinzena != null ? ref.quinzena : ref.q);
+    if(fechRefValid(ano, mesNum, q)) return fechRefMake(ano, mesNum, q);
+    const mName = ref.mes != null ? String(ref.mes) : (ref.month != null ? String(ref.month) : '');
+    const mIdx = MESES_NOME.findIndex(x=> norm(x) === norm(mName));
+    if(fechRefValid(ano, mIdx + 1, q)) return fechRefMake(ano, mIdx + 1, q);
+    const fromLabel = fechRefFromText(ref.label || ref.value || '', ano || yearHint);
+    if(fromLabel && fromLabel.ano) return fromLabel;
+  }
+  const parsed=fechRefFromText(ref,yearHint);
+  return parsed&&parsed.ano?parsed:null;
+}
+function fechRefFromDate(value){
+  const m = String(value == null ? '' : value).match(/^(\d{4})-(\d{2})-(\d{2})(?:$|T)/);
+  if(!m) return null;
+  const ano = +m[1], mes = +m[2], dia = +m[3];
+  const dt = new Date(ano, mes - 1, dia);
+  if(dt.getFullYear() !== ano || dt.getMonth() + 1 !== mes || dt.getDate() !== dia) return null;
+  return fechRefMake(ano, mes, dia <= 15 ? 1 : 2);
+}
+/* Referência explícita/auditoria tem prioridade. Para legados sem ref, prefere
+   start/end, depois datas de carga consistentes; não usa a confirmação para adivinhar
+   quando as cargas abrangem várias quinzenas. */
+function fechRefOf(f){
+  const yearHint = [f&&f.start,f&&f.end,f&&f.dataFech,f&&f.criadoEm].map(fechRefFromDate).find(Boolean);
+  const explicit = fechRefExplicit(f && f.ref, yearHint && yearHint.ano);
+  if(explicit) return explicit;
+  const fromAudit=f&&f.id!=null?fechRefFromAudit(f.id):null;
+  if(fromAudit)return fromAudit;
+  if(f && f.refIndeterminada) return {ano:0,mes:0,quinzena:0,label:'(sem referência)'};
+  for(const d of [f&&f.start,f&&f.end]){
+    const fromDate=fechRefFromDate(d);
+    if(fromDate)return fromDate;
+  }
+  const dates=[];
+  for(const g of (f&&Array.isArray(f.grupos)?f.grupos:[])){
+    for(const c of (g&&Array.isArray(g.cargas)?g.cargas:[])){
+      const r=fechRefFromDate(c&&c.d);
+      if(r)dates.push(fechRefKey(r.ano,r.mes,r.quinzena));
+    }
+  }
+  const unique=Array.from(new Set(dates));
+  if(unique.length===1){
+    const m=unique[0].match(/^(\d{4})-(\d{2})-Q([12])$/);
+    if(m)return fechRefMake(+m[1],+m[2],+m[3]);
+  }
+  if(unique.length>1)return {ano:0,mes:0,quinzena:0,label:'(sem referência)'};
+  for(const d of [f&&f.dataFech,f&&f.criadoEm]){
+    const fromDate=fechRefFromDate(d);
+    if(fromDate)return fromDate;
+  }
+  return {ano:0,mes:0,quinzena:0,label:'(sem referência)'};
+}
+function fechNormalizeRecord(f){
+  if(!f || typeof f !== 'object' || Array.isArray(f)) return null;
+  const yearHint=[f.start,f.end,f.dataFech,f.criadoEm].map(fechRefFromDate).find(Boolean);
+  if(fechRefExplicit(f.ref, yearHint&&yearHint.ano)) return f;
+  const inferred = fechRefOf(f);
+  return inferred.ano ? Object.assign({}, f, {ref:inferred}) : f;
+}
+function fechAuditRows(){
+  return (Array.isArray(FECHAMENTOS)?FECHAMENTOS:[]).map(f=>{
+    const r=fechRefOf(f);
+    return {id:String(f&&f.id||''),rawRef:f&&f.ref||null,start:f&&f.start||'',ref:r.ano?fechRefKey(r.ano,r.mes,r.quinzena):'sem-ref',recovered:!!(f&&f.recuperado)};
+  });
+}
+function fechPublishAudit(stage, groups){
+  const detail={stage:stage,total:Array.isArray(FECHAMENTOS)?FECHAMENTOS.length:0,records:fechAuditRows(),
+    groups:(groups||[]).map(g=>({group:g.key,records:g.list.map(f=>String(f&&f.id||''))}))};
+  try{window.__fechAudit=Object.assign({},window.__fechAudit||{},detail);}catch(e){}
+  console.info('[Fechamentos][classificação]',detail);
+}
+async function fechLoadAll(pair){
+  pair=pair||{};
+  const remote=pair.remoteFound&&Array.isArray(pair.remoteValue)?pair.remoteValue:[];
+  const local=pair.localFound&&Array.isArray(pair.localValue)?pair.localValue:[];
+  const hasRemoteSnapshot=!!pair.remoteFound&&Array.isArray(pair.remoteValue);
+  let keys=[];
+  try{keys=await Stor.list();}catch(e){}
+  const recordKeys=keys.filter(k=>String(k).startsWith(FECH_STORAGE_PREFIX));
+  const loaded=await Promise.all(recordKeys.map(async key=>{
+    try{
+      const recordPair=typeof Stor.getPair==='function'
+        ? await Stor.getPair(key)
+        : {remoteFound:false,remoteValue:null,localFound:true,localValue:await Stor.get(key)};
+      return {key:key,pair:recordPair||{}};
+    }catch(e){return {key:key,pair:{}};}
+  }));
+  const remoteRecordCount=loaded.filter(x=>x.pair.remoteFound).length;
+  const remoteAvailable=hasRemoteSnapshot||remoteRecordCount>0;
+  const base=hasRemoteSnapshot?remote:(remoteAvailable?[]:local);
+  const remoteById=new Map(remote.filter(f=>f&&f.id!=null).map(f=>[String(f.id),f]));
+  const remoteIds=new Set(remoteById.keys());
+  const localCandidates=new Map();
+  if(remoteAvailable){
+    for(const f of (FECH_LOCAL_PENDING||[]).concat(local)){
+      if(!f||f.id==null||String(f.id).trim()==='')continue;
+      const normalized=fechNormalizeRecord(f);
+      if(normalized&&!remoteIds.has(String(normalized.id)))localCandidates.set(String(normalized.id),normalized);
+    }
+  }
+
+  const byId=new Map(),unkeyed=[],tombstones=new Set(),storedIds=new Set(),remoteStoredIds=new Set();
+  for(const f0 of base){
+    const f=fechNormalizeRecord(f0);if(!f)continue;
+    if(f.id==null||String(f.id).trim()==='')unkeyed.push(f);
+    else byId.set(String(f.id),f);
+  }
+  const localRecordCandidates=new Set();
+  for(const entry of loaded){
+    const suffix=entry.key.slice(FECH_STORAGE_PREFIX.length);
+    let keyId='';
+    try{keyId=decodeURIComponent(suffix);}catch(e){keyId=suffix;}
+    const recordPair=entry.pair||{};
+    const remoteRecord=recordPair.remoteFound?recordPair.remoteValue:null;
+    const localRecord=recordPair.localFound?recordPair.localValue:null;
+    const remoteId=String(remoteRecord&&remoteRecord.id!=null?remoteRecord.id:keyId);
+    const localId=String(localRecord&&localRecord.id!=null?localRecord.id:keyId);
+    if(remoteRecord&&typeof remoteRecord==='object'&&remoteId){
+      storedIds.add(remoteId);remoteStoredIds.add(remoteId);remoteIds.add(remoteId);
+    }
+    if(localRecord&&typeof localRecord==='object'&&localId)storedIds.add(localId);
+    if(!remoteRecord&&!localRecord)continue;
+    const deletedRemote=!!(remoteRecord&&remoteRecord.deleted===true);
+    const deletedLocal=!!(localRecord&&localRecord.deleted===true);
+    if(deletedRemote||deletedLocal){
+      const deletedId=deletedRemote?remoteId:localId;
+      tombstones.add(deletedId);byId.delete(deletedId);localCandidates.delete(deletedId);
+      if(deletedLocal&&!deletedRemote&&remoteRecord){
+        try{await Stor.set(entry.key,localRecord);}
+        catch(e){console.warn('[Fechamentos][reabertura] tombstone local ainda não sincronizado',deletedId,e);}
+      }
+      continue;
+    }
+    if(localRecord&&typeof localRecord==='object'){
+      const remoteVersion=(remoteRecord&&typeof remoteRecord==='object')?remoteRecord:remoteById.get(localId);
+      const localVersion=fechNormalizeRecord(localRecord);
+      if(remoteVersion&&localVersion&&fechRecordTime(localRecord)>fechRecordTime(remoteVersion)){
+        byId.set(localId,localVersion);
+        localCandidates.delete(localId);
+        localRecordCandidates.delete(localId);
+        try{await Stor.set(entry.key,localRecord);}
+        catch(e){console.warn('[Fechamentos][sincronização] atualização local mais recente ainda não sincronizada',localId,e);}
+        continue;
+      }
+    }
+    if(remoteRecord&&typeof remoteRecord==='object'){
+      const normalized=fechNormalizeRecord(remoteRecord);
+      if(normalized)byId.set(remoteId,normalized);
+      continue;
+    }
+    if(localRecord&&typeof localRecord==='object'){
+      const normalized=fechNormalizeRecord(localRecord);
+      if(!normalized)continue;
+      if(remoteAvailable){
+        // Um registro individual apenas no cache pode ser um fechamento que nunca
+        // chegou ao Supabase; valida-o contra as cargas fechadas antes de promovê-lo.
+        if(!remoteIds.has(localId)){
+          localCandidates.set(localId,normalized);
+          localRecordCandidates.add(localId);
+        }
+      }else byId.set(localId,normalized);
+    }
+  }
+  for(const id of remoteIds){
+    if(!localRecordCandidates.has(id))localCandidates.delete(id);
+  }
+  for(const id of tombstones)byId.delete(id);
+  FECH_TOMBSTONES=tombstones;
+  FECH_LOCAL_PENDING=Array.from(localCandidates.values()).filter(f=>{
+    const id=String(f.id);
+    return !tombstones.has(id)&&!remoteStoredIds.has(id)&&(!byId.has(id)||localRecordCandidates.has(id));
+  });
+
+  // Migração idempotente: copia cada registro legado para sua própria chave,
+  // mas nunca substitui uma versão individual já existente nem um tombstone.
+  let migrated=0,migrationErrors=0;
+  for(const f0 of base){
+    const f=fechNormalizeRecord(f0);
+    if(!f||f.id==null||String(f.id).trim()==='')continue;
+    const id=String(f.id);
+    if(storedIds.has(id)||tombstones.has(id))continue;
+    try{await Stor.set(fechRecordKey(id),f);storedIds.add(id);migrated++;}
+    catch(e){migrationErrors++;console.warn('[Fechamentos][migração] falha ao copiar registro',id,e);}
+  }
+  FECHAMENTOS=Array.from(byId.values()).concat(unkeyed);
+  const auditRows=fechAuditRows();
+  const pendingRows=FECH_LOCAL_PENDING.map(f=>{
+    const r=fechRefOf(f);
+    return {id:String(f.id||''),ref:r.ano?fechRefKey(r.ano,r.mes,r.quinzena):'sem-ref'};
+  });
+  const report={source:remoteAvailable?'Supabase':'localStorage',remoteCount:remote.length,remoteRecordCount:remoteRecordCount,
+    localCount:local.length,pendingLocal:pendingRows,loaded:FECHAMENTOS.length,migrated:migrated,
+    migrationErrors:migrationErrors,records:auditRows};
+  try{window.__fechAudit=report;}catch(e){}
+  console.info('[Fechamentos][load]',report);
+  return FECHAMENTOS;
+}
+function fechRefFromAudit(id){
+  const entries=typeof AUDIT!=='undefined'&&Array.isArray(AUDIT)?AUDIT:[];
+  const entry = entries.slice().reverse().find(a=>
+    a && a.action === 'fechamento-criado' && String(a.detail || '').startsWith(String(id) + ' · '));
+  if(!entry) return null;
+  const parts = String(entry.detail || '').split(' · ');
+  const parsed = fechRefFromText(parts[1] || '', 0);
+  if(!parsed) return null;
+  const when = Number(entry.ts), dt = Number.isFinite(when) ? new Date(when) : null;
+  let ano = parsed.ano;
+  if(!ano && dt){
+    const atualMes = dt.getMonth() + 1, anterior = atualMes === 1 ? 12 : atualMes - 1;
+    if(parsed.mes === atualMes) ano = dt.getFullYear();
+    else if(parsed.mes === anterior) ano = atualMes === 1 ? dt.getFullYear() - 1 : dt.getFullYear();
+  }
+  return fechRefMake(ano, parsed.mes, parsed.quinzena);
 }
 function fechRefKey(ano, mes, q){ return ano + '-' + qp2(mes) + '-Q' + q; }
+function fechMapCargoKey(c){
+  return String(c&&c.d||'')+'|'+String(c&&c.sec||'')+'|'+String(c&&c.id||'');
+}
+function fechRefFromMapItems(id, items){
+  const explicit=[];
+  for(const it of items){
+    const r=fechRefExplicit(it.row&&it.row.fechRef,fechRefFromDate(it.d)?.ano);
+    if(r)explicit.push(fechRefKey(r.ano,r.mes,r.quinzena));
+  }
+  const explicitRefs=Array.from(new Set(explicit));
+  if(explicitRefs.length===1){
+    const m=explicitRefs[0].match(/^(\d{4})-(\d{2})-Q([12])$/);
+    return fechRefMake(+m[1],+m[2],+m[3]);
+  }
+  const fromAudit=fechRefFromAudit(id);
+  if(fromAudit)return fromAudit;
+  if(explicitRefs.length>1)return null; // metadados conflitantes: não inventa uma referência pela data da carga
+  const dates=Array.from(new Set(items.map(it=>{
+    const r=fechRefFromDate(it.d);
+    return r?fechRefKey(r.ano,r.mes,r.quinzena):'';
+  }).filter(Boolean)));
+  if(dates.length===1){
+    const m=dates[0].match(/^(\d{4})-(\d{2})-Q([12])$/);
+    return fechRefMake(+m[1],+m[2],+m[3]);
+  }
+  return null;
+}
+function fechCargoFromMapItem(it){
+  const row=it.row||{},calc=calcularFrete(it.sec,row)||{};
+  const peso=numVal(row.peso),total=numVal(calc.total),km=numVal(row.km);
+  let dfinal=it.d;
+  try{dfinal=relCalc(it.sec,row,it.d,'').dataFinal||it.d;}catch(e){}
+  return {d:it.d,sec:it.sec,id:row.id,placa:row.placa||'',destino:row.destino||'',ordem:row.carga||'',
+    motorista:row.motorista||'',peso:peso,km:km,total:total,media:total>0&&peso>0?total/peso:null,dfinal:dfinal,
+    tipo:String(calc.frota||'').replace(/^caminh[aã]o\s*/i,'').trim(),custoKg:peso>0?total/peso:null};
+}
+function fechRecalcSnapshotGroup(g){
+  g.cargas=Array.isArray(g.cargas)?g.cargas:[];
+  g.peso=g.cargas.reduce((a,c)=>a+numVal(c.peso),0);
+  g.faturado=g.cargas.reduce((a,c)=>a+numVal(c.total),0);
+  g.apagar=Math.max(0,g.faturado-numVal(g.abatimento));
+  g.custoKg=g.peso>0?g.faturado/g.peso:null;
+  return g;
+}
+function fechTrimSnapshotToActive(f, items){
+  const allowed=new Set(items.map(it=>it.d+'|'+it.sec+'|'+String(it.row&&it.row.id||'')));
+  const copy=JSON.parse(JSON.stringify(f));
+  copy.grupos=(Array.isArray(copy.grupos)?copy.grupos:[]).map(g=>{
+    g.cargas=(Array.isArray(g.cargas)?g.cargas:[]).filter(c=>allowed.has(fechMapCargoKey(c)));
+    return fechRecalcSnapshotGroup(g);
+  }).filter(g=>g.cargas.length);
+  if(!copy.grupos.length)return null;
+  copy.recuperado=true;
+  copy.valoresReconstruidos=false;
+  copy.recuperadoMotivo='snapshot local reconciliado com as cargas que continuam fechadas';
+  return copy;
+}
+function fechBuildRecovered(id, items, suppliedRef){
+  const ref=suppliedRef||fechRefFromMapItems(id,items);
+  const byTransp=new Map();
+  for(const it of items){
+    const row=it.row||{};
+    const transp=String(row.transportadora||'').trim()||'(sem transportadora)';
+    const key=normKw(transp)||'(sem transportadora)';
+    let g=byTransp.get(key);
+    if(!g){
+      g={transp:transp,key:key,codigo:TRANSP_CODES[key]||'',abatimento:0,nf:'Não',boleto:'Não',
+        peso:0,faturado:0,apagar:0,custoKg:null,cargas:[]};
+      byTransp.set(key,g);
+    }
+    g.cargas.push(fechCargoFromMapItem(it));
+  }
+  const groups=Array.from(byTransp.values()).map(fechRecalcSnapshotGroup);
+  const dates=items.map(it=>it.d).filter(d=>/^\d{4}-\d{2}-\d{2}$/.test(d)).sort();
+  const closeDates=items.map(it=>String(it.row&&it.row.fechDt||'')).filter(d=>/^\d{4}-\d{2}-\d{2}$/.test(d)).sort();
+  const start=dates[0]||'',end=dates[dates.length-1]||start,dataFech=closeDates[closeDates.length-1]||'';
+  const f={id:String(id),criadoEm:dataFech?dataFech+'T12:00:00.000Z':'',dataFech:dataFech,
+    por:'(recuperado do mapa)',start:start,end:end,grupos:groups,recuperado:true,valoresReconstruidos:true,
+    recuperadoMotivo:'registro histórico ausente; cargas recuperadas dos mapas'};
+  if(ref)f.ref=ref;
+  else f.refIndeterminada=true;
+  return f;
+}
+function fechAddMissingMapRows(f, items){
+  const copy=JSON.parse(JSON.stringify(f));
+  copy.grupos=Array.isArray(copy.grupos)?copy.grupos:[];
+  const have=new Set();
+  for(const g of copy.grupos){
+    for(const c of (Array.isArray(g.cargas)?g.cargas:[]))have.add(fechMapCargoKey(c));
+  }
+  const missing=items.filter(it=>!have.has(it.d+'|'+it.sec+'|'+String(it.row&&it.row.id||'')));
+  if(!missing.length)return null;
+  for(const it of missing){
+    const row=it.row||{};
+    const transp=String(row.transportadora||'').trim()||'(sem transportadora)';
+    const key=normKw(transp)||'(sem transportadora)';
+    let g=copy.grupos.find(x=>String(x.key||normKw(x.transp))===key);
+    if(!g){
+      g={transp:transp,key:key,codigo:TRANSP_CODES[key]||'',abatimento:0,nf:'Não',boleto:'Não',cargas:[]};
+      copy.grupos.push(g);
+    }
+    if(!Array.isArray(g.cargas))g.cargas=[];
+    g.cargas.push(fechCargoFromMapItem(it));
+    fechRecalcSnapshotGroup(g);
+  }
+  const dates=items.map(it=>it.d).filter(d=>/^\d{4}-\d{2}-\d{2}$/.test(d)).sort();
+  if(!copy.start&&dates.length)copy.start=dates[0];
+  if(!copy.end&&dates.length)copy.end=dates[dates.length-1];
+  if(!copy.ref){
+    const r=fechRefFromMapItems(copy.id,items);
+    if(r)copy.ref=r;else copy.refIndeterminada=true;
+  }
+  copy.recuperado=true;
+  copy.valoresReconstruidos=true;
+  copy.recuperadoCargas=(Number(copy.recuperadoCargas)||0)+missing.length;
+  return copy;
+}
+async function fechPersistMapMetadata(d, rec){
+  try{
+    if(d===currentMapDate){await Stor.set('map:'+d,snapshotMap());return;}
+    if(!rec||!rec.data)return;
+    rec.savedAt=new Date().toISOString();
+    const clean=s=>(rec.data[s]||[]).map(r=>{const copy=Object.assign({},r);delete copy._sel;return copy;});
+    const value=Object.assign({},rec,{data:{frotas:clean('frotas'),capital:clean('capital'),interior:clean('interior')}});
+    await Stor.set('map:'+d,value);
+  }catch(e){console.warn('[Fechamentos][migração] não foi possível gravar metadados do mapa',d,e);}
+}
+async function fechRecoverFromMaps(){
+  if(FECH_RECOVERY_SCANNED&&!(FECH_LOCAL_PENDING||[]).length)return 0;
+  if(FECH_RECOVERY_PROMISE)return FECH_RECOVERY_PROMISE;
+  FECH_RECOVERY_PROMISE=(async()=>{
+    const keys=await Stor.list();
+    const dates=Array.from(new Set(keys.filter(k=>/^map:\d{4}-\d{2}-\d{2}$/.test(k)).map(k=>k.slice(4))
+      .concat(currentMapDate?[currentMapDate]:[]))).sort();
+    const byId=new Map(),noId=new Map(),recordsByDate=new Map(),dirtyDates=new Set();
+    for(let offset=0;offset<dates.length;offset+=12){
+      const batch=dates.slice(offset,offset+12);
+      const loaded=await Promise.all(batch.map(async d=>{
+        if(d===currentMapDate)return {d:d,rec:{data:DATA},live:true};
+        try{
+          const pair=typeof Stor.getPair==='function'
+            ? await Stor.getPair('map:'+d)
+            : {remoteFound:false,remoteValue:null,localFound:true,localValue:await Stor.get('map:'+d)};
+          const remoteRec=pair&&pair.remoteFound?pair.remoteValue:null;
+          const localRec=pair&&pair.localFound?pair.localValue:null;
+          const remoteAt=Date.parse(remoteRec&&remoteRec.savedAt||'')||0;
+          const localAt=Date.parse(localRec&&localRec.savedAt||'')||0;
+          const localIsNewer=!!(localRec&&localRec.data&&(!remoteRec||!remoteRec.data||localAt>remoteAt));
+          const rec=localIsNewer?localRec:(remoteRec&&remoteRec.data?remoteRec:localRec);
+          if(localIsNewer){
+            try{await Stor.set('map:'+d,localRec);}
+            catch(e){console.warn('[Fechamentos][mapa] snapshot local mais novo ainda não sincronizado',d,e);}
+          }
+          return {d:d,rec:rec,live:false};
+        }catch(e){return {d:d,rec:null,live:false};}
+      }));
+      for(const entry of loaded){
+        const d=entry.d,rec=entry.rec;
+        if(!rec||!rec.data)continue;
+        recordsByDate.set(d,entry);
+        for(const sec of SECTIONS){
+          for(const row of (rec.data[sec]||[])){
+            if(!row||row.stFech!=='fechado')continue;
+            const id=String(row.fechId||'').trim();
+            if(id&&/^(?:mig-lote|migra-fechamento)/i.test(id))continue;
+            if(id&&FECH_TOMBSTONES.has(id))continue;
+            const item={d:d,sec:sec,row:row,live:entry.live};
+            if(!id){
+              const noIdRef=fechRefExplicit(row.fechRef,fechRefFromDate(d)?.ano);
+              const noIdRefKey=noIdRef?fechRefKey(noIdRef.ano,noIdRef.mes,noIdRef.quinzena):'sem-ref';
+              const noIdKey='noid:'+String(row.fechDt||d)+':'+d+':'+noIdRefKey;
+              if(!noId.has(noIdKey))noId.set(noIdKey,[]);
+              noId.get(noIdKey).push(item);
+              continue;
+            }
+            if(!byId.has(id))byId.set(id,[]);
+            byId.get(id).push(item);
+          }
+        }
+      }
+    }
+    // Valida snapshots exclusivos do localStorage contra linhas ainda FECHADAS no mapa.
+    let fixed=0,recovered=0;
+    const pending=[];
+    for(const f of FECH_LOCAL_PENDING){
+      const id=String(f.id||''),items=byId.get(id)||[];
+      if(!id||!items.length||FECH_TOMBSTONES.has(id)){pending.push(f);continue;}
+      const restored=fechTrimSnapshotToActive(f,items)||fechBuildRecovered(id,items,fechRefFromMapItems(id,items));
+      if(!FECHAMENTOS.some(x=>String(x.id)===id)){
+        FECHAMENTOS.push(restored);
+        recovered++;
+        try{await Stor.set(fechRecordKey(id),restored);}
+        catch(e){console.warn('[Fechamentos][recuperação] cache local promovido, Supabase não confirmou',id,e);}
+      }
+      if(restored.ref){
+        for(const it of items){
+          if(!it.row.fechRef){it.row.fechRef=restored.ref;dirtyDates.add(it.d);}
+        }
+      }
+      byId.delete(id);
+    }
+    FECH_LOCAL_PENDING=pending;
+
+    const known=new Map(FECHAMENTOS.filter(f=>f&&f.id!=null).map(f=>[String(f.id),f]));
+    for(const [id,items] of byId){
+      if(FECH_TOMBSTONES.has(id))continue;
+      const existing=known.get(id);
+      if(existing){
+        const update=fechAddMissingMapRows(existing,items);
+        if(update){
+          const index=FECHAMENTOS.indexOf(existing);
+          if(index>=0)FECHAMENTOS[index]=update;
+          known.set(id,update);
+          fixed++;
+          try{await Stor.set(fechRecordKey(id),update);}
+          catch(e){console.warn('[Fechamentos][recuperação] não foi possível salvar cargas ausentes',id,e);}
+        }
+      }else{
+        const restored=fechBuildRecovered(id,items,fechRefFromMapItems(id,items));
+        FECHAMENTOS.push(restored);
+        known.set(id,restored);
+        recovered++;
+        try{await Stor.set(fechRecordKey(id),restored);}
+        catch(e){console.warn('[Fechamentos][recuperação] não foi possível salvar fechamento recuperado',id,e);}
+      }
+    }
+    for(const [groupKey,items] of noId){
+      const raw=groupKey+';'+items.map(it=>it.d+'|'+it.sec+'|'+String(it.row.id||'')).sort().join(';');
+      let hash=2166136261;
+      for(let i=0;i<raw.length;i++){hash^=raw.charCodeAt(i);hash=Math.imul(hash,16777619);}
+      const date=String(items[0].row.fechDt||items[0].d||'sem-data').replace(/[^0-9]/g,'');
+      const id='recuperado-'+date+'-'+(hash>>>0).toString(36);
+      if(known.has(id)||FECH_TOMBSTONES.has(id))continue;
+      const ref=fechRefFromMapItems(id,items);
+      const restored=fechBuildRecovered(id,items,ref);
+      FECHAMENTOS.push(restored);
+      known.set(id,restored);
+      recovered++;
+      for(const it of items){
+        it.row.fechId=id;
+        if(ref)it.row.fechRef=ref;
+        dirtyDates.add(it.d);
+      }
+      try{await Stor.set(fechRecordKey(id),restored);}
+      catch(e){console.warn('[Fechamentos][recuperação] não foi possível salvar fechamento legado',id,e);}
+    }
+    // Backfill seguro: ref já conhecida no histórico/auditoria passa também para as linhas do mapa.
+    for(const [id,items] of byId){
+      const f=known.get(id);
+      if(!f)continue;
+      const yearHint=[f.start,f.end,f.dataFech].map(fechRefFromDate).find(Boolean);
+      const ref=fechRefExplicit(f.ref,yearHint&&yearHint.ano)||fechRefFromMapItems(id,items);
+      if(!ref)continue;
+      for(const it of items){
+        if(!it.row.fechRef){it.row.fechRef=ref;dirtyDates.add(it.d);}
+      }
+    }
+    for(const d of dirtyDates){
+      const entry=recordsByDate.get(d);
+      await fechPersistMapMetadata(d,entry&&entry.rec);
+    }
+    const report={closedMapIds:byId.size,unresolvedIds:Array.from(byId.keys()).filter(id=>!known.has(id)),
+      recovered:recovered,fixedMissingLoads:fixed,unconfirmedLocal:FECH_LOCAL_PENDING.length,refs:fechAuditRows()};
+    try{window.__fechAudit=Object.assign({},window.__fechAudit||{},report);}catch(e){}
+    console.info('[Fechamentos][reconciliação]',report);
+    FECH_RECOVERY_SCANNED=true;
+    return recovered+fixed;
+  })();
+  try{return await FECH_RECOVERY_PROMISE;}
+  finally{FECH_RECOVERY_PROMISE=null;}
+}
 function closeFechRef(){
   const m = relEl('fech-ref-mask'); if(m){ m.hidden = true; m.dataset.busy = ''; }
 }
@@ -5427,63 +5965,70 @@ function fechRefAsk(nCargas, total){
 /* ---- confirmar o fechamento ---- */
 async function fechConfirm(){
   if(!requireOperational()) return;
+  if(FECH_CONFIRM_BUSY) return;
   const sel = fechGroups().map(g=> Object.assign({g: g}, fechGroupSel(g))).filter(x=> x.itens.length);
   if(!sel.length){ toast('Marque ao menos uma carga para fechar', 'err'); return; }
-  // pergunta a referência de quinzena (só 4 opções: mês anterior/atual · Q1/Q2)
   const nSel = sel.reduce((a, x)=> a + x.itens.length, 0);
   const totSel = sel.reduce((a, x)=> a + x.fat, 0);
   const ref = await fechRefAsk(nSel, totSel);
-  if(!ref) return;
-  const now = new Date();
-  const id = 'f' + now.getTime().toString(36) + Math.random().toString(36).slice(2, 6);
-  const fech = {id: id, criadoEm: now.toISOString(), dataFech: hojeIso(), por: (SESSION && SESSION.name) || '—',
-                ref: ref, start: REL.start, end: REL.end, grupos: []};
-  const datas = new Set();
-  for(const x of sel){
-    const g = x.g, s = x.s;
-    const abat = numVal(s.abat);
-    const cargas = x.itens.map(it=>({
-      custoKg: it.calc.peso > 0 ? it.calc.total / it.calc.peso : null,
-      d: it.d, sec: it.sec, id: it.row.id, placa: it.row.placa || '', destino: it.row.destino || '',
-      ordem: it.row.carga || '', motorista: it.row.motorista || '',
-      peso: it.calc.peso, km: it.calc.km, total: it.calc.total, media: it.calc.media,
-      dfinal: it.calc.dataFinal, tipo: fechTipoFrota(it.sec, it.row)
-    }));
-    fech.grupos.push({transp: g.nome, key: g.key, codigo: String(s.codigo || '').trim() || TRANSP_CODES[g.key] || '',
-      abatimento: abat, nf: s.nf, boleto: s.boleto,
-      peso: x.peso, faturado: x.fat, apagar: Math.max(0, x.fat - abat),
-      custoKg: x.peso > 0 ? x.fat / x.peso : null, cargas: cargas});
-    for(const it of x.itens){ it._prevSt = it.row.stFech; it.row.stFech = 'fechado'; it.row.fechId = id; it.row.fechDt = hojeIso(); datas.add(it.d); }
-    const cod = String(s.codigo || '').trim();
-    if(cod && cod !== TRANSP_CODES[g.key]){ TRANSP_CODES[g.key] = cod; saveSettings(); }  // lembra o código
-  }
+  if(!ref || FECH_CONFIRM_BUSY) return;
+  FECH_CONFIRM_BUSY = true;
+  const okBtn = relEl('fech-ok'), wasDisabled = okBtn ? okBtn.disabled : false;
+  if(okBtn) okBtn.disabled = true;
   try{
-    await refreshSessionToken();                    // evita token vencido na gravação
-    for(const d of datas) await relPersistDate(d);   // grava cada dia alterado (atual = mapa ao vivo)
-    FECHAMENTOS.push(fech);
-    await Stor.set('fechamentos', FECHAMENTOS);
-    /* Atualiza a relação imediatamente. Antes ela só era redesenhada ao
-       reabrir a tela, deixando o fechamento recém-criado fora da lista até
-       uma nova abertura do painel. */
-    renderFechHist();
-  }catch(err){
-    console.error(err);
-    for(const x of sel) for(const it of x.itens){
-      if(it._prevSt === undefined) delete it.row.stFech; else it.row.stFech = it._prevSt;
-      delete it.row.fechId; delete it.row.fechDt;
+    const now = new Date();
+    const id = 'f' + now.getTime().toString(36) + Math.random().toString(36).slice(2, 10);
+    const fech = {id:id, criadoEm:now.toISOString(), dataFech:hojeIso(), por:(SESSION&&SESSION.name)||'—',
+                  ref:ref, start:REL.start, end:REL.end, grupos:[]};
+    const datas = new Set(), prevRows = [];
+    for(const x of sel){
+      const g=x.g, s=x.s, abat=numVal(s.abat);
+      const cargas=x.itens.map(it=>({
+        custoKg:it.calc.peso>0?it.calc.total/it.calc.peso:null,
+        d:it.d,sec:it.sec,id:it.row.id,placa:it.row.placa||'',destino:it.row.destino||'',
+        ordem:it.row.carga||'',motorista:it.row.motorista||'',peso:it.calc.peso,km:it.calc.km,
+        total:it.calc.total,media:it.calc.media,dfinal:it.calc.dataFinal,tipo:fechTipoFrota(it.sec,it.row)
+      }));
+      fech.grupos.push({transp:g.nome,key:g.key,codigo:String(s.codigo||'').trim()||TRANSP_CODES[g.key]||'',
+        abatimento:abat,nf:s.nf,boleto:s.boleto,peso:x.peso,faturado:x.fat,apagar:Math.max(0,x.fat-abat),
+        custoKg:x.peso>0?x.fat/x.peso:null,cargas:cargas});
+      for(const it of x.itens){
+        const row=it.row;
+        prevRows.push({row:row,stFech:row.stFech,fechId:row.fechId,fechDt:row.fechDt,fechRef:row.fechRef});
+        row.stFech='fechado';row.fechId=id;row.fechDt=hojeIso();row.fechRef=ref;datas.add(it.d);
+      }
+      const cod=String(s.codigo||'').trim();
+      if(cod&&cod!==TRANSP_CODES[g.key]){TRANSP_CODES[g.key]=cod;saveSettings();}
     }
-    FECHAMENTOS = FECHAMENTOS.filter(f=> f.id !== id);
-    try{ for(const d of datas) await relPersistDate(d); }catch(e2){}   // tenta regravar o estado original
-    relApplyFilters(); renderRelTable(); renderFechTable();
-    toast('❌ Fechamento NÃO gravado no banco: ' + err.message, 'err');
-    return;
+    try{
+      await refreshSessionToken();
+      for(const d of datas) await relPersistDate(d);
+      /* Cada fechamento é imutável sob uma chave própria; nunca substitui o array
+         global "fechamentos" que outra aba pode ter carregado antes. */
+      await Stor.set(fechRecordKey(id),fech);
+    }catch(err){
+      console.error(err);
+      for(const p of prevRows){
+        const restore=(key,value)=>{if(value===undefined)delete p.row[key];else p.row[key]=value;};
+        restore('stFech',p.stFech);restore('fechId',p.fechId);restore('fechDt',p.fechDt);restore('fechRef',p.fechRef);
+      }
+      try{await Stor.del(fechRecordKey(id));}catch(e0){}
+      try{for(const d of datas)await relPersistDate(d);}catch(e2){}
+      relApplyFilters();renderRelTable();renderFechTable();
+      toast('❌ Fechamento NÃO gravado no banco: '+err.message,'err');
+      return;
+    }
+    FECHAMENTOS.push(fech);
+    try{renderFechHist();}catch(e){console.error('[Fechamentos][render]',e);}
+    const nCargas=fech.grupos.reduce((a,g)=>a+g.cargas.length,0);
+    audit('fechamento-criado',fech.id+' · '+ref.label+' · '+fechPeriodoTxt(fech)+' · '+fech.grupos.length+' transportadora(s) · '+nCargas+' carga(s) · '+fmtBRL(fech.grupos.reduce((a,g)=>a+g.apagar,0)));
+    closeFech();
+    relApplyFilters();renderRelTable();
+    toast('🔒 Fechado na referência '+ref.label+': '+fech.grupos.length+' transportadora(s) / '+nCargas+' carga(s)','ok');
+  }finally{
+    FECH_CONFIRM_BUSY=false;
+    if(okBtn)okBtn.disabled=wasDisabled;
   }
-  const nCargas = fech.grupos.reduce((a, g)=> a + g.cargas.length, 0);
-  audit('fechamento-criado', fech.id + ' · ' + ref.label + ' · ' + fechPeriodoTxt(fech) + ' · ' + fech.grupos.length + ' transportadora(s) · ' + nCargas + ' carga(s) · ' + fmtBRL(fech.grupos.reduce((a, g)=> a + g.apagar, 0)));
-  closeFech();
-  relApplyFilters(); renderRelTable();
-  // Fechar NÃO gera mais Excel — os arquivos ficam em 📚 Fechamentos anteriores → "Baixar de novo"
-  toast('🔒 Fechado na referência ' + ref.label + ': ' + fech.grupos.length + ' transportadora(s) / ' + nCargas + ' carga(s)', 'ok');
 }
 
 /* ---- Excel: resumo do financeiro ---- */
@@ -5781,7 +6326,7 @@ async function histReopenBatch(items){
       if(!row || !relIsFech(row) || (row.fechId || "") !== (it.fid || "")) continue;
       // status "Em análise" aposentado: reabrir volta SEMPRE para Pendente
       delete row.stFech;
-      delete row.fechId; delete row.fechDt;
+      delete row.fechId; delete row.fechDt; delete row.fechRef;
       nOrf++;
     }
     if(loaded || d === currentMapDate){ await relPersistDate(d); }
@@ -6339,8 +6884,9 @@ function fhVistos(){
   const mes = String((relEl('fh-mes') || {}).value || '');
   const de = String((relEl('fh-mes-de') || {}).value || '');   // YYYY-MM
   const ate = String((relEl('fh-mes-ate') || {}).value || '');
-  const grupos = new Map(); // chave YYYY-MM-Qn → {key, ref, label, am, list[], cargas, peso, valor}
-  for(const f of FECHAMENTOS){
+  const grupos = new Map(); // chave YYYY-MM-Qn → todos os fechamentos dessa referência
+  for(const f of (Array.isArray(FECHAMENTOS)?FECHAMENTOS:[])){
+    if(!f||typeof f!=='object')continue;
     const r = fechRefOf(f);
     if(r.ano){
       const am = r.ano + '-' + qp2(r.mes);
@@ -6348,41 +6894,44 @@ function fhVistos(){
       if(mes && r.mes !== +mes) continue;
       if(de && am < de) continue;
       if(ate && am > ate) continue;
-    } else if(ano || mes || de || ate) continue;   // sem referência só aparece sem filtros
+    } else if(ano || mes || de || ate) continue;
     const key = r.ano ? fechRefKey(r.ano, r.mes, r.quinzena) : 'sem-ref';
     let g = grupos.get(key);
     if(!g){
-      g = {key: key, ano: r.ano, mes: r.mes, quinzena: r.quinzena,
-           label: r.ano ? (MESES_NOME[r.mes - 1] + '/' + r.ano + ' — Quinzena ' + r.quinzena) : '(sem referência)',
-           ord: r.ano ? (r.ano * 10000 + r.mes * 100 + r.quinzena) : -1,
-           list: [], cargas: 0, peso: 0, valor: 0};
-      grupos.set(key, g);
+      g = {key:key,ano:r.ano,mes:r.mes,quinzena:r.quinzena,
+        label:r.ano?(MESES_NOME[r.mes-1]+'/'+r.ano+' — Quinzena '+r.quinzena):'(sem referência)',
+        ord:r.ano?(r.ano*10000+r.mes*100+r.quinzena):-1,list:[],cargas:0,peso:0,valor:0};
+      grupos.set(key,g);
     }
+    const fgr=Array.isArray(f.grupos)?f.grupos:[];
     g.list.push(f);
-    g.cargas += f.grupos.reduce((a, x)=> a + x.cargas.length, 0);
-    g.peso += f.grupos.reduce((a, x)=> a + numVal(x.peso), 0);
-    g.valor += f.grupos.reduce((a, x)=> a + numVal(x.apagar), 0);
+    g.cargas+=fgr.reduce((a,x)=>a+(Array.isArray(x.cargas)?x.cargas.length:0),0);
+    g.peso+=fgr.reduce((a,x)=>a+numVal(x.peso),0);
+    g.valor+=fgr.reduce((a,x)=>a+numVal(x.apagar),0);
   }
-  return Array.from(grupos.values()).sort((a, b)=> a.ord - b.ord);
+  return Array.from(grupos.values()).sort((a,b)=>a.ord-b.ord);
 }
 function renderFechHist(){
   if(HIST_WIN && !HIST_WIN.closed) histWinRefresh();
   const wrap = relEl('fech-hist-rows'); if(!wrap) return;
   fhControlsFill();
-  if(!FECHAMENTOS.length){ wrap.innerHTML = '<div class="empty">Nenhum fechamento feito ainda.</div>'; return; }
+  if(!FECHAMENTOS.length){ fechPublishAudit('render',[]); wrap.innerHTML = '<div class="empty">Nenhum fechamento feito ainda.</div>'; return; }
   const vistos = fhVistos();
+  fechPublishAudit('render',vistos);
   if(!vistos.length){ wrap.innerHTML = '<div class="empty">Nenhuma quinzena nos filtros escolhidos.</div>'; return; }
   wrap.innerHTML = vistos.map(g=>{
     const rows = g.list.slice().reverse().map(f=>{
-      const n = f.grupos.reduce((a, x)=> a + x.cargas.length, 0);
-      const val = f.grupos.reduce((a, x)=> a + x.apagar, 0);
-      const quando = f.dataFech ? fmtBR(f.dataFech) : (f.criadoEm ? new Date(f.criadoEm).toLocaleDateString('pt-BR') : '');
-      return '<div class="fech-hist-row" data-f="' + esc(f.id) + '">' +
-        '<span class="grow"><b>' + fechPeriodoTxt(f) + '</b> · ' + f.grupos.length + ' transportadora(s) · ' + n + ' carga(s) · ' + fmtBRL(val) + ' · 🔒 Fechado em ' + esc(quando || '—') + '</span>' +
-        '<span class="mono">' + esc(f.por || '') + '</span>' +
-        '<button class="btn mini" type="button" data-act="fech-dl" title="Gera de novo o resumo + os arquivos por transportadora (com os valores da época)">📥 Baixar de novo</button>' +
-        '<button class="btn mini" type="button" data-act="fech-rs" title="Devolve as cargas escolhidas deste fechamento para PENDENTE">↺ Reabrir cargas</button>' +
-        '<div class="fech-rs" data-rs-panel hidden></div>' +
+      const fgr=Array.isArray(f.grupos)?f.grupos:[];
+      const n=fgr.reduce((a,x)=>a+(Array.isArray(x.cargas)?x.cargas.length:0),0);
+      const val=fgr.reduce((a,x)=>a+numVal(x.apagar),0);
+      const quando=f.dataFech?fmtBR(f.dataFech):(f.criadoEm?new Date(f.criadoEm).toLocaleDateString('pt-BR'):'');
+      const recuperado=f.recuperado?(f.valoresReconstruidos?' · ⚠ recuperado do mapa; valores reconstruídos':' · ℹ recuperado do cache local; fechamento reconciliado'):'';
+      return '<div class="fech-hist-row" data-f="'+esc(f.id)+'">'+
+        '<span class="grow"><b>'+fechPeriodoTxt(f)+'</b> · '+fgr.length+' transportadora(s) · '+n+' carga(s) · '+fmtBRL(val)+' · 🔒 Fechado em '+esc(quando||'—')+esc(recuperado)+'</span>'+
+        '<span class="mono">'+esc(f.por||'')+'</span>'+
+        '<button class="btn mini" type="button" data-act="fech-dl" title="Gera de novo o resumo + os arquivos por transportadora (com os valores da época)">📥 Baixar de novo</button>'+
+        '<button class="btn mini" type="button" data-act="fech-rs" title="Devolve as cargas escolhidas deste fechamento para PENDENTE">↺ Reabrir cargas</button>'+
+        '<div class="fech-rs" data-rs-panel hidden></div>'+
       '</div>';
     }).join('');
     return '<div class="fh-group">' +
@@ -6583,7 +7132,7 @@ async function fechReopenSel(id, st, keys){
       if(!row) continue;
       // status "Em análise" aposentado: reabrir volta SEMPRE para Pendente
       delete row.stFech;
-      delete row.fechId; delete row.fechDt;
+      delete row.fechId; delete row.fechDt; delete row.fechRef;
     }
     if(loaded || d === currentMapDate){ await relPersistDate(d); }
     else {
@@ -6603,8 +7152,15 @@ async function fechReopenSel(id, st, keys){
     g.custoKg = g.peso > 0 ? g.faturado / g.peso : null;
   }
   f.grupos = f.grupos.filter(g=> g.cargas.length);
-  if(!f.grupos.length) FECHAMENTOS = FECHAMENTOS.filter(x=> x.id !== id);
-  await Stor.set('fechamentos', FECHAMENTOS);
+  if(!f.grupos.length){
+    FECHAMENTOS = FECHAMENTOS.filter(x=> String(x.id) !== String(id));
+    FECH_TOMBSTONES.add(String(id));
+    await Stor.set(fechRecordKey(id), {id:String(id),deleted:true,deletedAt:new Date().toISOString()});
+  }else{
+    FECH_TOMBSTONES.delete(String(id));
+    f.atualizadoEm=new Date().toISOString();
+    await Stor.set(fechRecordKey(id), f);
+  }
   audit('fechamento-reaberto-parcial', id + ' · ' + n + ' carga(s) → PENDENTE');
   renderFechHist();
   if(REL.loaded){ relApplyFilters(); renderRelTable(); }
@@ -7925,8 +8481,15 @@ async function supaAuthCall(path, body){
 
 /* --- Auditoria --- */
 async function loadAudit(){
-  const saved = await Stor.get('audit-log');
-  AUDIT = Array.isArray(saved) ? saved.filter(a=>a && typeof a.action === 'string' && Number.isFinite(a.ts)).slice(-200) : [];
+  const pair=await Stor.getPair('audit-log');
+  const remote=pair.remoteFound&&Array.isArray(pair.remoteValue)?pair.remoteValue:[];
+  const local=pair.localFound&&Array.isArray(pair.localValue)?pair.localValue:[];
+  const merged=new Map();
+  for(const a of remote.concat(local)){
+    if(!a||typeof a.action!=='string'||!Number.isFinite(a.ts))continue;
+    const key=[a.ts,a.action,a.user||'',a.detail||''].join('|');merged.set(key,a);
+  }
+  AUDIT=Array.from(merged.values()).sort((a,b)=>a.ts-b.ts).slice(-200);
 }
 function audit(action, detail, ok){
   if(ok === undefined) ok = true;
@@ -7997,6 +8560,7 @@ async function attemptLogin(userRaw, pass){
     expires_at: Date.now() + (Number(r.data.expires_in) || 3600) * 1000
   };
   persistSession();
+  await loadAudit();
   audit('login', 'nível ' + SESSION.level);
   applySession();
   return {ok:true, user: SESSION};
@@ -9337,7 +9901,6 @@ function bindStatic(){
 /* ================= Init ================= */
 async function init(){
   try{
-    await loadAudit();      // histórico de auditoria
     // Restaura sessão salva nesta aba (se houver) e renova o token se necessário
     const s = restoreSessionRaw();
     if(s){
@@ -9352,6 +9915,7 @@ async function init(){
         if(prof){ SESSION.name = prof.name; SESSION.level = prof.level; persistSession(); }
       }
     }
+    await loadAudit();      // após restaurar sessão, permite ler auditoria remota autenticada
     bindStatic();           // eventos (login, logout, usuários, painel…)
     applySession();         // aplica o nível de acesso ao layout
     // AUDITORIA: verificação periódica de expiração/renovação de sessão
@@ -9374,7 +9938,7 @@ async function init(){
 /* AUTO-CHECK DE VERSAO: avisa (somente quando roda em github.io) se a aba estiver com
    copia antiga em cache — compara o selo APP_V local com o do arquivo publicado no repo.
    Falha de rede/offline = silencioso; nunca bloqueia o uso. */
-const APP_V = '2026-10-02c';
+const APP_V = '2026-10-06a';
 (function(){
   // Selo de versão VISÍVEL no canto da tela: qualquer print/print-screen mostra qual código
   // está rodando no aparelho (cópia antiga = selo antigo/ausente). Não entra nas capturas.

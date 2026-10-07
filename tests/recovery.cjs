@@ -324,7 +324,7 @@ test('cadastro de ajudantes e tripulação de Frotas: edição manual, sincroniz
   assert.ok(tripWrap.innerHTML.includes('data-trip="ajudante"') && tripWrap.innerHTML.includes('value="CARLOS"') && tripWrap.innerHTML.includes('value="LUCAS"'));
 });
 test('regressões: resumo por quinzena e impressão isolada permanecem',()=>{
-  for(const x of ['id="fh-resumo"','function fechRefOptions','function renderFechHist','A4 portrait','2026-10-02c','id="kp-f-sit"','function kpGroupRows','function kpKmJump','function kpSituation','@page{size:A4 landscape;margin:10mm}','tbody class="grp"','function printResumoRowsHtml','td{white-space:nowrap}','id="btn-rotas-window"','function rotasWinHtml','function rotasAbertasCollectRows','id="sec-frota-trip"','function renderFrotaTripulacao','function syncFrotaTripulacaoToMap']) assert.ok(html.includes(x),x);
+  for(const x of ['id="fh-resumo"','function fechRefOptions','function renderFechHist','A4 portrait','2026-10-06a','id="kp-f-sit"','function kpGroupRows','function kpKmJump','function kpSituation','@page{size:A4 landscape;margin:10mm}','tbody class="grp"','function printResumoRowsHtml','td{white-space:nowrap}','id="btn-rotas-window"','function rotasWinHtml','function rotasAbertasCollectRows','id="sec-frota-trip"','function renderFrotaTripulacao','function syncFrotaTripulacaoToMap']) assert.ok(html.includes(x),x);
   assert.ok(!html.includes("const APP_V = '2026-09-29d'"));
   assert.ok(!html.includes('tryAutoMigrarLote'));
 });
@@ -354,4 +354,274 @@ test('migração: simulação não grava e aplicação usa comparação/flag ap�
     for(const [k,v] of [['SUPABASE_SERVICE_ROLE_KEY',old.key],['CONFIRMAR_LOTE',old.confirm]]) if(v===undefined) delete process.env[k];else process.env[k]=v;
     fs.rmSync(dir,{recursive:true,force:true});
   }
+});
+
+test('fechamentos anteriores: referências numéricas, labels/legados e fechamentos múltiplos são agrupados e somados',()=>{
+  const nodes={};
+  const relEl=id=>nodes[id]||(nodes[id]={value:''});
+  const c=context({FECHAMENTOS:[],FECH_STORAGE_PREFIX:'fechamento:',FECH_LOCAL_PENDING:[],FECH_TOMBSTONES:new Set(),
+    FECH_RECOVERY_PROMISE:null,FECH_CONFIRM_BUSY:false,norm:s=>String(s==null?'':s).toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim(),
+    normKw:s=>String(s==null?'':s).toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\./g,' ').replace(/\s+/g,' ').trim(),
+    numVal:x=>Number(x)||0,relEl});
+  vm.runInContext(block('const MESES_NOME =','function closeFechRef()'),c);
+  vm.runInContext(block('function fhVistos(){','function renderFechHist(){'),c);
+  const make=(id,ref,start,apagar)=>({id,ref,start,end:start,dataFech:'2026-10-02',grupos:[{transp:'T',peso:100,apagar,cargas:[{d:start,sec:'capital',id:'c-'+id,peso:100,total:apagar}]}]});
+  c.FECHAMENTOS=[
+    make('q1',{ano:2026,mes:9,quinzena:1},'2026-09-10',100),
+    make('q2-a',{ano:2026,label:'Setembro — Quinzena 2'},'2026-09-20',200),
+    make('q2-b',null,'2026-09-25',300)
+  ];
+  const groups=c.fhVistos();
+  assert.deepEqual(Array.from(groups.map(g=>g.key)),['2026-09-Q1','2026-09-Q2']);
+  assert.equal(groups[0].list.length,1); assert.equal(groups[0].cargas,1); assert.equal(groups[0].valor,100);
+  assert.equal(groups[1].list.length,2); assert.equal(groups[1].cargas,2); assert.equal(groups[1].valor,500);
+  assert.equal(c.fechRefOf(c.FECHAMENTOS[2]).quinzena,2); // start vem antes de dataFech
+  assert.equal(c.fechRefOf({dataFech:'2026-10-02',grupos:[{cargas:[{d:'2026-09-21'}]}]}).mes,9); // sem start, usa carga antes da data de confirmação
+  relEl('fh-ano').value='2026'; relEl('fh-mes').value='9';
+  assert.deepEqual(Array.from(c.fhVistos().map(g=>g.key)),['2026-09-Q1','2026-09-Q2']);
+  relEl('fh-mes').value='8'; assert.equal(c.fhVistos().length,0);
+});
+
+test('fechamentos: carrega snapshot legado, captura cache local antes da sobrescrita remota e migra sem perder referências',async()=>{
+  const saved=[]; const records=new Map();
+  const q1={id:'q1',ref:{ano:2026,mes:9,quinzena:1},start:'2026-09-01',grupos:[]};
+  const q2={id:'q2',ref:{ano:2026,mes:9,quinzena:2},start:'2026-09-16',grupos:[]};
+  const c=context({FECHAMENTOS:[],FECH_STORAGE_PREFIX:'fechamento:',FECH_LOCAL_PENDING:[],FECH_TOMBSTONES:new Set(),FECH_RECOVERY_PROMISE:null,
+    norm:s=>String(s==null?'':s).toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim(),
+    Stor:{list:async()=>Array.from(records.keys()),get:async k=>records.get(k)||null,set:async(k,v)=>{saved.push(k);records.set(k,v);},del:async()=>{}}});
+  vm.runInContext(block('const MESES_NOME =','function closeFechRef()'),c);
+  const got=await c.fechLoadAll({remoteFound:true,remoteValue:[q1],localFound:true,localValue:[q1,q2]});
+  assert.deepEqual(Array.from(got.map(f=>f.id)),['q1']); // local-only snapshot aguarda confirmação no mapa
+  assert.deepEqual(Array.from(c.FECH_LOCAL_PENDING.map(f=>f.id)),['q2']);
+  assert.ok(saved.includes('fechamento:q1')); // cópia idempotente do legado
+  assert.equal(records.get('fechamento:q1').ref.quinzena,1);
+});
+
+function makeFechAuditContext(mapRecord, localCandidate){
+  const saved=new Map(), maps={'map:2026-09-21':mapRecord};
+  const q1={id:'q1',ref:{ano:2026,mes:9,quinzena:1},start:'2026-09-01',end:'2026-09-15',grupos:[]};
+  const q2=localCandidate||null;
+  const keys=()=>[...Object.keys(maps),...saved.keys()];
+  const Stor={list:async()=>keys(),get:async k=>k.startsWith('map:')?maps[k]:(saved.get(k)||null),
+    getPair:async k=>k.startsWith('map:')
+      ? {remoteFound:false,remoteValue:null,localFound:Object.prototype.hasOwnProperty.call(maps,k),localValue:maps[k]||null}
+      : {remoteFound:false,remoteValue:null,localFound:saved.has(k),localValue:saved.get(k)||null},
+    set:async(k,v)=>{if(k.startsWith('map:'))maps[k]=v;else saved.set(k,v);},del:async k=>{saved.delete(k);}};
+  const nodes={};const relEl=id=>nodes[id]||(nodes[id]={value:''});
+  const c=context({FECHAMENTOS:[],FECH_STORAGE_PREFIX:'fechamento:',FECH_LOCAL_PENDING:[],FECH_TOMBSTONES:new Set(),FECH_RECOVERY_PROMISE:null,FECH_RECOVERY_SCANNED:false,
+    currentMapDate:'',DATA:{},SECTIONS:['frotas','capital','interior'],TRANSP_CODES:{},AUDIT:[{action:'fechamento-criado',ts:Date.UTC(2026,9,2,12),detail:'f-q2 · Setembro — Quinzena 2 · 21/09/2026 a 30/09/2026 · 1 transportadora(s)'}],
+    norm:s=>String(s==null?'':s).toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim(),
+    normKw:s=>String(s==null?'':s).toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\./g,' ').replace(/\s+/g,' ').trim(),
+    numVal:x=>Number(x)||0,calcularFrete:()=>({total:120,frota:'HR'}),relCalc:(sec,row,d)=>({dataFinal:d}),
+    snapshotMap:()=>({data:c.DATA}),fmtBR:d=>String(d),fmtPeso2:n=>String(n),fmtBRL:n=>'R$ '+n,
+    Stor,relEl,window:{__fechAudit:{}}});
+  vm.runInContext(block('const MESES_NOME =','function closeFechRef()'),c);
+  vm.runInContext(block('function fhVistos(){','function renderFechHist(){'),c);
+  c._maps=maps;c._saved=saved;c._q1=q1;c._q2=q2;
+  return c;
+}
+
+test('fechamentos: recupera fechamento órfão do mapa e usa referência do log de auditoria',async()=>{
+  const row={id:'r-q2',stFech:'fechado',fechId:'f-q2',fechDt:'2026-10-02',transportadora:'T1',carga:'123',peso:100,km:12};
+  const rec={savedAt:'2026-10-02T12:00:00.000Z',data:{frotas:[],capital:[row],interior:[]}};
+  const c=makeFechAuditContext(rec,null);
+  await c.fechLoadAll({remoteFound:true,remoteValue:[c._q1],localFound:true,localValue:[c._q1]});
+  const recovered=await c.fechRecoverFromMaps();
+  assert.equal(recovered,1);
+  assert.equal(await c.fechRecoverFromMaps(),0); // guarda evita varrer todos os mapas em cada reabertura
+  const f=c.FECHAMENTOS.find(x=>x.id==='f-q2');
+  assert.ok(f);assert.equal(f.ref.ano,2026);assert.equal(f.ref.mes,9);assert.equal(f.ref.quinzena,2);
+  assert.equal(f.recuperado,true);assert.equal(f.grupos[0].cargas.length,1);
+  assert.ok(c._saved.has('fechamento:f-q2'));
+  assert.equal(c._maps['map:2026-09-21'].data.capital[0].fechRef.quinzena,2);
+  const groups=c.fhVistos();assert.ok(groups.some(g=>g.key==='2026-09-Q2'));
+});
+
+test('fechamentos: confirma candidato local somente quando as cargas seguem fechadas no mapa',async()=>{
+  const row={id:'r-local-q2',stFech:'fechado',fechId:'f-local-q2',fechDt:'2026-10-02',transportadora:'T1',carga:'124',peso:100,km:12};
+  const rec={savedAt:'2026-10-02T12:00:00.000Z',data:{frotas:[],capital:[row],interior:[]}};
+  const q2={id:'f-local-q2',ref:{ano:2026,mes:9,quinzena:2},start:'2026-09-16',end:'2026-09-30',grupos:[{transp:'T1',key:'T1',abatimento:0,apagar:150,faturado:150,peso:100,cargas:[{d:'2026-09-21',sec:'capital',id:'r-local-q2',peso:100,total:150}]}]};
+  const c=makeFechAuditContext(rec,q2);
+  await c.fechLoadAll({remoteFound:true,remoteValue:[c._q1],localFound:true,localValue:[c._q1,q2]});
+  assert.deepEqual(Array.from(c.FECH_LOCAL_PENDING.map(f=>f.id)),['f-local-q2']);
+  await c.fechRecoverFromMaps();
+  const matches=c.FECHAMENTOS.filter(f=>f.id==='f-local-q2');
+  assert.equal(matches.length,1);assert.equal(matches[0].ref.quinzena,2);
+  assert.equal(matches[0].grupos[0].cargas[0].total,150); // mantém o retrato local, sem recalcular
+});
+
+test('Stor.getPair: cache local é capturado antes de espelhar snapshot remoto; list une chaves remotas e locais',async()=>{
+  const q1={id:'q1'},q2={id:'q2'};
+  const localStorage={
+    'mapa:fechamentos':JSON.stringify([q1,q2]),
+    'mapa:fechamento:q-local':JSON.stringify({id:'q-local'}),
+    getItem(k){return Object.prototype.hasOwnProperty.call(this,k)?this[k]:null;},
+    setItem(k,v){this[k]=String(v);},removeItem(k){delete this[k];}
+  };
+  const c=context({SUPA_REST:'https://mock.invalid/rest/v1/app_kv',supaHeaders:()=>({}),localStorage,
+    fetch:async url=>{
+      const u=new URL(url);
+      if(u.searchParams.get('select')==='value')return {ok:true,json:async()=>[{value:[q1]}]};
+      if(u.searchParams.get('select')==='key')return {ok:true,json:async()=>[{key:'fechamentos'},{key:'fechamento:q1'}]};
+      throw new Error('consulta inesperada');
+    }});
+  vm.runInContext(block('const Stor = {','/* ================= Placas fixas / classificação'),c);
+  const pair=await vm.runInContext('Stor.getPair("fechamentos")',c);
+  assert.equal(pair.remoteFound,true);assert.deepEqual(Array.from(pair.remoteValue.map(x=>x.id)),['q1']);
+  assert.deepEqual(Array.from(pair.localValue.map(x=>x.id)),['q1','q2']);
+  assert.deepEqual(JSON.parse(localStorage['mapa:fechamentos']).map(x=>x.id),['q1']); // local havia sido espelhado, mas o par preservou o candidato
+  const keys=await vm.runInContext('Stor.list()',c);
+  assert.ok(keys.includes('fechamentos')&&keys.includes('fechamento:q1')&&keys.includes('fechamento:q-local'));
+});
+
+test('fechamentos: reconciliação adiciona cargas fechadas ausentes de um snapshot já existente',async()=>{
+  const row1={id:'r1',stFech:'fechado',fechId:'f-existing',fechDt:'2026-10-02',transportadora:'T1',carga:'1',peso:100,km:10};
+  const row2={id:'r2',stFech:'fechado',fechId:'f-existing',fechDt:'2026-10-02',transportadora:'T1',carga:'2',peso:200,km:20};
+  const rec={savedAt:'2026-10-02T12:00:00.000Z',data:{frotas:[],capital:[row1,row2],interior:[]}};
+  const c=makeFechAuditContext(rec,null);
+  const f={id:'f-existing',ref:{ano:2026,mes:9,quinzena:2},start:'2026-09-16',end:'2026-09-30',
+    grupos:[{transp:'T1',key:'T1',abatimento:0,apagar:100,faturado:100,peso:100,cargas:[{d:'2026-09-21',sec:'capital',id:'r1',peso:100,total:100}]}]};
+  c._q1=f;
+  await c.fechLoadAll({remoteFound:true,remoteValue:[f],localFound:true,localValue:[f]});
+  const fixed=await c.fechRecoverFromMaps();
+  assert.equal(fixed,1);
+  const loaded=c.FECHAMENTOS.find(x=>x.id==='f-existing');
+  assert.equal(loaded.grupos[0].cargas.length,2);
+  assert.equal(loaded.grupos[0].faturado,220);
+  assert.equal(loaded.ref.quinzena,2); // referência explícita válida permanece intacta
+});
+
+test('loadAudit: une eventos locais ainda não sincronizados com o log remoto',async()=>{
+  const remote=[{ts:1,action:'antigo',detail:'A',user:'u'}];
+  const local=[{ts:1,action:'antigo',detail:'A',user:'u'},{ts:2,action:'fechamento-criado',detail:'f-q2 · Setembro — Quinzena 2',user:'u'}];
+  const c=context({AUDIT:[],Stor:{getPair:async()=>({remoteFound:true,remoteValue:remote,localFound:true,localValue:local})}});
+  vm.runInContext(block('async function loadAudit(){','function audit('),c);
+  await c.loadAudit();
+  assert.equal(c.AUDIT.length,2);
+  assert.equal(c.AUDIT[1].action,'fechamento-criado');
+});
+
+test('fechamentos: reabrir último lote limpa metadados da carga e grava tombstone individual',async()=>{
+  const row={id:'r-reopen',stFech:'fechado',fechId:'f-reopen',fechDt:'2026-10-02',fechRef:{ano:2026,mes:9,quinzena:2}};
+  const map={data:{frotas:[],capital:[row],interior:[]}};
+  const f={id:'f-reopen',grupos:[{transp:'T1',abatimento:0,peso:100,faturado:100,apagar:100,cargas:[{d:'2026-09-21',sec:'capital',id:'r-reopen',peso:100,total:100}]}]};
+  const writes=[];
+  const c=context({FECHAMENTOS:[f],FECH_TOMBSTONES:new Set(),FECH_STORAGE_PREFIX:'fechamento:',fechRecordKey:id=>'fechamento:'+id,REL:{recs:{'2026-09-21':map},loaded:false,mapDirty:false},
+    currentMapDate:'',requireOperational:()=>true,relPersistDate:async()=>{},numVal:x=>Number(x)||0,Stor:{get:async()=>null,set:async(k,v)=>writes.push([k,v])},
+    audit:()=>{},renderFechHist:()=>{},relApplyFilters:()=>{},renderRelTable:()=>{},renderAll:()=>{},toast:()=>{}});
+  vm.runInContext(block('async function fechReopenSel(id, st, keys){','/* ---- cadastro de códigos'),c);
+  await c.fechReopenSel('f-reopen','pendente',new Set(['2026-09-21|capital|r-reopen']));
+  assert.equal(c.FECHAMENTOS.length,0);
+  assert.equal(c.FECH_TOMBSTONES.has('f-reopen'),true);
+  assert.equal('stFech' in row,false);assert.equal('fechId' in row,false);assert.equal('fechDt' in row,false);assert.equal('fechRef' in row,false);
+  assert.equal(writes[0][0],'fechamento:f-reopen');
+  assert.equal(writes[0][1].id,'f-reopen');assert.equal(writes[0][1].deleted,true);
+});
+
+test('fechamentos legados sem ID: separa metadados de Q1/Q2 e restaura ambas as referências',async()=>{
+  const row1={id:'legacy-q1',stFech:'fechado',fechDt:'2026-10-02',fechRef:{ano:2026,mes:9,quinzena:1},transportadora:'T1',carga:'1',peso:100};
+  const row2={id:'legacy-q2',stFech:'fechado',fechDt:'2026-10-02',fechRef:{ano:2026,mes:9,quinzena:2},transportadora:'T1',carga:'2',peso:200};
+  const rec={savedAt:'2026-10-02T12:00:00.000Z',data:{frotas:[],capital:[row1,row2],interior:[]}};
+  const c=makeFechAuditContext(rec,null);
+  await c.fechLoadAll({remoteFound:false,localFound:false});
+  const count=await c.fechRecoverFromMaps();
+  assert.equal(count,2);
+  assert.deepEqual(Array.from(c.FECHAMENTOS.map(f=>f.ref.quinzena).sort()),[1,2]);
+  assert.notEqual(row1.fechId,row2.fechId);
+  assert.ok(c.fhVistos().some(g=>g.key==='2026-09-Q1'));
+  assert.ok(c.fhVistos().some(g=>g.key==='2026-09-Q2'));
+});
+
+test('fechamentos: confirmação grava registro individual com ref na carga e não substitui array legado',async()=>{
+  const writes=[];const row={id:'new-load',stFech:'pendente'};
+  const item={d:'2026-09-21',sec:'capital',row,calc:{peso:100,total:250,km:10,media:2.5,dataFinal:'2026-09-21'}};
+  const group={nome:'T1',key:'T1'};
+  const selected={g:group,s:{abat:0,nf:'Não',boleto:'Não',codigo:''},itens:[item],fat:250,peso:100};
+  const c=context({FECH_CONFIRM_BUSY:false,FECHAMENTOS:[],FECH_STORAGE_PREFIX:'fechamento:',REL:{start:'2026-09-16',end:'2026-09-30'},
+    SESSION:{name:'Teste'},TRANSP_CODES:{},requireOperational:()=>true,fechGroups:()=>[group],fechGroupSel:()=>selected,
+    fechRefAsk:async()=>({ano:2026,mes:9,quinzena:2,label:'Setembro/2026 — Quinzena 2'}),
+    fechTipoFrota:()=> 'HR',fechPeriodoTxt:()=> '16/09/2026 a 30/09/2026',hojeIso:()=> '2026-10-02',
+    numVal:x=>Number(x)||0,fmtBRL:x=>'R$ '+x,refreshSessionToken:async()=>true,relPersistDate:async()=>{},
+    fechRecordKey:id=>'fechamento:'+id,Stor:{set:async(k,v)=>writes.push([k,v]),del:async()=>{}},
+    relEl:id=>id==='fech-ok'?{disabled:false}:null,relApplyFilters:()=>{},renderRelTable:()=>{},renderFechTable:()=>{},
+    renderFechHist:()=>{},closeFech:()=>{},audit:()=>{},toast:()=>{}});
+  vm.runInContext(block('async function fechConfirm(){','/* ---- Excel: resumo do financeiro ---- */'),c);
+  await c.fechConfirm();
+  assert.equal(c.FECHAMENTOS.length,1);
+  assert.equal(row.stFech,'fechado');assert.equal(row.fechRef.quinzena,2);
+  assert.equal(writes.length,1);assert.ok(writes[0][0].startsWith('fechamento:f'));
+  assert.equal(writes[0][1].ref.quinzena,2);assert.equal(writes[0][1].grupos[0].cargas[0].total,250);
+  assert.equal(writes.some(([k])=>k==='fechamentos'),false);
+  assert.equal(c.FECH_CONFIRM_BUSY,false);
+});
+
+test('fechamentos: per-record no localStorage é validado após snapshot remoto mais novo',async()=>{
+  const row={id:'r-per-record',stFech:'fechado',fechId:'f-per-record',fechDt:'2026-10-02',fechRef:{ano:2026,mes:9,quinzena:2},transportadora:'T1',carga:'9',peso:100,km:12};
+  const rec={savedAt:'2026-10-02T12:00:00.000Z',data:{frotas:[],capital:[row],interior:[]}};
+  const c=makeFechAuditContext(rec,null);
+  const localQ2={id:'f-per-record',ref:{ano:2026,mes:9,quinzena:2},start:'2026-09-16',end:'2026-09-30',
+    grupos:[{transp:'T1',key:'T1',abatimento:0,apagar:175,faturado:175,peso:100,cargas:[{d:'2026-09-21',sec:'capital',id:'r-per-record',peso:100,total:175}]}]};
+  await c.fechLoadAll({remoteFound:false,localFound:true,localValue:[c._q1,localQ2]}); // leitura offline e migração p/ chave individual local
+  assert.ok(c._saved.has('fechamento:f-per-record'));
+  await c.fechLoadAll({remoteFound:true,remoteValue:[c._q1],localFound:true,localValue:[c._q1]}); // remoto antigo espelha o array, não o registro individual
+  assert.deepEqual(Array.from(c.FECH_LOCAL_PENDING.map(f=>f.id)),['f-per-record']);
+  await c.fechRecoverFromMaps();
+  const recovered=c.FECHAMENTOS.find(f=>f.id==='f-per-record');
+  assert.ok(recovered);assert.equal(recovered.grupos[0].cargas[0].total,175);
+  await c.fechLoadAll({remoteFound:true,remoteValue:[c._q1],localFound:true,localValue:[c._q1]});
+  assert.deepEqual(Array.from(c.FECH_LOCAL_PENDING.map(f=>f.id)),['f-per-record']);
+  await c.fechRecoverFromMaps(); // vuelve a conciliar candidato local aun después del primer escaneo
+  assert.ok(c.FECHAMENTOS.some(f=>f.id==='f-per-record'));
+});
+
+test('fechamentos: tombstone local de reabertura vence snapshot remoto antigo e permanece no cache',async()=>{
+  const f={id:'f-reopened',ref:{ano:2026,mes:9,quinzena:2},grupos:[]};
+  const tombstone={id:'f-reopened',deleted:true,deletedAt:'2026-10-02T12:00:00.000Z'};
+  const writes=[];
+  const c=context({FECHAMENTOS:[],FECH_STORAGE_PREFIX:'fechamento:',FECH_LOCAL_PENDING:[],FECH_TOMBSTONES:new Set(),
+    Stor:{list:async()=>['fechamento:f-reopened'],getPair:async()=>({remoteFound:true,remoteValue:f,localFound:true,localValue:tombstone}),
+      set:async(k,v)=>writes.push([k,v])},norm:s=>String(s||'').toUpperCase()});
+  vm.runInContext(block('const MESES_NOME =','function closeFechRef()'),c);
+  await c.fechLoadAll({remoteFound:true,remoteValue:[f],localFound:true,localValue:[f]});
+  assert.equal(c.FECHAMENTOS.length,0);assert.equal(c.FECH_TOMBSTONES.has('f-reopened'),true);
+  assert.equal(writes.length,1);assert.equal(writes[0][1].deleted,true);
+});
+
+test('fechamentos: atualização local mais nova de reabertura supera o registro remoto antigo',async()=>{
+  const old={id:'f-partial',criadoEm:'2026-10-02T10:00:00.000Z',ref:{ano:2026,mes:9,quinzena:2},
+    grupos:[{transp:'T1',cargas:[{id:'a'},{id:'b'}]}]};
+  const updated={id:'f-partial',criadoEm:old.criadoEm,atualizadoEm:'2026-10-02T11:00:00.000Z',ref:old.ref,
+    grupos:[{transp:'T1',cargas:[{id:'b'}]}]};
+  const writes=[];
+  const c=context({FECHAMENTOS:[],FECH_STORAGE_PREFIX:'fechamento:',FECH_LOCAL_PENDING:[],FECH_TOMBSTONES:new Set(),
+    Stor:{list:async()=>['fechamento:f-partial'],getPair:async()=>({remoteFound:true,remoteValue:old,localFound:true,localValue:updated}),set:async(k,v)=>writes.push([k,v])},
+    norm:s=>String(s||'').toUpperCase()});
+  vm.runInContext(block('const MESES_NOME =','function closeFechRef()'),c);
+  await c.fechLoadAll({remoteFound:true,remoteValue:[old],localFound:true,localValue:[old]});
+  assert.equal(c.FECHAMENTOS[0].grupos[0].cargas.length,1);
+  assert.equal(c.FECHAMENTOS[0].grupos[0].cargas[0].id,'b');
+  assert.equal(writes[0][0],'fechamento:f-partial');assert.equal(writes[0][1].atualizadoEm,updated.atualizadoEm);
+});
+
+test('fechamentos legados: referência do log de auditoria prevalece sobre start incorreto',()=>{
+  const audit=[{action:'fechamento-criado',ts:Date.UTC(2026,9,2,12),detail:'f-legacy · Setembro — Quinzena 2'}];
+  const c=context({FECHAMENTOS:[],FECH_STORAGE_PREFIX:'fechamento:',FECH_LOCAL_PENDING:[],AUDIT:audit,
+    norm:s=>String(s==null?'':s).toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim()});
+  vm.runInContext(block('const MESES_NOME =','function closeFechRef()'),c);
+  const f={id:'f-legacy',start:'2026-09-01',end:'2026-09-15',dataFech:'2026-10-02',grupos:[]};
+  assert.equal(c.fechRefOf(f).ano,2026);assert.equal(c.fechRefOf(f).mes,9);assert.equal(c.fechRefOf(f).quinzena,2);
+});
+
+test('fechamentos: mapa local mais novo é reconciliado antes do espelhamento remoto',async()=>{
+  const localRow={id:'r-map-local',stFech:'fechado',fechId:'f-map-local',fechDt:'2026-10-02',fechRef:{ano:2026,mes:9,quinzena:2},transportadora:'T1',peso:100};
+  const remoteMap={savedAt:'2026-10-02T10:00:00.000Z',data:{frotas:[],capital:[{id:'r-map-local',stFech:'pendente'}],interior:[]}};
+  const localMap={savedAt:'2026-10-02T11:00:00.000Z',data:{frotas:[],capital:[localRow],interior:[]}};
+  const c=makeFechAuditContext(remoteMap,null);
+  c._maps['map:2026-09-21']=localMap;c._remoteMap=remoteMap;
+  vm.runInContext("Stor.getPair=async k=>k.startsWith('map:')?{remoteFound:true,remoteValue:_remoteMap,localFound:true,localValue:_maps[k]}:{remoteFound:false,remoteValue:null,localFound:false,localValue:null};",c);
+  await c.fechLoadAll({remoteFound:true,remoteValue:[c._q1],localFound:true,localValue:[c._q1]});
+  await c.fechRecoverFromMaps();
+  const recovered=c.FECHAMENTOS.find(f=>f.id==='f-map-local');
+  assert.ok(recovered);assert.equal(recovered.ref.quinzena,2);
+  assert.equal(c._maps['map:2026-09-21'].data.capital[0].stFech,'fechado');
 });
