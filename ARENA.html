@@ -668,8 +668,8 @@ body.readonly .sec-actions{display:none}
 .st-badge.fech{background:#dcfce7;color:#15803d}
 #fech-mask{position:fixed;inset:0;z-index:450;background:rgba(15,23,42,.6);display:flex;align-items:center;justify-content:center;padding:16px}
 #fech-mask[hidden]{display:none}
-#fech-ref-mask,#fh-res-mask{position:fixed;inset:0;z-index:480;background:rgba(15,23,42,.6);display:flex;align-items:center;justify-content:center;padding:16px}
-#fech-ref-mask[hidden],#fh-res-mask[hidden]{display:none}
+#fech-ref-mask,#fh-res-mask,#fech-move-mask{position:fixed;inset:0;z-index:480;background:rgba(15,23,42,.6);display:flex;align-items:center;justify-content:center;padding:16px}
+#fech-ref-mask[hidden],#fh-res-mask[hidden],#fech-move-mask[hidden]{display:none}
 .modal-fech{width:min(1080px,96vw);max-height:92vh;display:flex;flex-direction:column;padding:14px 16px 12px}
 .fech-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .fech-head h3{font-size:15px}
@@ -706,12 +706,6 @@ body.readonly .sec-actions{display:none}
 .zap-link{color:#15803d;text-decoration:none;font-family:var(--mono);font-size:11.5px;white-space:nowrap}
 .zap-link:hover{text-decoration:underline}
 .fech-nozap{color:#cbd5e1}
-.fech-resumo-wrap{margin:12px 0 8px;border:1px solid #c7d2fe;border-radius:10px;background:#eef2ff;padding:4px 12px 12px}
-.fech-resumo-wrap summary{cursor:pointer;font-size:15px;line-height:1.7;padding:9px 6px;color:#312e81;font-weight:700;user-select:none}
-.fech-resumo-wrap[open] summary{border-bottom:1px solid #c7d2fe;margin-bottom:8px}
-.fech-hist{margin-top:12px;border:1px solid #fcd34d;border-radius:10px;background:#fffbeb;padding:4px 12px 12px}
-.fech-hist summary{cursor:pointer;font-size:15px;line-height:1.7;padding:9px 6px;color:#92400e;font-weight:700;user-select:none}
-.fech-hist[open] summary{border-bottom:1px solid #fcd34d;margin-bottom:6px}
 .fech-hist-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12.5px;line-height:1.8;color:#334155;padding:8px 4px;border-bottom:1px solid var(--line)}
 .fech-hist-row .grow{flex:1;min-width:160px}
 .fech-hist-row .mono{font-size:11.5px;color:var(--muted)}
@@ -777,6 +771,34 @@ body.readonly .sec-actions{display:none}
 .fh-filter{display:flex;align-items:end;gap:8px;flex-wrap:wrap;font-size:11px;color:var(--muted);padding:6px 2px}
 .fh-filter label{display:flex;flex-direction:column;gap:2px}
 .fh-filter input{border:1px solid var(--line);border-radius:6px;padding:3px 6px;font-size:11.5px}
+/* botões de navegação (à direita do filtro Status) — abrem telas individuais */
+.fech-nav{display:flex;gap:6px;flex-wrap:wrap;margin-left:auto;align-items:center}
+.fech-nav .btn{padding:5px 10px;font-size:12.5px;font-weight:600;white-space:nowrap}
+#btn-nav-fech-antigos{background:#fffbeb;border-color:#fcd34d;color:#92400e}
+#btn-nav-fech-antigos:hover{background:#fef3c7}
+#btn-hist-window{background:#fef2f2;border-color:#fca5a5;color:#991b1b}
+#btn-hist-window:hover{background:#fee2e2}
+#btn-nav-resumo{background:#eef2ff;border-color:#c7d2fe;color:#3730a3}
+#btn-nav-resumo:hover{background:#e0e7ff}
+#btn-rotas-window{background:#f0f9ff;border-color:#7dd3fc;color:#075985}
+#btn-rotas-window:hover{background:#e0f2fe}
+/* janelas individuais (drawers): Fechamentos anteriores, Resumo geral, fallback sem pop-up */
+.fech-win-mask{position:fixed;inset:0;z-index:455;background:rgba(15,23,42,.6);display:flex;align-items:center;justify-content:center;padding:16px}
+.fech-win-mask[hidden]{display:none}
+.modal-fech-win{width:min(1320px,96vw);max-height:92vh;display:flex;flex-direction:column;padding:14px 16px 12px}
+.fech-win-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.fech-win-head h3{font-size:15px}
+/* área com scroll de altura controlada (não estoura a tela com muitos fechamentos) */
+.win-scroll{flex:1 1 auto;min-height:120px;max-height:70vh;overflow-y:auto;overscroll-behavior:contain;border:1px solid var(--line);border-radius:10px;background:#fff;padding:8px 10px;margin-top:8px}
+.win-scroll .empty{padding:26px 10px}
+.modal-janela{width:min(1640px,98vw);height:94vh;max-height:94vh;display:flex;flex-direction:column;padding:12px 14px}
+#janela-frame{flex:1 1 auto;min-height:0;width:100%;margin-top:8px;border:1px solid var(--line);border-radius:10px;background:#fff}
+.fech-move-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0}
+.fech-move-grid label{display:flex;flex-direction:column;gap:3px;font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.3px}
+.fech-move-grid select{border:1px solid var(--line);border-radius:6px;padding:6px 8px;font:inherit;font-size:12.5px;background:#fff;width:100%;min-width:0}
+.fh-count{font-size:11.5px;color:var(--muted)}
+.fech-div{display:inline-block;margin-left:6px;padding:1px 8px;border-radius:999px;background:#fef3c7;border:1px solid #fde68a;color:#92400e;font-size:10.5px;font-weight:700;cursor:help}
+@media (max-width:760px){ .modal-fech-win{width:100vw;max-height:100vh;height:100vh;border-radius:0} .fech-win-mask{padding:0} .win-scroll{max-height:none} .modal-janela{width:100vw;height:100vh;border-radius:0} .fech-move-grid{grid-template-columns:1fr} }
 /* ===== Usuários & auditoria (configurações) ===== */
 .users-row{grid-template-columns:1fr 1.3fr 34px 34px;align-items:center}
 .users-row .user-name{font-size:12px;padding:5px 2px;display:flex;align-items:center;gap:5px;overflow:hidden;white-space:nowrap}
@@ -1599,7 +1621,7 @@ html.gerencial-request #settings{display:none!important}
       <button class="rel-x" type="button" id="fech-x" title="Fechar (Esc)">✕</button>
     </div>
     <p class="fech-per" id="fech-per"></p>
-    <p class="modal-text" style="margin:0 0 8px">Marque as transportadoras que serão <b>pagas neste fechamento</b> — e, dentro de cada uma, <b>marque/desmarque cargas individuais</b> (clique no ▸ para ver a lista). O filtro <b>Status</b> exibe somente as cargas <b>Concluída</b> (linhas em verde claro) e/ou <b>Pendente</b>; a seleção e o fechamento valem apenas para o que está em exibição. Ao confirmar, o app <b>pergunta a referência da quinzena</b> (mês anterior ou atual, Quinzena 1 ou 2) e as cargas marcadas passam de <b>Pendente/Concluída</b> para <b>Fechado</b> (somem do relatório, a não ser que você marque "Exibir fechadas"). <b>Não gera Excel</b> — os arquivos de sempre ficam em 📚 Fechamentos anteriores → "Baixar de novo". O 💬 abre o WhatsApp do transportador já com a mensagem do fechamento.</p>
+    <p class="modal-text" style="margin:0 0 8px">Marque as transportadoras que serão <b>pagas neste fechamento</b> — e, dentro de cada uma, <b>marque/desmarque cargas individuais</b> (clique no ▸ para ver a lista). O filtro <b>Status</b> exibe somente as cargas <b>Concluída</b> (linhas em verde claro) e/ou <b>Pendente</b>; a seleção e o fechamento valem apenas para o que está em exibição. Ao confirmar, o app <b>pergunta a referência da quinzena</b> (mês anterior ou atual, Quinzena 1 ou 2 — já sugerindo a quinzena predominante do período) e as cargas marcadas passam de <b>Pendente/Concluída</b> para <b>Fechado</b> (somem do relatório, a não ser que você marque "Exibir fechadas"). <b>Não gera Excel</b> — os arquivos de sempre ficam em 📚 Fechamentos anteriores (botão ao lado do filtro Status) → "Baixar de novo". O 💬 abre o WhatsApp do transportador já com a mensagem do fechamento.</p>
     <div class="fech-tools">
       <label title="Exibe somente as linhas das rotas com o status escolhido. A seleção (✓) e o 🔒 Fechar valem só para o que está em exibição.">Status:
         <select id="fech-st-filter">
@@ -1608,6 +1630,12 @@ html.gerencial-request #settings{display:none!important}
           <option value="pendente">Pendente</option>
         </select>
       </label>
+      <span class="fech-nav">
+        <button class="btn mini" type="button" id="btn-nav-fech-antigos" title="Abre a tela de Fechamentos anteriores (por mês/quinzena): resumo, reabrir cargas, baixar de novo e mover de quinzena — do mais recente ao mais antigo, com scroll">📚 Fechamentos anteriores</button>
+        <button class="btn mini" type="button" id="btn-hist-window" title="Abre a janela com TODAS as cargas já FECHADAS (filtros, totais, reabrir e baixar de novo)">📚 Cargas fechadas — abrir janela</button>
+        <button class="btn mini" type="button" id="btn-nav-resumo" title="Abre o Resumo geral — Interior/Capital por transportadora + TOTAL GERAL; atualiza conforme você marca">📊 Resumo geral</button>
+        <button class="btn mini" type="button" id="btn-rotas-window" title="Abre a janela com TODAS as rotas Concluídas e Pendentes de todos os dias: uma linha por carga, filtro por coluna estilo Excel (▼ no cabeçalho), totais no rodapé e download Excel/CSV só das linhas filtradas">📋 Rotas abertas (Concluídas &amp; Pendentes) — abrir janela</button>
+      </span>
     </div>
     <div class="fech-scroll">
       <table class="fech-table" id="fech-table">
@@ -1622,30 +1650,94 @@ html.gerencial-request #settings{display:none!important}
         <tfoot id="fech-foot"></tfoot>
       </table>
     </div>
-    <details class="fech-resumo-wrap" id="fech-resumo-wrap">
-      <summary>📊 Resumo geral — Interior/Capital por transportadora + TOTAL GERAL (atualiza conforme você marca)</summary>
-      <div id="fech-resumo"></div>
-    </details>
-    <button class="btn" type="button" id="btn-hist-window" style="background:#ef4444;color:#000;margin-top:12px">📚 Cargas fechadas — abrir janela</button>
-    <button class="btn" type="button" id="btn-rotas-window" style="background:#0ea5e9;color:#000;margin-top:12px;margin-left:8px" title="Janela com TODAS as rotas Concluídas e Pendentes de todos os dias: uma linha por carga, filtro por coluna estilo Excel (▼ no cabeçalho), totais no rodapé e download Excel/CSV só das linhas filtradas">📋 Rotas abertas (Concluídas & Pendentes) — abrir janela</button>
-    <details class="fech-hist" id="fech-hist">
-      <summary>📚 Fechamentos anteriores (por mês/quinzena — resumo, reabrir, baixar de novo)</summary>
-      <div class="fh-filter">
-        <label title="Ano da referência (mês/quinzena) do fechamento">Ano <select id="fh-ano"><option value="">Todos</option></select></label>
-        <label title="Mês da referência; combinado ao ano (ou a todos os anos, se Ano = Todos)">Mês <select id="fh-mes"><option value="">Todos</option></select></label>
-        <span class="fh-sep">ou intervalo:</span>
-        <label title="Mês inicial do intervalo (por referência de quinzena)">De <input type="month" id="fh-mes-de"></label>
-        <label title="Mês final do intervalo">Até <input type="month" id="fh-mes-ate"></label>
-        <button class="btn mini" type="button" id="fh-clear" title="Limpa todos os filtros">limpar</button>
-        <button class="btn primary mini" type="button" id="fh-resumo" title="Resumo das quinzenas MARCADAS abaixo: Mês — Quinzena × Tipo (Capital/Interior) × Transportador, com quantidade de cargas, peso, valor e código — visualize antes de imprimir ou copiar">👁 Ver resumo</button>
-      </div>
-      <div id="fech-hist-rows"></div>
-    </details>
     <div class="modal-actions">
       <button class="btn" type="button" id="fech-copy-next" title="Copia o print do resumo da próxima transportadora MARCADA (com WhatsApp) e abre a conversa vazia — lá é só Ctrl+V e Enviar">📋 Copiar e abrir próxima ➡</button>
       <button class="btn" type="button" id="fech-wa-auto" title="Manda o print + resumo por WhatsApp (API configurada) para cada transportador marcada, um a um">🤖 Enviar resumo p/ marcados</button>
       <button class="btn" type="button" id="fech-cancel">Cancelar</button>
       <button class="btn primary" type="button" id="fech-ok" title="Pergunta a referência da quinzena (mês anterior/atual · Quinzena 1/2) e marca as cargas selecionadas como Fechado — sem gerar Excel">🔒 Fechar selecionadas</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ JANELA: FECHAMENTOS ANTERIORES (por mês/quinzena) ============ -->
+<div id="fech-antigos-mask" class="no-print fech-win-mask" hidden>
+  <div class="modal modal-fech-win" role="dialog" aria-modal="true" aria-labelledby="fech-antigos-title">
+    <div class="fech-win-head">
+      <h3 id="fech-antigos-title">📚 Fechamentos anteriores (por mês/quinzena)</h3>
+      <button class="rel-x" type="button" id="fech-antigos-x" title="Fechar (Esc)">✕</button>
+    </div>
+    <p class="hint">Do mais recente ao mais antigo. Marque as quinzenas e use <b>👁 Ver resumo</b>; em cada fechamento: <b>📥 Baixar de novo</b>, <b>↪ Mover</b> (corrigir a quinzena) e <b>↺ Reabrir cargas</b>. <span id="fech-antigos-count" class="fh-count"></span></p>
+    <div class="fh-filter">
+      <label title="Ano da referência (mês/quinzena) do fechamento">Ano <select id="fh-ano"><option value="">Todos</option></select></label>
+      <label title="Mês da referência; combinado ao ano (ou a todos os anos, se Ano = Todos)">Mês <select id="fh-mes"><option value="">Todos</option></select></label>
+      <span class="fh-sep">ou intervalo:</span>
+      <label title="Mês inicial do intervalo (por referência de quinzena)">De <input type="month" id="fh-mes-de"></label>
+      <label title="Mês final do intervalo">Até <input type="month" id="fh-mes-ate"></label>
+      <button class="btn mini" type="button" id="fh-clear" title="Limpa todos os filtros">limpar</button>
+      <button class="btn primary mini" type="button" id="fh-resumo" title="Resumo das quinzenas MARCADAS abaixo: Mês — Quinzena × Tipo (Capital/Interior) × Transportador, com quantidade de cargas, peso, valor e código — visualize antes de imprimir ou copiar">👁 Ver resumo</button>
+    </div>
+    <div class="win-scroll" id="fech-antigos-scroll"><div id="fech-hist-rows"></div></div>
+    <div class="modal-actions">
+      <span class="grow"></span>
+      <button class="btn primary" type="button" id="fech-antigos-close">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ JANELA: RESUMO GERAL (Interior/Capital por transportadora) ============ -->
+<div id="fech-rg-mask" class="no-print fech-win-mask" hidden>
+  <div class="modal modal-fech-win" role="dialog" aria-modal="true" aria-labelledby="fech-rg-title">
+    <div class="fech-win-head">
+      <h3 id="fech-rg-title">📊 Resumo geral — Interior/Capital por transportadora</h3>
+      <button class="rel-x" type="button" id="fech-rg-x" title="Fechar (Esc)">✕</button>
+    </div>
+    <p class="hint">Atualiza conforme você marca/desmarca cargas e transportadora na tela de fechamento. 🖨 Imprimir sai no formato do financeiro.</p>
+    <div class="win-scroll" id="fech-rg-scroll"><div id="fech-resumo"></div></div>
+    <div class="modal-actions">
+      <span class="grow"></span>
+      <button class="btn primary" type="button" id="fech-rg-close">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODAL: MOVER FECHAMENTO DE QUINZENA ============ -->
+<div id="fech-move-mask" class="no-print" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="fech-move-title" style="max-width:520px">
+    <div class="fech-head"><h3 id="fech-move-title">↪ Mover fechamento de quinzena</h3><button class="rel-x" type="button" id="fech-move-x" title="Cancelar (Esc)">✕</button></div>
+    <p class="hint" id="fech-move-hint"></p>
+    <div class="fech-move-grid">
+      <label>Ano<select id="fech-move-ano"></select></label>
+      <label>Mês<select id="fech-move-mes">
+        <option value="1">Janeiro</option><option value="2">Fevereiro</option><option value="3">Março</option><option value="4">Abril</option>
+        <option value="5">Maio</option><option value="6">Junho</option><option value="7">Julho</option><option value="8">Agosto</option>
+        <option value="9">Setembro</option><option value="10">Outubro</option><option value="11">Novembro</option><option value="12">Dezembro</option>
+      </select></label>
+      <label>Quinzena<select id="fech-move-q">
+        <option value="1">Quinzena 1 (dias 1–15)</option>
+        <option value="2">Quinzena 2 (dia 16 ao fim)</option>
+      </select></label>
+    </div>
+    <div class="modal-actions">
+      <button class="btn mini" type="button" id="fech-move-pred" title="Preenche com a quinzena predominante do período deste fechamento" hidden>usar predominante</button>
+      <span style="flex:1"></span>
+      <button class="btn" type="button" id="fech-move-cancel">Cancelar</button>
+      <button class="btn primary" type="button" id="fech-move-ok" title="Grava a nova referência (mês/quinzena) deste fechamento">↪ Mover</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ JANELA (fallback sem pop-up): iframe em tela própria ============ -->
+<div id="janela-mask" class="no-print fech-win-mask" hidden>
+  <div class="modal modal-janela" role="dialog" aria-modal="true" aria-labelledby="janela-title">
+    <div class="fech-win-head">
+      <h3 id="janela-title">Janela</h3>
+      <button class="rel-x" type="button" id="janela-x" title="Fechar (Esc)">✕</button>
+    </div>
+    <iframe id="janela-frame" title="Janela" referrerpolicy="no-referrer"></iframe>
+    <div class="modal-actions">
+      <span class="hint">Janela embutida (o navegador bloqueou o pop-up). Os botões agem na aba principal do Mapa, que deve permanecer aberta.</span>
+      <span style="flex:1"></span>
+      <button class="btn primary" type="button" id="janela-close">Fechar</button>
     </div>
   </div>
 </div>
@@ -4941,7 +5033,12 @@ function openFech(){
   renderFechTable();
   renderFechHist();
 }
-function closeFech(){ const m = relEl('fech-mask'); if(m) m.hidden = true; }
+function closeFech(){
+  // sub-telas do painel (drawers) fecham junto — nada fica "solto" sobre o app
+  for(const mk of ['fech-antigos-mask', 'fech-rg-mask']){ const m = relEl(mk); if(m) m.hidden = true; }
+  const jm = relEl('janela-mask'); if(jm && !jm.hidden) fecharJanelaFallback();
+  const m = relEl('fech-mask'); if(m) m.hidden = true;
+}
 function fechSelNF(field, val){
   return '<select data-f="' + field + '">' +
     '<option value="Sim"' + (val !== 'Não' ? ' selected' : '') + '>Sim</option>' +
@@ -5227,6 +5324,37 @@ function renderFechFoot(){
     '<td></td><td class="num">' + fmtBRL(ab) + '</td><td colspan="3">a pagar: <b>' + fmtBRL(Math.max(0, fat - ab)) + '</b></td></tr>';
 }
 function bindFechPanel(){
+  /* ---- botões de navegação (à direita do filtro Status): telas individuais ---- */
+  const bindOnce = (el, fn)=>{
+    if(!el || el.dataset.fechBound === '1') return;
+    el.dataset.fechBound = '1';
+    el.addEventListener('click', fn);
+  };
+  bindOnce(relEl('btn-nav-fech-antigos'), ()=>{ renderFechHist(); const m = relEl('fech-antigos-mask'); if(m) m.hidden = false; });
+  bindOnce(relEl('btn-nav-resumo'), ()=>{ renderFechResumo(); const m = relEl('fech-rg-mask'); if(m) m.hidden = false; });
+  bindOnce(relEl('fech-antigos-x'), ()=>{ const m = relEl('fech-antigos-mask'); if(m) m.hidden = true; });
+  bindOnce(relEl('fech-antigos-close'), ()=>{ const m = relEl('fech-antigos-mask'); if(m) m.hidden = true; });
+  bindOnce(relEl('fech-rg-x'), ()=>{ const m = relEl('fech-rg-mask'); if(m) m.hidden = true; });
+  bindOnce(relEl('fech-rg-close'), ()=>{ const m = relEl('fech-rg-mask'); if(m) m.hidden = true; });
+  bindOnce(relEl('janela-x'), fecharJanelaFallback);
+  bindOnce(relEl('janela-close'), fecharJanelaFallback);
+  for(const mk of ['fech-antigos-mask', 'fech-rg-mask', 'janela-mask']){
+    const m = relEl(mk);
+    if(m && m.dataset.fechBound !== '1'){
+      m.dataset.fechBound = '1';
+      m.addEventListener('mousedown', e=>{ if(e.target === m) m.hidden = true; });   // clique no fundo escurecido fecha
+    }
+  }
+  /* ---- ↪ mover fechamento de quinzena ---- */
+  bindOnce(relEl('fech-move-ok'), fechMoverOk);
+  bindOnce(relEl('fech-move-cancel'), fechMoverFechar);
+  bindOnce(relEl('fech-move-x'), fechMoverFechar);
+  bindOnce(relEl('fech-move-pred'), fechMoverUsarPred);
+  const mmove = relEl('fech-move-mask');
+  if(mmove && mmove.dataset.fechBound !== '1'){
+    mmove.dataset.fechBound = '1';
+    mmove.addEventListener('mousedown', e=>{ if(e.target === mmove) fechMoverFechar(); });
+  }
   const body = relEl('fech-body');
   if(body && body.dataset.fechBound !== '1'){
     body.dataset.fechBound = '1';
@@ -5318,6 +5446,7 @@ function bindFechPanel(){
       const act = e.target.closest('[data-act]');
       if(act){
         if(act.dataset.act === 'fech-dl'){ fechBaixarDeNovo(id); return; }
+        if(act.dataset.act === 'fech-mv'){ fechMoverAbrir(id); return; }
         if(act.dataset.act === 'fech-rs'){
           const p = rowEl.querySelector('[data-rs-panel]');
           if(p){ if(p.hidden){ p.innerHTML = fechRsPanel(id); p.hidden = false; } else { p.hidden = true; } }
@@ -5365,7 +5494,51 @@ function fechRefOptions(refDate){
   };
   return [mk(py, pm, 1), mk(py, pm, 2), mk(y, m, 1), mk(y, m, 2)];
 }
-/* referência de um fechamento — novos usam f.ref; os legados derivam da data do fechamento */
+/* ---- quinzena de referência PREDOMINANTE de um intervalo [início, fim] ----
+   Regra: (1) mês com mais dias do período (empate → o mais recente);
+          (2) se o FIM do período está nesse mês, a quinzena é a do fim — é a
+   quinzena que está sendo fechada; senão, a quinzena com mais dias no mês.
+   Períodos que cruzam a virada do mês (ex.: 31/08→21/09, 30/08→18/09,
+   28/08→17/09) passam a cair em Setembro/2026 — Quinzena 2, e não em Agosto
+   (como acontecia quando só o 1º dia era considerado) — era isso que escondia
+   "Setembro/2026 — Quinzena 2" do grid de Fechamentos anteriores. */
+function fechRefPredominante(ini, fim){
+  const re = /^\d{4}-\d{2}-\d{2}$/;
+  const a = String(ini || ''), b = String(fim || '') || a;
+  if(!re.test(a)) return null;
+  const pd = s=>{ const p = String(s).split('-').map(Number); return new Date(p[0], (p[1] || 1) - 1, p[2] || 1); };
+  let d1 = pd(a), d2 = re.test(b) ? pd(b) : d1;
+  if(isNaN(d1.getTime()) || isNaN(d2.getTime())) return null;
+  if(d2 < d1){ const t = d1; d1 = d2; d2 = t; }
+  if((d2 - d1) / 86400000 > 400) return null;   // período absurdo: não arrisca classificar
+  const porMes = new Map(), porQ = new Map();
+  for(let d = new Date(d1.getFullYear(), d1.getMonth(), d1.getDate()); d <= d2; d.setDate(d.getDate() + 1)){
+    const mesK = d.getFullYear() + '-' + qp2(d.getMonth() + 1);
+    const qK = mesK + '-Q' + (d.getDate() <= 15 ? 1 : 2);
+    porMes.set(mesK, (porMes.get(mesK) || 0) + 1);
+    porQ.set(qK, (porQ.get(qK) || 0) + 1);
+  }
+  if(!porMes.size) return null;
+  let mesBest = null;                                   // mês predominante
+  for(const [k, n] of porMes){
+    const ord = +k.slice(0, 4) * 100 + +k.slice(5, 7);
+    if(!mesBest || n > mesBest.n || (n === mesBest.n && ord > mesBest.ord)) mesBest = {k: k, n: n};
+  }
+  const endK = d2.getFullYear() + '-' + qp2(d2.getMonth() + 1);
+  let alvo = endK + '-Q' + (d2.getDate() <= 15 ? 1 : 2);   // quinzena do fim do período
+  if(endK !== mesBest.k){                                   // fim fora do mês predominante
+    let qb = null;
+    for(const [k, n] of porQ){
+      if(k.slice(0, 7) !== mesBest.k) continue;
+      const ord = +k.slice(9);
+      if(!qb || n > qb.n || (n === qb.n && ord > qb.ord)) qb = {k: k, n: n};
+    }
+    if(qb) alvo = qb.k;
+  }
+  const m = alvo.match(/^(\d{4})-(\d{2})-Q(\d)$/);
+  return m ? {ano: +m[1], mes: +m[2], quinzena: +m[3]} : null;
+}
+/* referência de um fechamento — novos usam f.ref; os legados derivam do período */
 function fechRefOf(f){
   /* Não dependa de label para reconhecer a referência. Dados antigos (ou uma
      gravação interrompida) podem ter somente ano/mês/quinzena; nesse caso o
@@ -5378,9 +5551,11 @@ function fechRefOf(f){
     }
   }
   /* Fechamentos criados por versões anteriores não tinham ref. Neles, a
-     referência deve vir do período que foi fechado (start), e não da data em
-     que o usuário confirmou o fechamento; isso evita mover Setembro Q2 para
-     Outubro Q1. */
+     referência vem da quinzena PREDOMINANTE do período que foi fechado
+     [start..end] — não do 1º dia (senão 31/08→21/09 cairia em Agosto) e não da
+     data em que o usuário confirmou (senão Setembro Q2 viraria Outubro Q1). */
+  const pred = fechRefPredominante(f && f.start, f && f.end);
+  if(pred) return {ano: pred.ano, mes: pred.mes, quinzena: pred.quinzena, label: quinzenaLabel(pred.ano, pred.mes, pred.quinzena)};
   const d = (f && (f.start || f.dataFech || (f.criadoEm ? String(f.criadoEm).slice(0, 10) : ''))) || '';
   if(!/^\d{4}-\d{2}-\d{2}$/.test(d)) return {ano: 0, mes: 0, quinzena: 0, label: '(sem referência)'};
   const ano = +d.slice(0, 4), mes = +d.slice(5, 7), q = +d.slice(8, 10) <= 15 ? 1 : 2;
@@ -5397,9 +5572,15 @@ function fechRefAsk(nCargas, total){
     if(!mask || !list){ resolve(null); return; }
     if(mask.dataset.busy === '1'){ resolve(null); return; }
     mask.dataset.busy = '1';
-    const opts = fechRefOptions();
+    /* Base das 4 opções: a quinzena PREDOMINANTE do período sendo fechado — e
+       não "hoje". Um fechamento de período 31/08→21/09 confirmado em outubro
+       continua ofereendo Agosto/Setembro, e o padrão já vem na quinzena certa
+       (Setembro Q2), em vez de Outubro Q1. */
+    const pred = fechRefPredominante(REL && REL.start, REL && REL.end);
     const hoje = new Date();
-    const defKey = fechRefKey(hoje.getFullYear(), hoje.getMonth() + 1, hoje.getDate() <= 15 ? 1 : 2);
+    const def = pred || {ano: hoje.getFullYear(), mes: hoje.getMonth() + 1, quinzena: hoje.getDate() <= 15 ? 1 : 2};
+    const opts = fechRefOptions(pred ? new Date(pred.ano, pred.mes - 1, pred.quinzena === 1 ? 15 : 20) : hoje);
+    const defKey = fechRefKey(def.ano, def.mes, def.quinzena);
     list.innerHTML = opts.map(o=>{
       const key = fechRefKey(o.ano, o.mes, o.quinzena);
       const dup = FECHAMENTOS.filter(f=> fechRefKey(fechRefOf(f).ano, fechRefOf(f).mes, fechRefOf(f).quinzena) === key).length;
@@ -5702,6 +5883,7 @@ function fechXlsTransp(fech, g){
 
 const HIST_ENT = {};   // cache: data ISO do mapa -> data de entrega (campo ENTREGA do dia; '' = sem entrega cadastrada)
 let HIST_WIN = null;   // referência da janela aberta (p/ foco e atualização)
+let HIST_FRAME = null; // iframe da tela própria (fallback quando o pop-up é bloqueado)
 function histFechDate(f){ return f.dataFech || (f.criadoEm ? String(f.criadoEm).slice(0, 10) : ''); }
 /* todas as cargas de todos os fechamentos registrados, já "achatadas" (uma linha por carga) */
 function histRowsRaw(){
@@ -5989,33 +6171,80 @@ function histWinHtml(){
     '<style>' + CSS + '</style></head><body>' + BODY +
     '<script>' + JS + '<\/script></body></html>';
 }
+/* ---- janelas independentes: pop-up quando permitido; se o navegador bloquear,
+   cai em uma tela própria (drawer full-screen) com iframe — a mesma janela, sem
+   empilhar nada dentro do painel de fechamento. ---- */
+let JANELA_URL = null;   // blob da janela embutida (liberado ao trocar/fechar)
+function winAdaptIframe(html){
+  return String(html)
+    .split('window.opener').join('(window.opener || window.parent)')
+    .split('window.close()').join('(window.parent !== window ? window.parent.fechJanelaFechar() : window.close())');
+}
+function abrirJanelaIframe(titulo, html){
+  const mask = relEl('janela-mask'), frame = relEl('janela-frame');
+  if(!mask || !frame) return false;
+  try{
+    const url = URL.createObjectURL(new Blob([winAdaptIframe(html)], {type:'text/html'}));
+    const t = relEl('janela-title'); if(t) t.textContent = titulo;
+    window.fechJanelaFechar = ()=>{ mask.hidden = true; try{ frame.src = 'about:blank'; }catch(e){} };
+    if(JANELA_URL){ try{ URL.revokeObjectURL(JANELA_URL); }catch(e){} }
+    JANELA_URL = url;
+    frame.src = url;
+    mask.hidden = false;
+    return true;
+  }catch(e){ console.error(e); return false; }
+}
+function janelaFallbackAberta(){
+  const m = relEl('janela-mask');
+  return !!(m && !m.hidden && relEl('janela-frame'));
+}
+function fecharJanelaFallback(){
+  const m = relEl('janela-mask');
+  if(m) m.hidden = true;
+  const f = relEl('janela-frame');
+  try{ if(f) f.src = 'about:blank'; }catch(e){}
+  if(JANELA_URL){ try{ URL.revokeObjectURL(JANELA_URL); }catch(e){} JANELA_URL = null; }
+}
 function openHistWin(){
   if(!requireOperational()) return;
-  if(HIST_WIN && !HIST_WIN.closed){
-    try{ HIST_WIN.focus(); }catch(e){}
+  if(histAberto()){ try{ histAlvo().focus(); }catch(e){} histWinRefresh(); return; }
+  let w = null;
+  try{ w = window.open('', 'fechamentos-anteriores', 'width=1520,height=880,menubar=no,toolbar=no,location=no,status=no,scrollbars=yes,resizable=yes'); }catch(e){}
+  if(w){
+    try{
+      w.document.open();
+      w.document.write(histWinHtml());
+      w.document.close();
+      HIST_WIN = w; HIST_FRAME = null;
+      histWinRefresh();
+      return;
+    }catch(e){ console.error(e); try{ w.close(); }catch(e2){} HIST_WIN = null; }
+  }
+  if(abrirJanelaIframe('📚 Cargas fechadas', histWinHtml())){
+    HIST_FRAME = relEl('janela-frame'); HIST_WIN = null;
     histWinRefresh();
     return;
   }
-  let w = null;
-  try{ w = window.open('', 'fechamentos-anteriores', 'width=1520,height=880,menubar=no,toolbar=no,location=no,status=no,scrollbars=yes,resizable=yes'); }catch(e){}
-  if(!w){ toast('⚠️ O navegador bloqueou a nova janela — permita pop-ups p/ este site e clique de novo', 'err'); return; }
-  HIST_WIN = w;
-  try{
-    w.document.open();
-    w.document.write(histWinHtml());
-    w.document.close();
-  }catch(e){ console.error(e); }
-  histWinRefresh();
+  toast('⚠️ O navegador bloqueou a nova janela — permita pop-ups p/ este site e clique de novo', 'err');
+}
+function histAberto(){
+  if(HIST_FRAME) return janelaFallbackAberta();
+  return !!(HIST_WIN && !HIST_WIN.closed);
+}
+function histAlvo(){ return HIST_FRAME ? HIST_FRAME.contentWindow : HIST_WIN; }
+function histFechar(){
+  if(HIST_FRAME){ HIST_FRAME = null; fecharJanelaFallback(); return; }
+  if(HIST_WIN && !HIST_WIN.closed) HIST_WIN.close();
 }
 function histWinRefresh(){
-  if(!canEditOperational()){ if(HIST_WIN && !HIST_WIN.closed) HIST_WIN.close(); return; }
-  const w = HIST_WIN;
-  if(!w || w.closed) return;
+  if(!canEditOperational()){ histFechar(); return; }
+  if(!histAberto()) return;
+  const w = histAlvo(); if(!w) return;
   try{ if(w.histSetStatus) w.histSetStatus('⏳ Carregando as cargas fechadas…'); }catch(e){}
   histCollectRows().then(rows=>{
-    try{ if(w.closed) return; if(w.histSetRows) w.histSetRows(rows); }catch(e){}
+    try{ if(!histAberto()) return; if(w.histSetRows) w.histSetRows(rows); }catch(e){}
   }).catch(err=>{
-    try{ if(!w.closed && w.histSetStatus) w.histSetStatus('❌ Falha ao carregar: ' + (err && err.message ? err.message : err)); }catch(e){}
+    try{ if(histAberto() && w.histSetStatus) w.histSetStatus('❌ Falha ao carregar: ' + (err && err.message ? err.message : err)); }catch(e){}
   });
 }
 
@@ -6269,33 +6498,47 @@ function rotasWinHtml(){
     '<script>' + JS + '<\/script></body></html>';
 }
 let ROTAS_WIN = null;
+let ROTAS_FRAME = null;   // iframe da tela própria (fallback sem pop-up)
 function openRotasWin(){
   if(!requireOperational()) return;
-  if(ROTAS_WIN && !ROTAS_WIN.closed){
-    try{ ROTAS_WIN.focus(); }catch(e){}
+  if(rotasAberta()){ try{ rotasAlvo().focus(); }catch(e){} rotasWinRefresh(); return; }
+  let w = null;
+  try{ w = window.open('', 'rotas-abertas', 'width=1520,height=880,menubar=no,toolbar=no,location=no,status=no,scrollbars=yes,resizable=yes'); }catch(e){}
+  if(w){
+    try{
+      w.document.open();
+      w.document.write(rotasWinHtml());
+      w.document.close();
+      ROTAS_WIN = w; ROTAS_FRAME = null;
+      rotasWinRefresh();
+      return;
+    }catch(e){ console.error(e); try{ w.close(); }catch(e2){} ROTAS_WIN = null; }
+  }
+  if(abrirJanelaIframe('📋 Rotas abertas (Concluídas & Pendentes)', rotasWinHtml())){
+    ROTAS_FRAME = relEl('janela-frame'); ROTAS_WIN = null;
     rotasWinRefresh();
     return;
   }
-  let w = null;
-  try{ w = window.open('', 'rotas-abertas', 'width=1520,height=880,menubar=no,toolbar=no,location=no,status=no,scrollbars=yes,resizable=yes'); }catch(e){}
-  if(!w){ toast('️ O navegador bloqueou a nova janela — permita pop-ups p/ este site e clique de novo', 'err'); return; }
-  ROTAS_WIN = w;
-  try{
-    w.document.open();
-    w.document.write(rotasWinHtml());
-    w.document.close();
-  }catch(e){ console.error(e); }
-  rotasWinRefresh();
+  toast('⚠️ O navegador bloqueou a nova janela — permita pop-ups p/ este site e clique de novo', 'err');
+}
+function rotasAberta(){
+  if(ROTAS_FRAME) return janelaFallbackAberta();
+  return !!(ROTAS_WIN && !ROTAS_WIN.closed);
+}
+function rotasAlvo(){ return ROTAS_FRAME ? ROTAS_FRAME.contentWindow : ROTAS_WIN; }
+function rotasFechar(){
+  if(ROTAS_FRAME){ ROTAS_FRAME = null; fecharJanelaFallback(); return; }
+  if(ROTAS_WIN && !ROTAS_WIN.closed) ROTAS_WIN.close();
 }
 function rotasWinRefresh(){
-  if(!canEditOperational()){ if(ROTAS_WIN && !ROTAS_WIN.closed) ROTAS_WIN.close(); return; }
-  const w = ROTAS_WIN;
-  if(!w || w.closed) return;
+  if(!canEditOperational()){ rotasFechar(); return; }
+  if(!rotasAberta()) return;
+  const w = rotasAlvo(); if(!w) return;
   try{ if(w.rotasSetStatus) w.rotasSetStatus('⏳ Carregando as rotas abertas…'); }catch(e){}
   rotasAbertasCollectRows().then(rows=>{
-    try{ if(w.closed) return; if(w.rotasSetRows) w.rotasSetRows(rows); }catch(e){}
+    try{ if(!rotasAberta()) return; if(w.rotasSetRows) w.rotasSetRows(rows); }catch(e){}
   }).catch(err=>{
-    try{ if(!w.closed && w.rotasSetStatus) w.rotasSetStatus('❌ Falha ao carregar: ' + (err && err.message ? err.message : err)); }catch(e){}
+    try{ if(rotasAberta() && w.rotasSetStatus) w.rotasSetStatus('❌ Falha ao carregar: ' + (err && err.message ? err.message : err)); }catch(e){}
   });
 }
 
@@ -6333,7 +6576,8 @@ function fhControlsFill(){
     if(ord.indexOf(+keep) > -1 || keep === '') ySel.value = keep;
   }
 }
-/* fechamentos agrupados por referência (mês/quinzena) já filtrados — em ordem cronológica */
+/* fechamentos agrupados por referência (mês/quinzena) já filtrados —
+   SEMPRE em data DECRESCENTE (quinzena mais recente primeiro). */
 function fhVistos(){
   const ano = String((relEl('fh-ano') || {}).value || '');
   const mes = String((relEl('fh-mes') || {}).value || '');
@@ -6363,24 +6607,52 @@ function fhVistos(){
     g.peso += f.grupos.reduce((a, x)=> a + numVal(x.peso), 0);
     g.valor += f.grupos.reduce((a, x)=> a + numVal(x.apagar), 0);
   }
-  return Array.from(grupos.values()).sort((a, b)=> a.ord - b.ord);
+  // decrescente: Setembro/2026 Q2 aparece ANTES de Agosto/2026 Q2
+  return Array.from(grupos.values()).sort((a, b)=> b.ord - a.ord);
+}
+/* ordem de um fechamento p/ a lista: mais recente primeiro (data de criação,
+   com a data de fechamento como desempate) */
+function fechOrdemTs(f){
+  const a = Date.parse((f && (f.criadoEm || f.dataFech)) || '') || 0;
+  const b = Date.parse((f && f.dataFech) || '') || 0;
+  return Math.max(a, b);
 }
 function renderFechHist(){
-  if(HIST_WIN && !HIST_WIN.closed) histWinRefresh();
+  if(histAberto()) histWinRefresh();
   const wrap = relEl('fech-hist-rows'); if(!wrap) return;
   fhControlsFill();
-  if(!FECHAMENTOS.length){ wrap.innerHTML = '<div class="empty">Nenhum fechamento feito ainda.</div>'; return; }
+  const cnt = relEl('fech-antigos-count');
+  if(!FECHAMENTOS.length){
+    wrap.innerHTML = '<div class="empty">📭 Nenhum fechamento feito ainda — feche uma quinzena em 🔒 Fechar selecionadas.</div>';
+    if(cnt) cnt.textContent = '';
+    return;
+  }
   const vistos = fhVistos();
-  if(!vistos.length){ wrap.innerHTML = '<div class="empty">Nenhuma quinzena nos filtros escolhidos.</div>'; return; }
+  if(!vistos.length){
+    wrap.innerHTML = '<div class="empty">🔍 Nenhuma quinzena nos filtros escolhidos — use "limpar" para ver todas.</div>';
+    if(cnt) cnt.textContent = '';
+    return;
+  }
+  const nFech = vistos.reduce((a, g)=> a + g.list.length, 0);
+  if(cnt) cnt.textContent = vistos.length + ' quinzena(s) · ' + nFech + ' fechamento(s) · ' +
+    vistos.reduce((a, g)=> a + g.cargas, 0) + ' carga(s) · ' + fmtBRL(vistos.reduce((a, g)=> a + g.valor, 0));
   wrap.innerHTML = vistos.map(g=>{
-    const rows = g.list.slice().reverse().map(f=>{
+    // fechamentos do grupo: data decrescente (o mais novo primeiro)
+    const rows = g.list.slice().sort((a, b)=> fechOrdemTs(b) - fechOrdemTs(a)).map(f=>{
       const n = f.grupos.reduce((a, x)=> a + x.cargas.length, 0);
       const val = f.grupos.reduce((a, x)=> a + x.apagar, 0);
       const quando = f.dataFech ? fmtBR(f.dataFech) : (f.criadoEm ? new Date(f.criadoEm).toLocaleDateString('pt-BR') : '');
+      // ⚠ referência gravada divergente da quinzena predominante do período
+      const ref = fechRefOf(f);
+      const pred = fechRefPredominante(f.start, f.end);
+      const div = (f.ref && pred && (pred.ano !== ref.ano || pred.mes !== ref.mes || pred.quinzena !== ref.quinzena))
+        ? ' <span class="fech-div" title="Período ' + esc(fechPeriodoTxt(f)) + ' predomina em ' + esc(quinzenaLabel(pred.ano, pred.mes, pred.quinzena)) +
+          ', mas a referência gravada é ' + esc(ref.label) + '. Use ↪ Mover para corrigir.">⚠ referência divergente</span>' : '';
       return '<div class="fech-hist-row" data-f="' + esc(f.id) + '">' +
-        '<span class="grow"><b>' + fechPeriodoTxt(f) + '</b> · ' + f.grupos.length + ' transportadora(s) · ' + n + ' carga(s) · ' + fmtBRL(val) + ' · 🔒 Fechado em ' + esc(quando || '—') + '</span>' +
+        '<span class="grow"><b>' + fechPeriodoTxt(f) + '</b> · ' + f.grupos.length + ' transportadora(s) · ' + n + ' carga(s) · ' + fmtBRL(val) + ' · 🔒 Fechado em ' + esc(quando || '—') + div + '</span>' +
         '<span class="mono">' + esc(f.por || '') + '</span>' +
         '<button class="btn mini" type="button" data-act="fech-dl" title="Gera de novo o resumo + os arquivos por transportadora (com os valores da época)">📥 Baixar de novo</button>' +
+        '<button class="btn mini" type="button" data-act="fech-mv" title="Move este fechamento para outra referência de mês/quinzena (corrige a classificação)">↪ Mover</button>' +
         '<button class="btn mini" type="button" data-act="fech-rs" title="Devolve as cargas escolhidas deste fechamento para PENDENTE">↺ Reabrir cargas</button>' +
         '<div class="fech-rs" data-rs-panel hidden></div>' +
       '</div>';
@@ -6490,9 +6762,68 @@ function fhResPrint(){
 }
 function fechBaixarDeNovo(id){
   const f = FECHAMENTOS.find(x=> x.id === id); if(!f) return;
-  fechXlsGeral(f);
-  for(const g of f.grupos) fechXlsTransp(f, g);
+  try{ setBusy(true); }catch(e){}
+  // deixa o navegador pintar o "⏳ Gerando…" antes da geração dos Excel
+  setTimeout(()=>{
+    try{ fechXlsGeral(f); for(const g of f.grupos) fechXlsTransp(f, g); }
+    catch(e){ console.error(e); toast('❌ Falha ao gerar os arquivos: ' + (e && e.message ? e.message : e), 'err'); }
+    try{ setBusy(false); }catch(e){}
+  }, 30);
 }
+/* ---- ↪ Mover fechamento de quinzena: corrige a referência (mês/quinzena)
+   gravada — usado quando um fechamento ficou classificado na quinzena errada
+   (ex.: período 31/08→21/09 gravado como Agosto Q2 em vez de Setembro Q2). ---- */
+let FECH_MOVE_ID = null;
+function fechMoverAbrir(id){
+  if(!requireOperational()) return;
+  const f = FECHAMENTOS.find(x=> x.id === id); if(!f) return;
+  const mask = relEl('fech-move-mask'); if(!mask) return;
+  const ref = fechRefOf(f);
+  FECH_MOVE_ID = id;
+  const anos = new Set([new Date().getFullYear(), ref.ano]);
+  for(const x of FECHAMENTOS){ const r2 = fechRefOf(x); if(r2.ano) anos.add(r2.ano); }
+  const ya = relEl('fech-move-ano');
+  if(ya) ya.innerHTML = Array.from(anos).sort((a, b)=> b - a)
+    .map(a=> '<option value="' + a + '"' + (a === ref.ano ? ' selected' : '') + '>' + a + '</option>').join('');
+  const ym = relEl('fech-move-mes'); if(ym) ym.value = String(ref.mes || 1);
+  const yq = relEl('fech-move-q'); if(yq) yq.value = String(ref.quinzena || 1);
+  const pred = fechRefPredominante(f.start, f.end);
+  const bp = relEl('fech-move-pred');
+  if(bp){ bp.hidden = !pred; bp.dataset.pred = pred ? (pred.ano + '-' + qp2(pred.mes) + '-' + pred.quinzena) : ''; }
+  const hint = relEl('fech-move-hint');
+  if(hint) hint.innerHTML = 'Fechamento <b>' + esc(fechPeriodoTxt(f)) + '</b> · ' +
+    f.grupos.reduce((a, x)=> a + x.cargas.length, 0) + ' carga(s) · ' +
+    fmtBRL(f.grupos.reduce((a, x)=> a + numVal(x.apagar), 0)) + ' · referência atual: <b>' + esc(ref.label) + '</b>.' +
+    (pred ? '<br>Período predominante: <b>' + esc(quinzenaLabel(pred.ano, pred.mes, pred.quinzena)) + '</b>.' : '');
+  mask.hidden = false;
+}
+function fechMoverUsarPred(){
+  const bp = relEl('fech-move-pred'); if(!bp || bp.hidden) return;
+  const p = String(bp.dataset.pred || '').match(/^(\d{4})-(\d{2})-(\d)$/); if(!p) return;
+  const ya = relEl('fech-move-ano'); if(ya && !Array.from(ya.options).some(o=> o.value === p[1])) ya.innerHTML += '<option value="' + p[1] + '">' + p[1] + '</option>';
+  if(ya) ya.value = p[1];
+  const ym = relEl('fech-move-mes'); if(ym) ym.value = String(+p[2]);
+  const yq = relEl('fech-move-q'); if(yq) yq.value = p[3];
+}
+async function fechMoverOk(){
+  if(!requireOperational()) return;
+  const f = FECHAMENTOS.find(x=> x.id === FECH_MOVE_ID); if(!f){ toast('Fechamento não encontrado', 'err'); return; }
+  const ano = Number((relEl('fech-move-ano') || {}).value);
+  const mes = Number((relEl('fech-move-mes') || {}).value);
+  const q = Number((relEl('fech-move-q') || {}).value);
+  if(!(ano >= 2000 && mes >= 1 && mes <= 12 && (q === 1 || q === 2))){ toast('Referência inválida', 'err'); return; }
+  const antes = fechRefOf(f).label;
+  f.ref = {ano: ano, mes: mes, quinzena: q, label: quinzenaLabel(ano, mes, q)};
+  try{
+    await refreshSessionToken();
+    await Stor.set('fechamentos', FECHAMENTOS);
+  }catch(err){ console.error(err); toast('❌ Não foi possível gravar: ' + (err && err.message ? err.message : err), 'err'); return; }
+  audit('fechamento-movido', f.id + ' · ' + fechPeriodoTxt(f) + ' · ' + antes + ' → ' + f.ref.label);
+  renderFechHist();
+  const mask = relEl('fech-move-mask'); if(mask) mask.hidden = true;
+  toast('↪ Fechamento movido para ' + f.ref.label, 'ok');
+}
+function fechMoverFechar(){ const m = relEl('fech-move-mask'); if(m) m.hidden = true; }
 /* ---- janela ↺ Retornar fechadas: critérios data de fechamento + transportador + ordem ---- */
 function retFechCargas(){
   const out = [];
@@ -8022,7 +8353,7 @@ async function verifyCurrentPassword(pass){
   }catch(e){ return false; }
 }
 function logout(){
-  if(HIST_WIN && !HIST_WIN.closed) HIST_WIN.close();
+  try{ histFechar(); rotasFechar(); }catch(e){}
   if(SESSION){
     audit('logout', 'nível ' + SESSION.level);
     try{
@@ -8836,6 +9167,14 @@ function bindStatic(){
     if(frm && !frm.hidden){ const c = $('#fech-ref-cancel'); if(c) c.click(); return; }
     const hrm = $('#fh-res-mask');
     if(hrm && !hrm.hidden){ closeFhRes(); return; }
+    const mvm = $('#fech-move-mask');
+    if(mvm && !mvm.hidden){ fechMoverFechar(); return; }
+    const jm = $('#janela-mask');
+    if(jm && !jm.hidden){ fecharJanelaFallback(); return; }
+    const antm = $('#fech-antigos-mask');
+    if(antm && !antm.hidden){ antm.hidden = true; return; }
+    const rgm = $('#fech-rg-mask');
+    if(rgm && !rgm.hidden){ rgm.hidden = true; return; }
     const fm = $('#fech-mask');
     if(fm && !fm.hidden){ closeFech(); return; }
     const m = $('#report-xls-mask');
@@ -9374,7 +9713,7 @@ async function init(){
 /* AUTO-CHECK DE VERSAO: avisa (somente quando roda em github.io) se a aba estiver com
    copia antiga em cache — compara o selo APP_V local com o do arquivo publicado no repo.
    Falha de rede/offline = silencioso; nunca bloqueia o uso. */
-const APP_V = '2026-10-02c';
+const APP_V = '2026-10-07a';
 (function(){
   // Selo de versão VISÍVEL no canto da tela: qualquer print/print-screen mostra qual código
   // está rodando no aparelho (cópia antiga = selo antigo/ausente). Não entra nas capturas.
