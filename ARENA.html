@@ -1136,7 +1136,7 @@ html.gerencial-request #settings{display:none!important}
       <label id="cmp-month-wrap">Mês<select id="cmp-month"></select></label>
       <label id="cmp-week-wrap">Semana<select id="cmp-week"><option value="1">S1 · dias 1–7</option><option value="2">S2 · dias 8–14</option><option value="3">S3 · dias 15–21</option><option value="4">S4 · dia 22 ao fim do mês</option></select></label>
     </div>
-    <p class="hint">Semanas ancoradas no mês: S1 começa no dia 1 · S2 no dia 8 · S3 no dia 15 · S4 no dia 22. Rotas ordenadas <b>do maior custo p/ o menor</b>. Classes de custo (Interior): até R$ 0,99/kg = Baixo · até R$ 1,10 = Bom · até R$ 1,20 = Moderado · acima = Alto. Capital aparece sem classe.</p>
+    <p class="hint">Semanas ancoradas no mês: S1 começa no dia 1 · S2 no dia 8 · S3 no dia 15 · S4 no dia 22. Rotas ordenadas <b>do maior custo p/ o menor</b>. Classes de custo (Interior): até R$ 0,90/kg = Baixo · até R$ 1,00 = Bom · até R$ 1,10 = Moderado · acima = Alto. Capital aparece sem classe.</p>
     <div id="cmp-chips" class="cmp-chips"></div>
     <div id="cmp-out"></div>
   </div>
@@ -7560,7 +7560,7 @@ function cmpAgg(range){
   for(const e of list) e.custo = e.peso > 0 ? e.total / e.peso : null;
   return list;
 }
-/* classes de custo do Interior: ≤0,99 Baixo · ≤1,10 Bom · ≤1,20 Moderado · >1,20 Alto */
+/* classes de custo do Interior: ≤0,90 Baixo · ≤1,00 Bom · ≤1,10 Moderado · >1,20 Alto */
 function custoClasse(sec, custo){
   if(sec !== 'interior' || custo == null) return '';
   if(custo <= 0.99) return 'Baixo';
