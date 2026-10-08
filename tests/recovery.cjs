@@ -324,9 +324,95 @@ test('cadastro de ajudantes e tripulação de Frotas: edição manual, sincroniz
   assert.ok(tripWrap.innerHTML.includes('data-trip="ajudante"') && tripWrap.innerHTML.includes('value="CARLOS"') && tripWrap.innerHTML.includes('value="LUCAS"'));
 });
 test('regressões: resumo por quinzena e impressão isolada permanecem',()=>{
-  for(const x of ['id="fh-resumo"','function fechRefOptions','function renderFechHist','A4 portrait','2026-10-02c','id="kp-f-sit"','function kpGroupRows','function kpKmJump','function kpSituation','@page{size:A4 landscape;margin:10mm}','tbody class="grp"','function printResumoRowsHtml','td{white-space:nowrap}','id="btn-rotas-window"','function rotasWinHtml','function rotasAbertasCollectRows','id="sec-frota-trip"','function renderFrotaTripulacao','function syncFrotaTripulacaoToMap']) assert.ok(html.includes(x),x);
+  for(const x of ['id="fh-resumo"','function fechRefOptions','function renderFechHist','A4 portrait','2026-10-07a','id="kp-f-sit"','function kpGroupRows','function kpKmJump','function kpSituation','@page{size:A4 landscape;margin:10mm}','tbody class="grp"','function printResumoRowsHtml','td{white-space:nowrap}','id="btn-rotas-window"','function rotasWinHtml','function rotasAbertasCollectRows','id="sec-frota-trip"','function renderFrotaTripulacao','function syncFrotaTripulacaoToMap']) assert.ok(html.includes(x),x);
   assert.ok(!html.includes("const APP_V = '2026-09-29d'"));
   assert.ok(!html.includes('tryAutoMigrarLote'));
+});
+/* ---- 2026-10-07: fechamento quinzenal — quinzena predominante, ordem
+   decrescente, scroll e telas individuais (Fechamentos anteriores) ---- */
+const quinBlock = block('function qp2(n){','function closeFechRef(){');
+const j = o => JSON.parse(JSON.stringify(o));   // normaliza o realm do vm p/ deepStrictEqual
+test('quinzena predominante: períodos que cruzam o mês caem na quinzena certa (Setembro Q2 aparece)',()=>{
+  const c=context({MESES_NOME:['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'],
+    quinzenaLabel:(ano,mes,q)=> mes+'/'+ano+' Q'+q});
+  vm.runInContext(quinBlock,c);
+  // 31/08→21/09: 1 dia em Agosto Q2 × 21 em Setembro (Q2 no fim)
+  assert.deepEqual(j(c.fechRefPredominante('2026-08-31','2026-09-21')),{ano:2026,mes:9,quinzena:2});
+  assert.deepEqual(j(c.fechRefPredominante('2026-08-30','2026-09-18')),{ano:2026,mes:9,quinzena:2});
+  assert.deepEqual(j(c.fechRefPredominante('2026-08-28','2026-09-17')),{ano:2026,mes:9,quinzena:2});
+  // totalmente dentro de agosto continua Agosto Q2
+  assert.deepEqual(j(c.fechRefPredominante('2026-08-16','2026-08-31')),{ano:2026,mes:8,quinzena:2});
+  // dentro de uma mesma quinzena 1
+  assert.deepEqual(j(c.fechRefPredominante('2026-09-02','2026-09-10')),{ano:2026,mes:9,quinzena:1});
+  // dia único e intervalo invertido
+  assert.deepEqual(j(c.fechRefPredominante('2026-09-20','2026-09-20')),{ano:2026,mes:9,quinzena:2});
+  assert.deepEqual(j(c.fechRefPredominante('2026-09-21','2026-08-31')),{ano:2026,mes:9,quinzena:2});
+  // inválidos não classificam
+  assert.equal(c.fechRefPredominante('','2026-09-21'),null);
+  assert.equal(c.fechRefPredominante('xx','2026-09-21'),null);
+  assert.equal(c.fechRefPredominante('2020-01-01','2027-01-01'),null);   // > 400 dias
+  // fim fora do mês predominante → quinzena com mais dias do mês predominante
+  assert.deepEqual(j(c.fechRefPredominante('2026-08-25','2026-09-05')),{ano:2026,mes:8,quinzena:2});
+  // fechamento LEGADO (sem ref) usa o período predominante, não o 1º dia
+  const r1=c.fechRefOf({start:'2026-08-31',end:'2026-09-21'});
+  assert.equal(r1.ano+'-'+r1.mes+'-Q'+r1.quinzena,'2026-9-Q2');
+  // ref explícito do usuário é preservado
+  const r2=c.fechRefOf({ref:{ano:2026,mes:8,quinzena:2},start:'2026-08-31',end:'2026-09-21'});
+  assert.equal(r2.ano+'-'+r2.mes+'-Q'+r2.quinzena,'2026-8-Q2');
+  // ref inválido cai no período predominante
+  const r3=c.fechRefOf({ref:{ano:'x',mes:8,quinzena:2},start:'2026-08-31',end:'2026-09-21'});
+  assert.equal(r3.ano+'-'+r3.mes+'-Q'+r3.quinzena,'2026-9-Q2');
+  // sem start/end: cai na data de criação e, sem nada disso, fica sem referência
+  assert.equal(c.fechRefOf({criadoEm:'2026-10-01T10:00:00.000Z'}).mes,10);
+  assert.equal(c.fechRefOf({}).label,'(sem referência)');
+});
+test('Fechamentos anteriores: grupos e linhas em data DECRESCENTE + ações por linha',()=>{
+  const wrap={innerHTML:'',dataset:{}};
+  const els={};
+  const el=id=>els[id]||(els[id]={id,innerHTML:'',value:'',textContent:'',dataset:{},options:[],appendChild(o){this.options.push(o);}});
+  const c=context({FECHAMENTOS:[
+      {id:'f1',criadoEm:'2026-09-01T10:00:00.000Z',dataFech:'2026-09-01',start:'2026-08-28',end:'2026-09-17',grupos:[{transp:'A',cargas:[{id:'r1'}],peso:10,apagar:100}]},
+      {id:'f2',criadoEm:'2026-09-20T10:00:00.000Z',dataFech:'2026-09-20',start:'2026-08-31',end:'2026-09-21',ref:{ano:2026,mes:8,quinzena:2},grupos:[{transp:'B',cargas:[{id:'r2'}],peso:20,apagar:200}]},
+      {id:'f3',criadoEm:'2026-09-25T10:00:00.000Z',dataFech:'2026-09-25',start:'2026-09-01',end:'2026-09-10',grupos:[{transp:'C',cargas:[{id:'r3'}],peso:30,apagar:300}]},
+      {id:'f4',criadoEm:'2026-08-20T10:00:00.000Z',dataFech:'2026-08-20',start:'2026-08-16',end:'2026-08-31',grupos:[{transp:'D',cargas:[{id:'r4'}],peso:40,apagar:400}]}],
+    relEl:id=> id==='fech-hist-rows'?wrap:el(id),
+    qp2:n=>String(n).padStart(2,'0'),
+    MESES_NOME:['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'],
+    quinzenaLabel:(ano,mes,q)=> mes+'/'+ano+' Q'+q, numVal:x=>Number(x)||0,
+    fechPeriodoTxt:f=>f.start+' a '+f.end, esc:s=>String(s==null?'':s),
+    fmtBR:d=>String(d),fmtBRL:v=>'R$ '+v,fmtPeso2:v=>String(v),
+    histAberto:()=>false, histWinRefresh:()=>{}, Option:function(v,t){this.value=v;this.text=t;}});
+  vm.runInContext(quinBlock + block('function fhControlsFill(){','function fhResumoRows(keys){'),c);
+  c.renderFechHist();
+  const h=wrap.innerHTML;
+  // grupos decrescentes: Setembro/2026 Q2 (f1) antes de Agosto/2026 Q2 (f2+f4)
+  const iSet=h.indexOf('Setembro/2026 — Quinzena 2'), iAgo=h.indexOf('Agosto/2026 — Quinzena 2');
+  assert.ok(iSet>=0 && iAgo>=0 && iSet<iAgo,'ordem dos grupos');
+  // dentro do grupo de Agosto Q2: f2 (20/09) antes de f4 (20/08)
+  assert.ok(h.indexOf('data-f="f2"')<h.indexOf('data-f="f4"'),'ordem das linhas');
+  // ⚠ apenas no fechamento com referência gravada divergente do período predominante
+  assert.ok(h.includes('⚠ referência divergente'));
+  assert.ok((h.match(/⚠ referência divergente/g)||[]).length===1);
+  // ações preservadas + nova ação ↪ Mover
+  for(const x of ['data-act="fech-dl"','data-act="fech-rs"','data-act="fech-mv"']) assert.ok(h.includes(x),x);
+  assert.ok(el('fech-antigos-count').textContent.includes('3 quinzena(s) · 4 fechamento(s)'));
+});
+test('referência do fechamento: 4 opções montadas pelo período predominante (não por "hoje")',()=>{
+  const c=context({MESES_NOME:['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'],
+    quinzenaLabel:(ano,mes,q)=> mes+'/'+ano+' Q'+q});
+  vm.runInContext(quinBlock,c);
+  // base = fim do período 31/08→21/09 (20/09): mês anterior (Agosto) + atual (Setembro)
+  const opts=c.fechRefOptions(new Date(2026,8,20));
+  assert.deepEqual(j(opts.map(o=>o.ano+'-'+o.mes+'-Q'+o.quinzena)),['2026-8-Q1','2026-8-Q2','2026-9-Q1','2026-9-Q2']);
+  assert.ok(j(opts.some(o=>o.ano===2026&&o.mes===9&&o.quinzena===2)),'Setembro/2026 Q2 é opção selecionável');
+  assert.ok(j(opts.every(o=>/^\d{2}\/\d{2} a \d{2}\/\d{2}\/\d{4}$/.test(o.faixa))),'faixa de cada opção');
+});
+test('telas individuais: botões de navegação, drawers com scroll e mover de quinzena',()=>{
+  for(const x of ['id="btn-nav-fech-antigos"','id="btn-nav-resumo"','id="fech-antigos-mask"','id="fech-rg-mask"','id="fech-move-mask"','id="janela-mask"','id="fech-hist-rows"','id="fech-resumo"','id="fech-move-ano"','id="fech-move-pred"',
+                   'class="win-scroll"','max-height:70vh','overflow-y:auto','function fechRefPredominante','function fechMoverAbrir','function fechMoverOk','function abrirJanelaIframe','function histAberto','function rotasAberta']) assert.ok(html.includes(x),x);
+  // nada empilhado dentro do painel de fechamento: os <details> saíram de lá
+  assert.ok(!html.includes('id="fech-resumo-wrap"'));
+  assert.ok(!html.includes('class="fech-hist" id="fech-hist"'));
 });
 test('migração: simulação não grava e aplicação usa comparação/flag após confirmação', async()=>{
   const os=require('node:os'), path=require('node:path');
