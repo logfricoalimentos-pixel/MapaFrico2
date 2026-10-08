@@ -7563,9 +7563,9 @@ function cmpAgg(range){
 /* classes de custo do Interior: ≤0,90 Baixo · ≤1,00 Bom · ≤1,10 Moderado · >1,20 Alto */
 function custoClasse(sec, custo){
   if(sec !== 'interior' || custo == null) return '';
-  if(custo <= 0.99) return 'Baixo';
-  if(custo <= 1.10) return 'Bom';
-  if(custo <= 1.20) return 'Moderado';
+  if(custo <= 0.90) return 'Baixo';
+  if(custo <= 1.00) return 'Bom';
+  if(custo <= 1.10) return 'Moderado';
   return 'Alto';
 }
 function cmpReadControls(){
@@ -7704,7 +7704,7 @@ function heroCard(label, bigValue, lines, tip, tone, deltaPct){
   return '<div class="kpi hero '+(tone||'')+'" title="'+esc(tip||'')+'">' +
     '<div class="kpi-label">'+label+'</div>' + body + deltaHtml + '</div>';
 }
-const META_CUSTO_KG = {capital: 0.45, interior: 0.99}; // metas de custo/kg (R$) — ajuste aqui se as metas mudarem
+const META_CUSTO_KG = {capital: 0.40, interior: 0.90}; // metas de custo/kg (R$) — ajuste aqui se as metas mudarem
 function renderKpis(m, deltas){
   deltas = deltas || {};
   const econPos = m.economia >= 0;
