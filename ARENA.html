@@ -2472,7 +2472,7 @@ function cellHtml(sec, r, c, x){
       return '<td><input type="text" data-field="destino"'+(dcls? ' class="'+dcls+'"' : '')+' value="'+esc(r.destino)+'" placeholder="destino"></td>';
     }
     case 'carga':
-      return '<td><input type="text" class="mono" data-field="carga" value="'+esc(r.carga)+'" placeholder="nº">' + ((sec==='capital' && r.kmPortaria) ? kmPortBadge(r) : '') + '</td>';
+      return '<td><input type="text" class="mono" data-field="carga" value="'+esc(r.carga)+'" placeholder="nº">' + '</td>';
     case 'peso':
       // formato BR completo: 1301.04 -> "1.301,04" (o texto bruto em edição é restaurado no restoreFocus)
       return '<td class="num"'+dc+'><input type="text" inputmode="decimal" class="peso-inp mono" data-field="peso" value="'+esc(fmtPeso2(r.peso))+'" placeholder="0,00"></td>';
@@ -2509,6 +2509,8 @@ function cellHtml(sec, r, c, x){
       const val = x.frete ? x.frete.total : 0;
       // tipo do veículo só com o tipo: "Caminhão HR" → "HR"
       const frotaBadge = (x.frete && !x.frete.semCarga)? ' <span class="badge" title="tipo do veículo">'+esc(String(x.frete.frota).replace(/^Caminhão\s+/,''))+'</span>' : '';
+      // CAPITAL: o selo KM (km real da portaria) fica aqui, na Previsão de frete (Interior/Frotas mostram ao lado do campo km)
+      const kmCapBadge = (sec === 'capital' && r.kmPortaria) ? kmPortBadge(r) : '';
       const modo = x.frete ? x.frete.modo : '';
       const modoCell = x.frete ? (x.frete.modoCell || '') : '';
       const custoDiv = (sec !== 'frotas')
@@ -2526,7 +2528,7 @@ function cellHtml(sec, r, c, x){
       // campo vazio vale o automático/Vlr Kg×Peso, mostrado como aviso "auto: R$ …".
       if(sec !== 'frotas' && isNegSim(r)){
         return '<td class="frete-cell"'+dc+'>' +
-          '<div class="frete-neg">' + moneyInner('valorFrete', r.valorFrete, '0,00', ' title="valor da carga (Neg? = Sim): digite p/ negociar; o valor automático já vem preenchido"') + frotaBadge + '</div>' +
+          '<div class="frete-neg">' + moneyInner('valorFrete', r.valorFrete, '0,00', ' title="valor da carga (Neg? = Sim): digite p/ negociar; o valor automático já vem preenchido"') + frotaBadge + kmCapBadge + '</div>' +
           '<div class="frete-modo" title="fórmula usada">'+esc(!r._vfAuto && numVal(r.valorFrete) > 0 ? 'VLR Neg' : modoCell)+'</div>' + custoDiv +
         '</td>';
       }
@@ -2541,7 +2543,7 @@ function cellHtml(sec, r, c, x){
       const mini = selTabela + diasKm;
       return '<td class="frete-cell"'+dc+'>' +
         (mini ? '<div class="frete-mini">'+mini+'</div>' : '') +
-        '<div class="frete-val">'+(x.frete? fmtBRL(val) : '—') + frotaBadge +
+        '<div class="frete-val">'+(x.frete? fmtBRL(val) : '—') + frotaBadge + kmCapBadge +
         '</div>'+modoLabel+custoDiv+'</td>';
     }
     case 'custoMedio':
