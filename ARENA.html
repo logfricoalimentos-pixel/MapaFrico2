@@ -737,14 +737,23 @@ body.readonly .sec-actions{display:none}
 .fh-res-table td.num{font-family:var(--mono)}
 .fh-res-table tr.fh-sub td{background:#fef3c7;font-weight:700;border-top:1px solid #fcd34d}
 .fh-res-table tr.fh-tot td{background:#dcfce7;font-weight:800;border-top:2px solid #16a34a}
-/* modal da referência de quinzena (pergunta ao fechar) */
-.ref-list{display:flex;flex-direction:column;gap:6px;margin:8px 0 4px}
-.ref-opt{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:9px;padding:8px 12px;cursor:pointer;font-size:13.5px;flex-wrap:wrap}
-.ref-opt:hover{background:#f8fafc}
-.ref-opt input{margin:0}
-.ref-opt .ref-faixa{font-size:11.5px;color:#64748b}
-.ref-opt .ref-dup{font-size:11px;color:#b45309;background:#fef3c7;border:1px solid #fde68a;border-radius:999px;padding:1px 8px}
-.ref-opt.sel{border-color:#2563eb;background:#eff6ff}
+/* modal da referência de quinzena (pergunta ao fechar) — 2 listas: MÊS e QUINZENA */
+.ref-pick{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0 6px}
+.ref-pick label{display:flex;flex-direction:column;gap:4px;font-size:10.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.3px}
+.ref-pick select{border:1px solid var(--line);border-radius:8px;padding:8px 10px;font:inherit;font-size:13.5px;background:#fff;color:var(--ink);text-transform:none;letter-spacing:0;width:100%;cursor:pointer}
+.ref-pick select:focus{border-color:var(--blue);outline:none;box-shadow:0 0 0 3px rgba(37,99,235,.12)}
+.ref-pick select:disabled{background:#f8fafc;color:#94a3b8;cursor:not-allowed}
+@media (max-width:460px){.ref-pick{grid-template-columns:1fr}}
+.ref-prev{margin:4px 0;font-size:12.5px;color:#1e3a8a;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:7px 10px}
+.ref-prev[hidden]{display:none}
+.ref-faixa{font-size:11.5px;color:#64748b;margin-left:2px}
+.ref-dup{display:inline-block;font-size:11px;color:#b45309;background:#fef3c7;border:1px solid #fde68a;border-radius:999px;padding:1px 8px}
+.ref-warn{display:inline-block;font-size:11px;color:#b91c1c;background:#fef2f2;border:1px solid #fecaca;border-radius:999px;padding:1px 8px}
+.ref-dup-note{margin-top:6px;font-size:12px}
+.ref-confirm{margin-top:10px;border-top:1px solid var(--line);padding-top:10px}
+.ref-confirm[hidden]{display:none}
+.ref-confirm p{margin:0;font-size:13.5px;line-height:1.5;color:var(--ink)}
+.ref-confirm .ref-strong{color:#1e3a8a}
 .fech-conf{white-space:nowrap;text-align:center}
 #edc-mask, #ret-mask, #plan-mask, #kp-mask, #ft-mask{position:fixed;inset:0;z-index:470;background:rgba(15,23,42,.6);display:flex;align-items:center;justify-content:center;padding:16px}
 #edc-mask[hidden], #ret-mask[hidden], #plan-mask[hidden]{display:none}
@@ -1621,7 +1630,7 @@ html.gerencial-request #settings{display:none!important}
       <button class="rel-x" type="button" id="fech-x" title="Fechar (Esc)">✕</button>
     </div>
     <p class="fech-per" id="fech-per"></p>
-    <p class="modal-text" style="margin:0 0 8px">Marque as transportadoras que serão <b>pagas neste fechamento</b> — e, dentro de cada uma, <b>marque/desmarque cargas individuais</b> (clique no ▸ para ver a lista). O filtro <b>Status</b> exibe somente as cargas <b>Concluída</b> (linhas em verde claro) e/ou <b>Pendente</b>; a seleção e o fechamento valem apenas para o que está em exibição. Ao confirmar, o app <b>pergunta a referência da quinzena</b> (mês anterior ou atual, Quinzena 1 ou 2 — já sugerindo a quinzena predominante do período) e as cargas marcadas passam de <b>Pendente/Concluída</b> para <b>Fechado</b> (somem do relatório, a não ser que você marque "Exibir fechadas"). <b>Não gera Excel</b> — os arquivos de sempre ficam em 📚 Fechamentos anteriores (botão ao lado do filtro Status) → "Baixar de novo". O 💬 abre o WhatsApp do transportador já com a mensagem do fechamento.</p>
+    <p class="modal-text" style="margin:0 0 8px">Marque as transportadoras que serão <b>pagas neste fechamento</b> — e, dentro de cada uma, <b>marque/desmarque cargas individuais</b> (clique no ▸ para ver a lista). O filtro <b>Status</b> exibe somente as cargas <b>Concluída</b> (linhas em verde claro) e/ou <b>Pendente</b>; a seleção e o fechamento valem apenas para o que está em exibição. Ao confirmar, o app <b>pergunta a referência</b> em duas listas — <b>Mês</b> (somente mês anterior e mês atual) e <b>Quinzena</b> (1 ou 2), ambas abrindo <b>sem seleção</b> — pede uma <b>confirmação</b> e as cargas marcadas passam de <b>Pendente/Concluída</b> para <b>Fechado</b> (somem do relatório, a não ser que você marque "Exibir fechadas"). <b>Não gera Excel</b> — os arquivos de sempre ficam em 📚 Fechamentos anteriores (botão ao lado do filtro Status) → "Baixar de novo". O 💬 abre o WhatsApp do transportador já com a mensagem do fechamento.</p>
     <div class="fech-tools">
       <label title="Exibe somente as linhas das rotas com o status escolhido. A seleção (✓) e o 🔒 Fechar valem só para o que está em exibição.">Status:
         <select id="fech-st-filter">
@@ -1654,7 +1663,7 @@ html.gerencial-request #settings{display:none!important}
       <button class="btn" type="button" id="fech-copy-next" title="Copia o print do resumo da próxima transportadora MARCADA (com WhatsApp) e abre a conversa vazia — lá é só Ctrl+V e Enviar">📋 Copiar e abrir próxima ➡</button>
       <button class="btn" type="button" id="fech-wa-auto" title="Manda o print + resumo por WhatsApp (API configurada) para cada transportador marcada, um a um">🤖 Enviar resumo p/ marcados</button>
       <button class="btn" type="button" id="fech-cancel">Cancelar</button>
-      <button class="btn primary" type="button" id="fech-ok" title="Pergunta a referência da quinzena (mês anterior/atual · Quinzena 1/2) e marca as cargas selecionadas como Fechado — sem gerar Excel">🔒 Fechar selecionadas</button>
+      <button class="btn primary" type="button" id="fech-ok" title="Pergunta a referência (Mês: anterior/atual · Quinzena 1/2, sem seleção inicial), pede confirmação e marca as cargas selecionadas como Fechado — sem gerar Excel">🔒 Fechar selecionadas</button>
     </div>
   </div>
 </div>
@@ -1746,12 +1755,27 @@ html.gerencial-request #settings{display:none!important}
 <div id="fech-ref-mask" class="no-print" hidden>
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="fech-ref-title" style="max-width:520px">
     <div class="fech-head"><h3 id="fech-ref-title">📅 Referência do fechamento</h3><button class="rel-x" type="button" id="fech-ref-x" title="Cancelar (Esc)">✕</button></div>
-    <p class="modal-text" style="margin:0 0 4px">Escolha a <b>referência de quinzena</b> deste fechamento (são exibidas apenas as 4 do mês anterior e do mês atual):</p>
-    <div class="ref-list" id="fech-ref-list"></div>
+    <p class="modal-text" style="margin:0 0 4px">Escolha o <b>mês</b> e a <b>quinzena</b> de referência deste fechamento — são exibidos apenas o <b>mês anterior</b> e o <b>mês atual</b>. As duas listas abrem <b>sem seleção</b>; a confirmação é pedida antes de fechar.</p>
+    <div class="ref-pick">
+      <label title="Mês de referência do fechamento (mês anterior ou mês atual)">Mês
+        <select id="fech-ref-mes"></select>
+      </label>
+      <label title="Quinzena de referência: 1 = dias 1 a 15; 2 = dia 16 ao fim do mês">Quinzena
+        <select id="fech-ref-q" disabled></select>
+      </label>
+    </div>
+    <div class="ref-prev" id="fech-ref-prev" hidden></div>
     <p class="hint" id="fech-ref-hint"></p>
-    <div class="modal-actions">
+    <div class="modal-actions" id="fech-ref-actions">
       <button class="btn" type="button" id="fech-ref-cancel">Cancelar</button>
       <button class="btn primary" type="button" id="fech-ref-ok" title="Confirma o fechamento das cargas selecionadas na referência escolhida">🔒 Confirmar fechamento</button>
+    </div>
+    <div class="ref-confirm" id="fech-ref-confirm" hidden>
+      <p id="fech-ref-confirm-txt"></p>
+      <div class="modal-actions">
+        <button class="btn" type="button" id="fech-ref-back" title="Voltar e corrigir o mês/quinzena">← Voltar</button>
+        <button class="btn primary" type="button" id="fech-ref-yes" title="Fecha as cargas selecionadas nesta referência">✅ Sim, fechar</button>
+      </div>
     </div>
   </div>
 </div>
@@ -5476,23 +5500,38 @@ function bindFechPanel(){
 }
 
 /* ---- referência de quinzena do fechamento ----
-   Ao fechar, o app pergunta a referência: SOMENTE 4 opções (mês anterior e mês atual,
-   Quinzena 1 = dias 1–15, Quinzena 2 = dia 16 ao fim). A referência fica gravada no
-   fechamento e organiza os "Fechamentos anteriores" por mês/quinzena. */
+   Ao fechar, o app pergunta a referência em DUAS listas: MÊS (apenas o mês anterior e
+   o mês atual, relativos a hoje) e QUINZENA (1 = dias 1–15, 2 = dia 16 ao fim do mês).
+   As listas abrem SEM seleção e o fechamento só acontece depois de uma confirmação
+   explícita. A referência fica gravada no fechamento e organiza os "Fechamentos
+   anteriores" por mês/quinzena. */
 const MESES_NOME = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 function qp2(n){ return String(n).padStart(2, '0'); }
 function quinzenaLabel(ano, mes, q){ return (MESES_NOME[mes - 1] || 'Mês ' + mes) + ' — Quinzena ' + q; }
-/* as 4 opções exibidas na confirmação: anterior Q1/Q2 + atual Q1/Q2 (ano vira junto: jan ← dez) */
+/* os DOIS meses exibidos no select MÊS: mês anterior + mês atual, sempre
+   relativos a HOJE (o ano vira junto: em janeiro, anterior = dezembro do ano
+   anterior). A quinzena (1/2) é escolhida em outro select, já dentro do mês. */
 function fechRefOptions(refDate){
   const now = refDate ? new Date(refDate.getFullYear(), refDate.getMonth(), refDate.getDate()) : new Date();
   const y = now.getFullYear(), m = now.getMonth() + 1;
   const py = m === 1 ? y - 1 : y, pm = m === 1 ? 12 : m - 1;
-  const mk = (ano, mes, q)=> {
-    const ini = q === 1 ? 1 : 16, fim = q === 1 ? 15 : new Date(ano, mes, 0).getDate();
-    return {ano: ano, mes: mes, quinzena: q, label: quinzenaLabel(ano, mes, q),
+  const mk = (ano, mes)=> ({ano: ano, mes: mes, key: ano + '-' + qp2(mes),
+                            label: (MESES_NOME[mes - 1] || 'Mês ' + mes) + '/' + ano});
+  return [mk(py, pm), mk(y, m)];
+}
+/* as 2 quinzenas de um mês: 1 = dias 1–15; 2 = dia 16 ao fim do mês */
+function fechRefQuinzenas(ano, mes){
+  const fimMes = new Date(ano, mes, 0).getDate();
+  return [1, 2].map(q=>{
+    const ini = q === 1 ? 1 : 16, fim = q === 1 ? 15 : fimMes;
+    return {quinzena: q, label: 'Quinzena ' + q,
             faixa: qp2(ini) + '/' + qp2(mes) + ' a ' + qp2(fim) + '/' + qp2(mes) + '/' + ano};
-  };
-  return [mk(py, pm, 1), mk(py, pm, 2), mk(y, m, 1), mk(y, m, 2)];
+  });
+}
+/* quantos fechamentos já existem numa referência (mês/quinzena) */
+function fechRefDupCount(ano, mes, q){
+  const key = fechRefKey(ano, mes, q);
+  return FECHAMENTOS.filter(f=> fechRefKey(fechRefOf(f).ano, fechRefOf(f).mes, fechRefOf(f).quinzena) === key).length;
 }
 /* ---- quinzena de referência PREDOMINANTE de um intervalo [início, fim] ----
    Regra: (1) mês com mais dias do período (empate → o mais recente);
@@ -5565,43 +5604,93 @@ function fechRefKey(ano, mes, q){ return ano + '-' + qp2(mes) + '-Q' + q; }
 function closeFechRef(){
   const m = relEl('fech-ref-mask'); if(m){ m.hidden = true; m.dataset.busy = ''; }
 }
-/* pergunta a referência (modal). Resolve null se cancelar; guarda contra duplo-disparo. */
+/* pergunta a referência (modal) em DUAS listas: MÊS (mês anterior / mês atual) e
+   QUINZENA (1 ou 2). As duas abrem SEM seleção (placeholder); antes de fechar o
+   app pede uma confirmação explícita (✅ Sim, fechar). Resolve null se cancelar;
+   guarda contra duplo-disparo. */
 function fechRefAsk(nCargas, total){
   return new Promise(resolve=>{
-    const mask = relEl('fech-ref-mask'), list = relEl('fech-ref-list'), hint = relEl('fech-ref-hint');
-    if(!mask || !list){ resolve(null); return; }
+    const mask = relEl('fech-ref-mask'), selMes = relEl('fech-ref-mes'), selQ = relEl('fech-ref-q'),
+          prev = relEl('fech-ref-prev'), hint = relEl('fech-ref-hint');
+    if(!mask || !selMes || !selQ){ resolve(null); return; }
     if(mask.dataset.busy === '1'){ resolve(null); return; }
     mask.dataset.busy = '1';
-    /* Base das 4 opções: a quinzena PREDOMINANTE do período sendo fechado — e
-       não "hoje". Um fechamento de período 31/08→21/09 confirmado em outubro
-       continua ofereendo Agosto/Setembro, e o padrão já vem na quinzena certa
-       (Setembro Q2), em vez de Outubro Q1. */
+    const acts = relEl('fech-ref-actions'), box = relEl('fech-ref-confirm'), ctxt = relEl('fech-ref-confirm-txt');
+    /* a quinzena PREDOMINANTE do período só serve de AVISO (nada é pré-selecionado) */
     const pred = fechRefPredominante(REL && REL.start, REL && REL.end);
-    const hoje = new Date();
-    const def = pred || {ano: hoje.getFullYear(), mes: hoje.getMonth() + 1, quinzena: hoje.getDate() <= 15 ? 1 : 2};
-    const opts = fechRefOptions(pred ? new Date(pred.ano, pred.mes - 1, pred.quinzena === 1 ? 15 : 20) : hoje);
-    const defKey = fechRefKey(def.ano, def.mes, def.quinzena);
-    list.innerHTML = opts.map(o=>{
-      const key = fechRefKey(o.ano, o.mes, o.quinzena);
-      const dup = FECHAMENTOS.filter(f=> fechRefKey(fechRefOf(f).ano, fechRefOf(f).mes, fechRefOf(f).quinzena) === key).length;
-      return '<label class="ref-opt' + (key === defKey ? ' sel' : '') + '"><input type="radio" name="fech-ref" value="' + esc(key) + '"' + (key === defKey ? ' checked' : '') + '>' +
-        '<span><b>' + esc(o.label) + '</b> <span class="ref-faixa">(' + esc(o.faixa) + ')</span></span>' +
-        (dup ? '<span class="ref-dup" title="Já existe fechamento nesta referência — este será somado a ele">já tem ' + dup + ' fechamento(s)</span>' : '') + '</label>';
-    }).join('');
-    if(hint) hint.textContent = nCargas + ' carga(s) selecionada(s) · ' + fmtBRL(total) + ' · as cargas passam a Fechado (sem gerar Excel).';
-    list.onclick = e=>{ const lb = e.target.closest('.ref-opt'); if(!lb) return; list.querySelectorAll('.ref-opt').forEach(x=> x.classList.remove('sel')); lb.classList.add('sel'); };
     const done = v=>{ closeFechRef(); resolve(v); };
-    relEl('fech-ref-ok').onclick = ()=>{
-      const ck = list.querySelector('input[name="fech-ref"]:checked');
-      if(!ck){ toast('Escolha a referência da quinzena', 'err'); return; }
-      const p = String(ck.value).match(/^(\d{4})-(\d{2})-Q(\d)$/);
-      if(!p){ toast('Referência inválida', 'err'); return; }
-      const ano = +p[1], mes = +p[2], q = +p[3];
-      done({ano: ano, mes: mes, quinzena: q, label: quinzenaLabel(ano, mes, q)});
+    const mesDe = ()=>{
+      const p = String(selMes.value || '').match(/^(\d{4})-(\d{2})$/);
+      return p ? {ano: +p[1], mes: +p[2]} : null;
     };
-    relEl('fech-ref-cancel').onclick = ()=> done(null);
+    const current = ()=>{
+      const m = mesDe(), q = Number(selQ.value);
+      if(!m || (q !== 1 && q !== 2)) return null;
+      const qq = fechRefQuinzenas(m.ano, m.mes).find(x=> x.quinzena === q);
+      return {ano: m.ano, mes: m.mes, quinzena: q, label: quinzenaLabel(m.ano, m.mes, q), faixa: qq ? qq.faixa : ''};
+    };
+    const refresh = ()=>{
+      const v = current();
+      if(!prev) return;
+      if(!v){ prev.innerHTML = ''; prev.hidden = true; return; }
+      const dup = fechRefDupCount(v.ano, v.mes, v.quinzena);
+      const diverge = pred && (pred.ano !== v.ano || pred.mes !== v.mes || pred.quinzena !== v.quinzena);
+      prev.innerHTML = '📅 Referência: <b>' + esc(v.label) + '</b> <span class="ref-faixa">(' + esc(v.faixa) + ')</span>' +
+        (dup ? ' <span class="ref-dup" title="Já existe fechamento nesta referência — este será somado a ele">já tem ' + dup + ' fechamento(s)</span>' : '') +
+        (diverge ? ' <span class="ref-warn" title="O período exibido no relatório predomina em outra quinzena">período predomina em ' +
+          esc(quinzenaLabel(pred.ano, pred.mes, pred.quinzena)) + '</span>' : '');
+      prev.hidden = false;
+    };
+    /* quinzena depende do mês: recriada SEM seleção a cada troca de mês */
+    const fillQuinzenas = ()=>{
+      const m = mesDe();
+      selQ.innerHTML = '<option value="">— Selecione a quinzena —</option>';
+      if(!m){ selQ.disabled = true; }
+      else {
+        for(const q of fechRefQuinzenas(m.ano, m.mes)){
+          const o = document.createElement('option');
+          o.value = String(q.quinzena);
+          o.textContent = q.label + ' (' + q.faixa + ')';
+          selQ.appendChild(o);
+        }
+        selQ.disabled = false;
+      }
+      selQ.value = '';
+      refresh();
+    };
+    /* mês: sempre mês anterior + mês atual (relativos a hoje), sem pré-seleção */
+    selMes.innerHTML = '<option value="">— Selecione o mês —</option>' +
+      fechRefOptions().map(o=> '<option value="' + esc(o.key) + '">' + esc(o.label) + '</option>').join('');
+    selMes.value = '';
+    fillQuinzenas();
+    const voltar = ()=>{ box.hidden = true; acts.hidden = false; };
+    selMes.onchange = ()=>{ voltar(); fillQuinzenas(); };
+    selQ.onchange = ()=>{ voltar(); refresh(); };
+    if(hint) hint.textContent = nCargas + ' carga(s) selecionada(s) · ' + fmtBRL(total) + ' · as cargas passam a Fechado (sem gerar Excel).';
+    if(ctxt) ctxt.innerHTML = '';
+    voltar();
+    relEl('fech-ref-ok').onclick = ()=>{
+      if(!mesDe()){ toast('Escolha o mês da referência', 'err'); selMes.focus(); return; }
+      const v = current();
+      if(!v){ toast('Escolha a quinzena da referência', 'err'); selQ.focus(); return; }
+      const dup = fechRefDupCount(v.ano, v.mes, v.quinzena);
+      if(ctxt) ctxt.innerHTML = 'Fechar <b>' + nCargas + ' carga(s)</b> (' + fmtBRL(total) + ') na referência ' +
+        '<b class="ref-strong">' + esc(v.label) + '</b> <span class="ref-faixa">(' + esc(v.faixa) + ')</span>?' +
+        '<br>As cargas passam a <b>Fechado</b> (sem gerar Excel).' +
+        (dup ? '<div class="ref-dup-note"><span class="ref-dup">já tem ' + dup + ' fechamento(s)</span> — este será somado a ele.</div>' : '');
+      acts.hidden = true; box.hidden = false;
+      const yes = relEl('fech-ref-yes'); if(yes) yes.focus();
+    };
+    relEl('fech-ref-yes').onclick = ()=>{
+      const v = current();
+      if(!v){ voltar(); toast('Escolha o mês e a quinzena', 'err'); return; }
+      done({ano: v.ano, mes: v.mes, quinzena: v.quinzena, label: quinzenaLabel(v.ano, v.mes, v.quinzena)});
+    };
+    relEl('fech-ref-back').onclick = ()=>{ voltar(); refresh(); };
+    relEl('fech-ref-cancel').onclick = ()=>{ if(box && !box.hidden){ voltar(); return; } done(null); };
     relEl('fech-ref-x').onclick = ()=> done(null);
     mask.hidden = false;
+    try{ selMes.focus(); }catch(_e){}
   });
 }
 
@@ -5610,7 +5699,7 @@ async function fechConfirm(){
   if(!requireOperational()) return;
   const sel = fechGroups().map(g=> Object.assign({g: g}, fechGroupSel(g))).filter(x=> x.itens.length);
   if(!sel.length){ toast('Marque ao menos uma carga para fechar', 'err'); return; }
-  // pergunta a referência de quinzena (só 4 opções: mês anterior/atual · Q1/Q2)
+  // pergunta a referência em 2 listas (Mês: anterior/atual · Quinzena 1/2) + confirmação
   const nSel = sel.reduce((a, x)=> a + x.itens.length, 0);
   const totSel = sel.reduce((a, x)=> a + x.fat, 0);
   const ref = await fechRefAsk(nSel, totSel);

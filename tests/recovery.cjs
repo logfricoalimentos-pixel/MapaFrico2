@@ -397,16 +397,27 @@ test('Fechamentos anteriores: grupos e linhas em data DECRESCENTE + ações por 
   for(const x of ['data-act="fech-dl"','data-act="fech-rs"','data-act="fech-mv"']) assert.ok(h.includes(x),x);
   assert.ok(el('fech-antigos-count').textContent.includes('3 quinzena(s) · 4 fechamento(s)'));
 });
-test('referência do fechamento: 4 opções montadas pelo período predominante (não por "hoje")',()=>{
+test('referência do fechamento: MÊS = anterior+atual e QUINZENA = 1/2, ambos SEM pré-seleção',()=>{
   const c=context({MESES_NOME:['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'],
     quinzenaLabel:(ano,mes,q)=> mes+'/'+ano+' Q'+q});
   vm.runInContext(quinBlock,c);
-  // base = fim do período 31/08→21/09 (20/09): mês anterior (Agosto) + atual (Setembro)
-  const opts=c.fechRefOptions(new Date(2026,8,20));
-  assert.deepEqual(j(opts.map(o=>o.ano+'-'+o.mes+'-Q'+o.quinzena)),['2026-8-Q1','2026-8-Q2','2026-9-Q1','2026-9-Q2']);
-  assert.ok(j(opts.some(o=>o.ano===2026&&o.mes===9&&o.quinzena===2)),'Setembro/2026 Q2 é opção selecionável');
-  assert.ok(j(opts.every(o=>/^\d{2}\/\d{2} a \d{2}\/\d{2}\/\d{4}$/.test(o.faixa))),'faixa de cada opção');
+  // mês anterior + mês atual, sempre relativos à data de referência (aqui: Setembro/2026)
+  const meses=c.fechRefOptions(new Date(2026,8,20));
+  assert.deepEqual(j(meses.map(o=>o.key)),['2026-08','2026-09']);
+  assert.deepEqual(j(meses.map(o=>o.label)),['Agosto/2026','Setembro/2026']);
+  // virada de ano: janeiro → dezembro do ano anterior + janeiro
+  assert.deepEqual(j(c.fechRefOptions(new Date(2027,0,10)).map(o=>o.key)),['2026-12','2027-01']);
+  // a quinzena vem da lista do mês escolhido (1 = 1–15; 2 = 16 ao fim)
+  const qs=c.fechRefQuinzenas(2026,9);
+  assert.deepEqual(j(qs.map(q=>q.quinzena)),[1,2]);
+  assert.deepEqual(j(qs.map(q=>q.faixa)),['01/09 a 15/09/2026','16/09 a 30/09/2026']);
+  assert.deepEqual(j(c.fechRefQuinzenas(2028,2).map(q=>q.faixa)),['01/02 a 15/02/2028','16/02 a 29/02/2028']);
+  // modal: 2 listas (mês e quinzena) e confirmação explícita; nada de radios pré-marcados
+  for(const x of ['id="fech-ref-mes"','id="fech-ref-q"','id="fech-ref-prev"','id="fech-ref-confirm"','id="fech-ref-yes"','id="fech-ref-back"']) assert.ok(html.includes(x),x);
+  assert.ok(!html.includes('id="fech-ref-list"'));
+  assert.ok(!html.includes('name="fech-ref"'));
 });
+
 test('telas individuais: botões de navegação, drawers com scroll e mover de quinzena',()=>{
   for(const x of ['id="btn-nav-fech-antigos"','id="btn-nav-resumo"','id="fech-antigos-mask"','id="fech-rg-mask"','id="fech-move-mask"','id="janela-mask"','id="fech-hist-rows"','id="fech-resumo"','id="fech-move-ano"','id="fech-move-pred"',
                    'class="win-scroll"','max-height:70vh','overflow-y:auto','function fechRefPredominante','function fechMoverAbrir','function fechMoverOk','function abrirJanelaIframe','function histAberto','function rotasAberta']) assert.ok(html.includes(x),x);
