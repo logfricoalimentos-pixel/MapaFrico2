@@ -647,11 +647,24 @@ body.readonly .sec-actions{display:none}
 #ft-mask .ft-chips{margin:2px 0 6px}
 .ft-chip{display:inline-block;margin:0 6px 4px 0;padding:2px 10px;border-radius:999px;background:#e0e7ff;color:#3730a3;font-size:12px;font-weight:600}
 .ft-chip b{font-size:13px}
-#ft-mask .ft-scroll{max-height:46vh;min-height:180px;overflow:auto;border:1px solid #cbd5e1;border-radius:8px}
+.ft-chip.ft-chip-sel{background:#dcfce7;color:#166534}
+.ft-chip.ft-chip-zero{background:#fee2e2;color:#991b1b}
+#ft-mask .ft-selbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:6px 0;font-size:12.5px;color:#475569}
+#ft-mask .ft-selbar .grow{flex:1;min-width:180px}
+#ft-mask .ft-selbar b{color:#0f172a}
+#ft-mask .ft-warn-zero{color:#b91c1c;font-weight:600}
+#ft-mask .ft-scroll{max-height:44vh;min-height:180px;overflow:auto;border:1px solid #cbd5e1;border-radius:8px}
 #ft-mask .ft-tbl{width:100%;border-collapse:collapse;font-size:13px}
 #ft-mask .ft-tbl th{position:sticky;top:0;z-index:1;background:#1e293b;color:#fff;padding:7px 10px;text-align:left;white-space:nowrap;font-size:12px}
 #ft-mask .ft-tbl td{padding:6px 10px;border-bottom:1px solid #e2e8f0;vertical-align:top}
+#ft-mask .ft-tbl th.ctr,#ft-mask .ft-tbl td.ctr{text-align:center;width:36px;padding-left:8px;padding-right:8px}
+#ft-mask .ft-tbl input[type=checkbox]{width:15px;height:15px;accent-color:var(--blue);cursor:pointer;vertical-align:middle}
+#ft-mask .ft-tbl input[type=checkbox]:disabled{cursor:not-allowed}
 #ft-mask .ft-tbl tbody tr:nth-child(even) td{background:#f8fafc}
+#ft-mask .ft-tbl tbody tr[data-k]{cursor:pointer}
+#ft-mask .ft-tbl tbody tr[data-k]:not(.ft-off):hover td{background:#eff6ff}
+#ft-mask .ft-tbl tbody tr.ft-off td{background:#f1f5f9;color:#94a3b8}
+#ft-mask .ft-tbl tbody tr.ft-off:hover td{background:#e2e8f0}
 #ft-mask .ft-tbl td.num{text-align:right;white-space:nowrap}
 #ft-mask .ft-creds{display:grid;grid-template-columns:1fr 1fr auto;gap:12px;align-items:end;background:#f1f5f9;border:1px solid #cbd5e1;border-radius:8px;padding:10px 12px;margin-top:10px}
 #ft-mask .ft-creds label{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:#334155}
@@ -683,6 +696,7 @@ body.readonly .sec-actions{display:none}
 .fech-table input[type=text],.fech-table input[type=number]{width:100%;box-sizing:border-box;border:1px solid var(--line);border-radius:6px;padding:4px 6px;font:inherit;font-size:12.5px;background:#fff}
 .fech-table input:focus,.fech-table select:focus{border-color:var(--blue);outline:none}
 .fech-table select{border:1px solid var(--line);border-radius:6px;padding:4px 5px;font:inherit;font-size:12.5px;background:#fff}
+.fech-table select.fech-sel-sim{background:#dcfce7;color:#166534;border-color:#86efac;font-weight:700}
 .fech-table tr.fech-off td{background:#f8fafc;color:var(--muted)}
 .fech-table tr.fech-on td{background:#dbeafe;font-weight:700}
 .fech-table tr.fech-on td input,.fech-table tr.fech-on td select{font-weight:700}
@@ -760,7 +774,8 @@ body.readonly .sec-actions{display:none}
 .modal-edc{width:min(620px,94vw);max-height:92vh;overflow:auto}
 .edc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;margin:10px 0}
 .edc-grid label{display:flex;flex-direction:column;gap:3px;font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.3px}
-.edc-grid input{border:1px solid var(--line);border-radius:6px;padding:6px 8px;font-size:12.5px;background:#fff;width:100%;min-width:0}
+.edc-grid input,.edc-grid select{border:1px solid var(--line);border-radius:6px;padding:6px 8px;font:inherit;font-size:12.5px;background:#fff;width:100%;min-width:0}
+.edc-grid input:focus,.edc-grid select:focus{border-color:var(--blue);outline:none}
 .cmp-ctrl{display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin:8px 0 4px}
 .cmp-ctrl label{display:flex;flex-direction:column;gap:3px;font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.3px}
 .cmp-ctrl select{border:1px solid var(--line);border-radius:6px;padding:5px 7px;font-size:12px;background:#fff}
@@ -1056,7 +1071,7 @@ html.gerencial-request #settings{display:none!important}
   <div class="row">
     <button class="btn primary" id="btn-import">📥 Importar planilha</button>
     <button class="btn" id="btn-kmport" title="Importa o KM REAL (coluna KM Rodado) da planilha da portaria: mostra a prévia com ✓ por linha (aplica o KM real SÓ nas ordens marcadas), filtros de Status e Tipo (Capital/Interior/Frotas), ignora KM vazio/0/negativo e trava (🔒, sem ✓) as linhas cujo KM já é igual ao da planilha; cada ordem ajustada ganha a sigla KM em verde metálico">📥 KM Portaria</button>
-    <button class="btn" id="btn-ftrack" title="Envia o faturamento do dia aberto direto p/ o FricoTrack (lista de veículos esperados da portaria) — substitui a lista daquela data no site, igual ao import de planilha">📤 FricoTrack</button>
+    <button class="btn" id="btn-ftrack" title="Envia os veículos selecionados do faturamento do dia aberto direto p/ o FricoTrack (lista de veículos esperados da portaria)">📤 FricoTrack</button>
     <span class="sep"></span>
     <button class="btn" id="btn-backup">💾 Backup</button>
     <button class="btn" id="btn-restore">📂 Restaurar</button>
@@ -1611,12 +1626,13 @@ html.gerencial-request #settings{display:none!important}
       <label>Motorista<input id="edc-motorista" maxlength="32"></label>
       <label>Transportadora<input id="edc-transp" maxlength="40"></label>
       <label>Veículo p/ frete (tabela)<select id="edc-frota"></select></label>
+      <label>Tipo / Tabela<select id="edc-tabela"><option value="agregado">Agregado</option><option value="freelancer">Freelance</option></select></label>
       <label>Negociada? (Neg?)<select id="edc-neg"><option value="Sim">Sim</option><option value="Não">Não</option></select></label>
       <label>Vlr/kg (R$)<input id="edc-valorkg" inputmode="decimal" placeholder="0,00"></label>
       <label>Valor Frete manual (R$)<input id="edc-valorfrete" inputmode="decimal" placeholder="0,00"></label>
     </div>
     <div class="hint edc-calc" id="edc-calc" style="border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:#f8fafc;font-size:12px;line-height:1.5"></div>
-    <p class="hint">💾 Salvar grava no mapa do dia da carga e refaz o cálculo (Total/Média); destino/nº da carga reaplicam as diárias do cadastro de rotas; o veículo escolhido vale só p/ esta carga (tabela negociada, ex.: pagar 3/4 num toco). Prioridade do cálculo: Valor Frete manual &gt; Neg?=Sim (Vlr/kg × peso) &gt; tabela do veículo + margem configurada. <b>Trocar o veículo limpa Neg?/Vlr/kg/Valor manual e recalcula pela tabela escolhida</b> (mesmo que o peso seja de outra faixa); depois dá p/ renegociar por cima, se quiser.</p>
+    <p class="hint">💾 Salvar grava no mapa do dia da carga e refaz o cálculo (Total/Média); destino/nº da carga reaplicam as diárias do cadastro de rotas; o veículo escolhido e o tipo (<b>Agregado</b> / <b>Freelance</b>) valem p/ esta carga. Prioridade do cálculo: Valor Frete manual &gt; Neg?=Sim (Vlr/kg × peso) &gt; tabela do veículo + margem configurada. <b>Trocar o veículo ou o tipo (Agregado / Freelance) limpa Neg?/Vlr/kg/Valor manual e recalcula pela tabela escolhida</b> (mesmo que o peso seja de outra faixa); depois dá p/ renegociar por cima, se quiser.</p>
     <div class="modal-actions">
       <button class="btn" type="button" id="edc-cancel">Cancelar</button>
       <button class="btn primary" type="button" id="edc-save">💾 Salvar no mapa</button>
@@ -1977,8 +1993,11 @@ const PRICE_TABLE = {
     }
   }
 };
-/* mapeia os valores antigos ('bonus'/'normal') e novos ('agregado'/'freelancer') */
-function normalizarTipo(t){ return (t === 'normal' || t === 'freelancer') ? 'freelancer' : 'agregado'; }
+/* mapeia os valores antigos ('bonus'/'normal') e novos ('agregado'/'freelancer'/'freelance') */
+function normalizarTipo(t){
+  const s = String(t == null ? '' : t).trim().toLowerCase();
+  return (s === 'normal' || s === 'freelancer' || s === 'freelance') ? 'freelancer' : 'agregado';
+}
 
 const KM_MARGIN = 1.12; // margem de erro +12% sobre "Km Rota"
 let MARGEM_FRETE = 10;   // % de margem sobre a previsão de cargas NÃO negociadas (0 = não pagar %); configurável em Configurações
@@ -2005,6 +2024,7 @@ let HIDDEN_COLS = [];     // peso, entregas, neg, valorkg
 let ROTAS_DIAS = {};      // rota (Nº Carga normalizado) -> dias (para automatizar o campo dias)
 let TRANSP_CODES = {};    // transportadora (normKw) -> código p/ coluna CÓDIGO do fechamento
 let TRANSP_ZAP = {};      // transportadora (normKw) -> whatsapp (link p/ mandar o relatório)
+var FECH_DOCS = {};       // transportadora (normKw) -> {nf:'Sim'|'Não', boleto:'Sim'|'Não'} salvo no fechamento quinzenal
 let FECHAMENTOS = [];     // fechamentos quinzenais já feitos (status Pendente->Fechado das cargas)
 const APP_PARAMS = new URLSearchParams(location.search);
 const GERENCIAL_PAGE = APP_PARAMS.get('painel') === 'gerencial';
@@ -3078,12 +3098,25 @@ async function switchToDate(dateStr){
   toast('📅 Mapa de ' + fmtBR(dateStr) + ' carregado', 'ok');
   if(dashVisible) await loadDashboard();
 }
+function fechNormDocVal(v){ return v === 'Sim' ? 'Sim' : 'Não'; }
+function fechNormalizeDocs(raw){
+  const m = {};
+  if(!raw || typeof raw !== 'object' || Array.isArray(raw)) return m;
+  for(const [k, v] of Object.entries(raw)){
+    const nk = normKw(k);
+    if(!nk || !v || typeof v !== 'object') continue;
+    const nf = fechNormDocVal(v.nf);
+    const bol = fechNormDocVal(v.boleto);
+    if(nf === 'Sim' || bol === 'Sim') m[nk] = {nf: nf, boleto: bol};
+  }
+  return m;
+}
 async function loadSettings(){
-  const [reg, ff, ck, ik, hc, av, rd, tc, fc, tz, wa, mg, ft] = await Promise.all([
+  const [reg, ff, ck, ik, hc, av, rd, tc, fc, tz, wa, mg, ft, fd] = await Promise.all([
     Stor.get('fleet-registry'), Stor.get('fixed-frotas'), Stor.get('capital-keywords'),
     Stor.get('interior-keywords'), Stor.get('hidden-cols'), Stor.get('availability'),
     Stor.get('routes-days'), Stor.get('transp-codes'), Stor.get('fechamentos'), Stor.get('transp-zap'), Stor.get('wa-auto'),
-    Stor.get('margem-frete'), Stor.get('frota-tripulacao')
+    Stor.get('margem-frete'), Stor.get('frota-tripulacao'), Stor.get('fech-docs')
   ]);
   // pré-cadastro padrão de transportadoras sempre mesclado; o salvo pelo usuário tem prioridade
   REGISTRY = Object.assign({}, DEFAULT_REGISTRY);
@@ -3142,6 +3175,8 @@ async function loadSettings(){
   MARGEM_FRETE = (mg == null || mg === '') ? 10 : Math.max(0, Math.min(100, Number(mg) || 0));
   // histórico de fechamentos quinzenais
   FECHAMENTOS = Array.isArray(fc) ? fc : [];
+  // status salvo de Entregou NF / Boleto por transportadora no fechamento quinzenal
+  FECH_DOCS = fechNormalizeDocs(fd);
 }
 function saveSettings(){
   Stor.set('fleet-registry', REGISTRY);
@@ -3155,6 +3190,7 @@ function saveSettings(){
   Stor.set('transp-codes', TRANSP_CODES);
   Stor.set('transp-zap', TRANSP_ZAP);
   Stor.set('wa-auto', WA_AUTO);
+  Stor.set('fech-docs', FECH_DOCS);
 }
 
 /* ================= Importação de planilha ================= */
@@ -3232,7 +3268,8 @@ function backup(){
     interiorKeywords: INTERIOR_KEYWORDS,
     hiddenCols: HIDDEN_COLS,
     availability: AVAILABILITY,
-    rotasDias: ROTAS_DIAS
+    rotasDias: ROTAS_DIAS,
+    fechDocs: FECH_DOCS
   };
   const blob = new Blob([JSON.stringify(obj, null, 2)], {type:'application/json'});
   const a = document.createElement('a');
@@ -3292,6 +3329,9 @@ async function restoreBackup(file){
       if(String(k).length <= 40 && Number.isFinite(v) && v >= 1) m[k] = Math.min(60, v); // clamp 1..60 diárias
     }
     ROTAS_DIAS = m;
+  }
+  if(obj.fechDocs && typeof obj.fechDocs === 'object' && !Array.isArray(obj.fechDocs)){
+    FECH_DOCS = fechNormalizeDocs(obj.fechDocs);
   }
   saveSettings();
   fillSettingsUI();
@@ -3618,8 +3658,9 @@ async function capturePlan(){
 /* ================= Envio direto p/ FricoTrack (veículos esperados) ================= */
 /* Reproduz o import de planilha do próprio FricoTrack (página Portaria — Varejo/carga própria),
    mas sem planilha e sem bot: login na API Supabase deles + delete/insert em veiculos_esperados
-   com o MESMO payload do site. Regra do site: o envio SUBSTITUI a lista da data (delete por
-   data_referencia + por carga_id não conferida) — reenviar é seguro/idempotente. */
+   com o MESMO payload do site. Envia/atualiza somente as cargas selecionadas (delete escopado por
+   data_referencia + carga_id selecionada + por carga_id não conferida), preservando intactos os
+   demais veículos já enviados naquela data. */
 const FT_SUPA = 'https://zwawfxpcsefcltxtdgnd.supabase.co';
 const FT_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp3YXdmeHBjc2VmY2x0eHRkZ25kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxOTQwNjMsImV4cCI6MjA4ODc3MDA2M30.4_AdUZ73h8Q-MOI0nMOHyTLm_-arZczK-ascAB9RkyU';
 const FT_GRUPO = 'PRÓPRIA';   // grupoEsperado da página carga-propria no site
@@ -3647,49 +3688,83 @@ function ftTemOrdemValida(carga){
   if(/^[+\-\u2212]?0+(?:[.,]0+)?$/.test(compacta)) return false;
   return true;
 }
-/* linhas do dia aberto -> payload veiculos_esperados (mesmos campos do site) */
-function buildFtRows(dateIso){
-  const rows = [];
+/* itens do dia aberto c/ chave única + seção (para seleção na modal) + payload puro */
+function ftBuildItems(dateIso){
+  const items = [];
+  let idx = 0;
   for(const sec of SECTIONS){
     for(const r of (DATA[sec] || [])){
       const placa = String(r.placa || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
       const carga = String(r.carga == null ? '' : r.carga).trim();
       if(!placa || !ftTemOrdemValida(carga)) continue;
       const aj = sec === 'frotas' ? [r.ajudantes, r.ajudante2].filter(x=> x && String(x).trim()).join(' / ') : '';
-      rows.push({
-        data_referencia: dateIso,
-        grupo: FT_GRUPO,
-        placa: placa,
-        destino: String(r.destino || '').trim() || null,
-        carga_id: carga,
-        peso: numVal(r.peso) > 0 ? numVal(r.peso) : null,
-        qtd_entregas: numVal(r.entregas) > 0 ? Math.round(numVal(r.entregas)) : null,
-        motorista: String(r.motorista || '').trim() || null,
-        transportadora: String(r.transportadora || '').trim() || null,
-        ajudantes: aj || null,
-        tipo_veiculo: r.frotaCalc || selecionarFrota(r.peso) || null,
-        criado_por: null   // preenchido no envio com o id do usuário logado no FricoTrack
+      const k = sec + ':' + String(r.id != null && r.id !== '' ? r.id : idx) + ':' + idx;
+      idx++;
+      items.push({
+        k: k,
+        sec: sec,
+        row: {
+          data_referencia: dateIso,
+          grupo: FT_GRUPO,
+          placa: placa,
+          destino: String(r.destino || '').trim() || null,
+          carga_id: carga,
+          peso: numVal(r.peso) > 0 ? numVal(r.peso) : null,
+          qtd_entregas: numVal(r.entregas) > 0 ? Math.round(numVal(r.entregas)) : null,
+          motorista: String(r.motorista || '').trim() || null,
+          transportadora: String(r.transportadora || '').trim() || null,
+          ajudantes: aj || null,
+          tipo_veiculo: r.frotaCalc || selecionarFrota(r.peso) || null,
+          criado_por: null   // preenchido no envio com o id do usuário logado no FricoTrack
+        }
       });
     }
   }
-  return rows;
+  return items;
+}
+/* linhas do dia aberto -> payload veiculos_esperados (mesmos campos do site) */
+function buildFtRows(dateIso){
+  return ftBuildItems(dateIso).map(it=> it.row);
+}
+function ftPostgrestIn(values){
+  return '(' + values.map(x=> encodeURIComponent('"' + String(x).replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"')).join(',') + ')';
+}
+function ftCleanPayloadRow(r, userId){
+  return {
+    data_referencia: r.data_referencia,
+    grupo: r.grupo,
+    placa: r.placa,
+    destino: r.destino,
+    carga_id: r.carga_id,
+    peso: r.peso,
+    qtd_entregas: r.qtd_entregas,
+    motorista: r.motorista,
+    transportadora: r.transportadora,
+    ajudantes: r.ajudantes,
+    tipo_veiculo: r.tipo_veiculo,
+    criado_por: userId
+  };
 }
 async function ftSendDay(dateIso, rows, token, userId){
   // Segunda validação na fronteira da API: nunca apaga/substitui nem envia ordens inválidas.
-  const sendRows = (rows || []).filter(r=> r && ftTemOrdemValida(r.carga_id));
+  // Escopa o delete às cargas efetivamente enviadas para preservar os demais veículos já enviados no dia.
+  const sendRows = (rows || []).filter(r=> r && String(r.placa || '').trim() && ftTemOrdemValida(r.carga_id));
   if(!sendRows.length) return 0;
-  const datas = [...new Set(sendRows.map(r=> r.data_referencia))];
+  const datas = [...new Set(sendRows.map(r=> r.data_referencia).filter(Boolean))];
   for(const d of datas){
-    const r1 = await fetch(FT_SUPA + '/rest/v1/veiculos_esperados?data_referencia=eq.' + encodeURIComponent(d), {method:'DELETE', headers: ftHeaders(token)});
+    const idsDia = [...new Set(sendRows.filter(r=> r.data_referencia === d).map(r=> String(r.carga_id).trim()).filter(Boolean))];
+    if(!idsDia.length) continue;
+    const qDia = '?data_referencia=eq.' + encodeURIComponent(d) + '&carga_id=in.' + ftPostgrestIn(idsDia);
+    const r1 = await fetch(FT_SUPA + '/rest/v1/veiculos_esperados' + qDia, {method:'DELETE', headers: ftHeaders(token)});
     if(!r1.ok) throw new Error('delete dia ' + d + ': ' + r1.status);
   }
-  const ids = [...new Set(sendRows.map(r=> r.carga_id).filter(c=> c))];
+  const ids = [...new Set(sendRows.map(r=> String(r.carga_id).trim()).filter(Boolean))];
   if(ids.length){
-    const q = '?carga_id=in.(' + ids.map(x=> encodeURIComponent('"' + x + '"')).join(',') + ')&walk_in=eq.false&conferido=eq.false&status_autorizacao=neq.recusado';
+    const q = '?carga_id=in.' + ftPostgrestIn(ids) + '&walk_in=eq.false&conferido=eq.false&status_autorizacao=neq.recusado';
     const r2 = await fetch(FT_SUPA + '/rest/v1/veiculos_esperados' + q, {method:'DELETE', headers: ftHeaders(token)});
     if(!r2.ok) throw new Error('delete cargas: ' + r2.status);
   }
-  const payload = sendRows.map(r=> Object.assign({}, r, {criado_por: userId}));
+  const payload = sendRows.map(r=> ftCleanPayloadRow(r, userId));
   const r3 = await fetch(FT_SUPA + '/rest/v1/veiculos_esperados', {method:'POST', headers: ftHeaders(token), body: JSON.stringify(payload)});
   if(!r3.ok){
     const e = await r3.json().catch(()=> ({}));
@@ -3697,27 +3772,206 @@ async function ftSendDay(dateIso, rows, token, userId){
   }
   return sendRows.length;
 }
-let FT_STATE = null;
+var FT_STATE = null;
+function ftEl(id){ const m=$('#ft-mask'); return m ? m.querySelector('#'+id) : null; }
+function ftInitState(dateIso){
+  const items = ftBuildItems(dateIso);
+  // Por padrão, todos os veículos válidos iniciam selecionados.
+  const sel = new Set(items.map(it=> it.k));
+  FT_STATE = {dateIso: dateIso, items: items, rows: items.map(it=> it.row), sel: sel, lastK: null, sending: false};
+  return FT_STATE;
+}
+function ftSelectedItems(){
+  const st = FT_STATE; if(!st || !st.items || !st.sel) return [];
+  return st.items.filter(it=> st.sel.has(it.k));
+}
+function ftSelectedRows(){
+  return ftSelectedItems().map(it=> it.row);
+}
+function ftChipsHtml(st){
+  const items = (st && st.items) || [];
+  const sel = (st && st.sel) || new Set();
+  const cnt = {frotas:0, capital:0, interior:0};
+  const selCnt = {frotas:0, capital:0, interior:0};
+  for(const it of items){
+    if(cnt[it.sec] != null) cnt[it.sec]++;
+    if(sel.has(it.k) && selCnt[it.sec] != null) selCnt[it.sec]++;
+  }
+  const total = items.length;
+  const marked = items.filter(it=> sel.has(it.k)).length;
+  const partial = total > 0 && marked < total;
+  const chip = (lbl, s, t)=> '<span class="ft-chip">' + lbl + ' <b>' + (partial ? (s + '/' + t) : t) + '</b></span>';
+  const selCls = total === 0 ? '' : (marked === 0 ? ' ft-chip-zero' : ' ft-chip-sel');
+  return chip('Frotas', selCnt.frotas, cnt.frotas) +
+    chip('Capital', selCnt.capital, cnt.capital) +
+    chip('Interior', selCnt.interior, cnt.interior) +
+    '<span class="ft-chip">Total de veículos <b>' + total + '</b></span>' +
+    (total ? '<span class="ft-chip' + selCls + '">Selecionados <b>' + marked + '</b> de <b>' + total + '</b></span>' : '');
+}
+function ftRowHtml(it, checked){
+  const r = it.row;
+  return '<tr' + (checked ? '' : ' class="ft-off"') + ' data-k="' + esc(it.k) + '">' +
+    '<td class="ctr"><input type="checkbox" class="ft-sel" data-k="' + esc(it.k) + '"' + (checked ? ' checked' : '') + ' title="Selecionar este veículo para envio ao FricoTrack"></td>' +
+    '<td class="mono"><b>' + esc(r.placa) + '</b></td>' +
+    '<td>' + esc(r.destino || '—') + '</td>' +
+    '<td class="mono">' + esc(r.carga_id || '—') + '</td>' +
+    '<td class="num">' + (r.peso ? fmtPeso2(r.peso) : '—') + '</td>' +
+    '<td class="num">' + (r.qtd_entregas || '—') + '</td>' +
+    '<td>' + esc(r.motorista || '—') + '</td>' +
+    '<td>' + esc(r.transportadora || r.ajudantes || '—') + '</td>' +
+    '<td>' + esc(r.tipo_veiculo || '—') + '</td>' +
+  '</tr>';
+}
+function ftSyncSelectionUI(){
+  const st = FT_STATE; if(!st) return;
+  const items = st.items || [];
+  const sel = st.sel || new Set();
+  const total = items.length;
+  const marked = items.filter(it=> sel.has(it.k)).length;
+  const sending = !!st.sending;
+  const chips = ftEl('ft-chips');
+  if(chips) chips.innerHTML = ftChipsHtml(st);
+  const body = ftEl('ft-body');
+  if(body && typeof body.querySelectorAll === 'function'){
+    const trs = body.querySelectorAll('tr[data-k]');
+    for(const tr of trs){
+      const k = tr.getAttribute('data-k');
+      const on = sel.has(k);
+      if(tr.classList) tr.classList.toggle('ft-off', !on);
+      const cb = tr.querySelector ? tr.querySelector('input.ft-sel') : null;
+      if(cb){ cb.checked = on; cb.disabled = sending; }
+    }
+  }
+  const all = ftEl('ft-all');
+  if(all){
+    all.checked = total > 0 && marked === total;
+    all.indeterminate = marked > 0 && marked < total;
+    all.disabled = sending || !total;
+  }
+  const bAll = ftEl('ft-sel-all'); if(bAll) bAll.disabled = sending || !total || marked === total;
+  const bNone = ftEl('ft-sel-none'); if(bNone) bNone.disabled = sending || !marked;
+  const bInv = ftEl('ft-sel-inv'); if(bInv) bInv.disabled = sending || !total;
+  const sum = ftEl('ft-sel-sum');
+  if(sum){
+    sum.innerHTML = !total
+      ? 'Nenhum veículo elegível no dia aberto.'
+      : (marked === total
+        ? '<b>' + marked + '</b> de <b>' + total + '</b> veículo(s) marcado(s) — todos selecionados'
+        : (marked > 0
+          ? '<b>' + marked + '</b> de <b>' + total + '</b> veículo(s) marcado(s) — somente os selecionados serão enviados'
+          : '<span class="ft-warn-zero">Nenhum veículo marcado — selecione ao menos 1 para enviar</span>'));
+  }
+  const ok = ftEl('ft-ok');
+  if(ok && !sending){
+    ok.disabled = !marked;
+    ok.textContent = marked ? ('📤 Enviar p/ FricoTrack (' + marked + ')') : '📤 Enviar p/ FricoTrack';
+    ok.title = !marked
+      ? 'Selecione ao menos um veículo para enviar ao FricoTrack'
+      : (marked === total
+        ? 'Envia todos os ' + marked + ' veículo(s) selecionados para o FricoTrack'
+        : 'Envia somente os ' + marked + ' veículo(s) selecionados (de ' + total + ') para o FricoTrack');
+  }
+}
+function ftSetAll(mode){
+  const st = FT_STATE; if(!st || !st.items || st.sending) return;
+  if(!st.sel) st.sel = new Set();
+  if(mode === true){
+    st.items.forEach(it=> st.sel.add(it.k));
+  }else if(mode === 'invert'){
+    st.items.forEach(it=>{ if(st.sel.has(it.k)) st.sel.delete(it.k); else st.sel.add(it.k); });
+  }else{
+    st.sel.clear();
+  }
+  st.lastK = null;
+  ftSyncSelectionUI();
+}
+function ftApplyRowClick(k, on, shiftKey){
+  const st = FT_STATE; if(!st || !st.items || st.sending) return;
+  if(!st.sel) st.sel = new Set();
+  const idx = st.items.findIndex(it=> it.k === k);
+  if(idx < 0) return;
+  const targetOn = typeof on === 'boolean' ? on : !st.sel.has(k);
+  if(shiftKey && st.lastK){
+    const prevIdx = st.items.findIndex(it=> it.k === st.lastK);
+    if(prevIdx >= 0){
+      const a = Math.min(prevIdx, idx), b = Math.max(prevIdx, idx);
+      for(let i = a; i <= b; i++){
+        if(targetOn) st.sel.add(st.items[i].k);
+        else st.sel.delete(st.items[i].k);
+      }
+      st.lastK = k;
+      ftSyncSelectionUI();
+      return;
+    }
+  }
+  if(targetOn) st.sel.add(k); else st.sel.delete(k);
+  st.lastK = k;
+  ftSyncSelectionUI();
+}
+function ftBindSelection(){
+  const m = $('#ft-mask'); if(!m) return;
+  const all = ftEl('ft-all');
+  if(all) all.addEventListener('change', ()=> ftSetAll(!!all.checked));
+  const bAll = ftEl('ft-sel-all'); if(bAll) bAll.addEventListener('click', ()=> ftSetAll(true));
+  const bNone = ftEl('ft-sel-none'); if(bNone) bNone.addEventListener('click', ()=> ftSetAll(false));
+  const bInv = ftEl('ft-sel-inv'); if(bInv) bInv.addEventListener('click', ()=> ftSetAll('invert'));
+  const body = ftEl('ft-body');
+  if(body){
+    body.addEventListener('click', e=>{
+      const raw = e.target;
+      const t = (raw && raw.closest) ? raw : (raw && raw.parentElement);
+      if(!t || !t.closest) return;
+      const cb = t.closest('input.ft-sel');
+      if(cb){
+        ftApplyRowClick(String(cb.getAttribute('data-k') || ''), !!cb.checked, !!e.shiftKey);
+        return;
+      }
+      if(t.closest('input,button,a,label')) return;
+      if(!e.shiftKey){
+        const selTxt = (typeof window !== 'undefined' && window.getSelection) ? String(window.getSelection()) : '';
+        if(selTxt.length > 0) return;
+      }else{
+        try{ if(typeof window !== 'undefined' && window.getSelection) window.getSelection().removeAllRanges(); }catch(_){}
+      }
+      const tr = t.closest('tr[data-k]');
+      if(!tr) return;
+      const k = String(tr.getAttribute('data-k') || '');
+      const next = !(FT_STATE && FT_STATE.sel && FT_STATE.sel.has(k));
+      ftApplyRowClick(k, next, !!e.shiftKey);
+    });
+    body.addEventListener('change', e=>{
+      const t = e.target;
+      if(!t || !t.classList || !t.classList.contains('ft-sel')) return;
+      const k = String(t.getAttribute('data-k') || '');
+      if(FT_STATE && FT_STATE.sel && FT_STATE.sel.has(k) !== !!t.checked){
+        ftApplyRowClick(k, !!t.checked, false);
+      }
+    });
+  }
+}
 function ftClose(){ const m=$('#ft-mask'); if(m) m.remove(); }
 function ftOpenConfirm(){
   if(!requireOperational()) return;
   ftClose();
-  const rows = buildFtRows(currentMapDate);
-  const cnt = {frotas:0, capital:0, interior:0};
-  for(const sec of SECTIONS){
-    const placas = new Set((DATA[sec]||[]).map(r=> String(r.placa||'').toUpperCase().replace(/[^A-Z0-9]/g,'')).filter(Boolean));
-    cnt[sec] = rows.filter(r=> placas.has(r.placa)).length;
-  }
-  FT_STATE = {rows: rows};
+  const st = ftInitState(currentMapDate);
+  const items = st.items;
   const mask=document.createElement('div'); mask.id='ft-mask'; mask.className='no-print';
-  const chip = (lbl,n)=> '<span class="ft-chip">' + lbl + ' <b>' + n + '</b></span>';
   mask.innerHTML =
     '<div class="modal modal-edc ft-modal">' +
       '<div class="fech-head"><h3>📤 FricoTrack — enviar faturamento de ' + fmtBR(currentMapDate) + '</h3><button class="x" type="button" id="ft-x" title="Cancelar">✕</button></div>' +
-      '<p class="ft-chips">' + chip('Frotas', cnt.frotas) + chip('Capital', cnt.capital) + chip('Interior', cnt.interior) + chip('Total de veículos', rows.length) + '</p>' +
-      '<p class="hint">Envia para a lista de <b>esperados</b> da portaria no FricoTrack somente veículos com placa e Nº Carga válida. Ordens <b>—</b>, <b>0</b> ou vazias são ignoradas. Inclui rota/destino, peso, entregas, motorista, transportador/ajudantes e tipo de veículo. <b>Como no site:</b> o envio substitui a lista desta data lá — reenviar corrige. Sem planilha e sem bot.</p>' +
-      '<div class="ft-scroll"><table class="ft-tbl"><thead><tr><th>Placa</th><th>Destino / Rota</th><th>Ordem</th><th class="num">Peso (kg)</th><th class="num">Entregas</th><th>Motorista</th><th>Transportador / Ajudantes</th><th>Veículo</th></tr></thead><tbody>' +
-      (rows.length? rows.map(r=> '<tr><td class="mono"><b>' + esc(r.placa) + '</b></td><td>' + esc(r.destino || '—') + '</td><td class="mono">' + esc(r.carga_id || '—') + '</td><td class="num">' + (r.peso? fmtPeso2(r.peso):'—') + '</td><td class="num">' + (r.qtd_entregas || '—') + '</td><td>' + esc(r.motorista || '—') + '</td><td>' + esc(r.transportadora || r.ajudantes || '—') + '</td><td>' + esc(r.tipo_veiculo || '—') + '</td></tr>').join('') : '<tr><td colspan="8">Nenhum veículo com placa e Nº Carga válida no dia aberto.</td></tr>') +
+      '<p class="ft-chips" id="ft-chips">' + ftChipsHtml(st) + '</p>' +
+      '<p class="hint">Envia para a lista de <b>esperados</b> da portaria no FricoTrack somente os veículos <b>marcados no ✓</b> (com placa e Nº Carga válida; ordens <b>—</b>, <b>0</b> ou vazias são ignoradas). Inclui rota/destino, peso, entregas, motorista, transportador/ajudantes e tipo de veículo. Envia/atualiza apenas as cargas selecionadas, <b>mantendo intactos</b> os demais veículos já enviados nesta data — reenviar uma carga corrige seus dados. Sem planilha e sem bot.</p>' +
+      '<div class="ft-selbar">' +
+        '<button class="btn mini" type="button" id="ft-sel-all" title="Seleciona todos os veículos da lista">☑ Marcar todos</button>' +
+        '<button class="btn mini" type="button" id="ft-sel-none" title="Desmarca todos os veículos para escolher somente os que deseja enviar">☐ Desmarcar todos</button>' +
+        '<button class="btn mini" type="button" id="ft-sel-inv" title="Inverte a seleção atual">⇄ Inverter</button>' +
+        '<span class="grow" id="ft-sel-sum"></span>' +
+      '</div>' +
+      '<div class="ft-scroll"><table class="ft-tbl"><thead><tr>' +
+        '<th class="ctr" title="Marcar / desmarcar todos os veículos"><input type="checkbox" id="ft-all"' + (items.length ? ' checked' : ' disabled') + '></th>' +
+        '<th>Placa</th><th>Destino / Rota</th><th>Ordem</th><th class="num">Peso (kg)</th><th class="num">Entregas</th><th>Motorista</th><th>Transportador / Ajudantes</th><th>Veículo</th>' +
+      '</tr></thead><tbody id="ft-body">' +
+      (items.length ? items.map(it=> ftRowHtml(it, true)).join('') : '<tr><td colspan="9">Nenhum veículo com placa e Nº Carga válida no dia aberto.</td></tr>') +
       '</tbody></table></div>' +
       '<div class="ft-creds">' +
         '<label>Usuário FricoTrack (e-mail)<input type="text" id="ft-user" autocomplete="username" placeholder="seu@email.com"></label>' +
@@ -3726,9 +3980,11 @@ function ftOpenConfirm(){
       '</div>' +
       '<p class="hint" id="ft-cred-hint" style="margin:4px 2px">Com <b>Salvar senha</b> marcado, usuário e senha ficam guardados nas configurações do mapa (como no seu .py) e preenchidos sozinhos no próximo envio.</p>' +
       '<div class="modal-actions"><button class="btn" type="button" id="ft-cancel">Cancelar</button>' +
-      '<button class="btn primary" type="button" id="ft-ok"' + (rows.length? '':' disabled') + '>📤 Enviar p/ FricoTrack</button></div>' +
+      '<button class="btn primary" type="button" id="ft-ok"' + (items.length ? '' : ' disabled') + '>📤 Enviar p/ FricoTrack</button></div>' +
     '</div>';
   document.body.appendChild(mask);
+  ftSyncSelectionUI();
+  ftBindSelection();
   (async ()=>{ try{ const c = await Stor.get('fricotrack-cred'); if(c && c.u){ $('#ft-user').value = c.u; $('#ft-pass').value = c.p || ''; $('#ft-save').checked = true; $('#ft-cred-hint').innerHTML = '✅ Credencial salva nas configurações do mapa — preenchida automaticamente neste envio.'; } }catch(e){} })();
   $('#ft-x').addEventListener('click', ftClose);
   $('#ft-cancel').addEventListener('click', ftClose);
@@ -3736,21 +3992,33 @@ function ftOpenConfirm(){
 }
 async function ftDoSend(){
   if(!requireOperational()) return;
+  const st = FT_STATE;
+  if(!st || st.sending) return;
+  const selected = ftSelectedRows();
+  if(!selected.length){
+    toast('Selecione ao menos um veículo para enviar ao FricoTrack.', 'warn');
+    ftSyncSelectionUI();
+    return;
+  }
+  st.sending = true;
+  ftSyncSelectionUI();
   const btn=$('#ft-ok'); if(btn){ btn.disabled = true; btn.textContent = '⏳ Enviando…'; }
   try{
     const u = String(($('#ft-user')||{}).value || '').trim();
     const p = String(($('#ft-pass')||{}).value || '');
     if(!u || !p) throw new Error('informe usuário e senha do FricoTrack');
     const sess = await ftLogin(u, p);
-    const n = await ftSendDay(currentMapDate, FT_STATE.rows, sess.token, sess.userId);
+    const n = await ftSendDay(currentMapDate, selected, sess.token, sess.userId);
     if(($('#ft-save')||{}).checked !== false){ try{ await Stor.set('fricotrack-cred', {u: u, p: p}); }catch(e){} }
     else { try{ await Stor.del('fricotrack-cred'); }catch(e){} }
-    audit('fricotrack-envio', currentMapDate + ': ' + n + ' veículo(s) esperados');
+    const total = (st.items || []).length;
+    audit('fricotrack-envio', currentMapDate + ': ' + n + (n < total ? '/' + total : '') + ' veículo(s) esperados');
     ftClose();
-    toast('✅ FricoTrack: ' + n + ' veículo(s) de ' + fmtBR(currentMapDate) + ' na lista de esperados', 'ok');
+    toast('✅ FricoTrack: ' + n + (n < total ? ' de ' + total : '') + ' veículo(s) de ' + fmtBR(currentMapDate) + ' na lista de esperados', 'ok');
   }catch(err){
     console.error(err);
-    if(btn){ btn.disabled = false; btn.textContent = '📤 Enviar p/ FricoTrack'; }
+    st.sending = false;
+    ftSyncSelectionUI();
     toast('❌ FricoTrack: ' + err.message, 'err');
   }
 }
@@ -4775,9 +5043,12 @@ function abrirEdicaoCarga(key){
   selF.innerHTML = '<option value="">Auto pelo peso (' + esc(auto || 'N/A') + ')</option>' +
     FLEET_TIERS.map(t=> '<option value="' + esc(t.name) + '">Tabela ' + esc(String(t.name).replace(/^Caminh[aã]o\s*/i, '')) + '</option>').join('');
   selF.value = r.frotaCalc || '';
+  const selTab = relEl('edc-tabela');
+  if(selTab) selTab.value = normalizarTipo(r.tabela);
   relEl('edc-neg').value = isNegSim(r) ? 'Sim' : 'Não';
   relEl('edc-valorkg').value = (r.valorKg == null || r.valorKg === '') ? '' : String(r.valorKg);
-  relEl('edc-valorfrete').value = (r.valorFrete == null || r.valorFrete === '') ? '' : String(r.valorFrete);
+  const manualVf = isNegSim(r) && !r._vfAuto && numVal(r.valorFrete) > 0;
+  relEl('edc-valorfrete').value = manualVf ? String(r.valorFrete) : '';
   relEl('edc-valorfrete').dataset.v0 = relEl('edc-valorfrete').value;
   relEl('edc-valorkg').dataset.v0 = relEl('edc-valorkg').value;
   relEl('edc-mask').hidden = false;
@@ -4785,20 +5056,31 @@ function abrirEdicaoCarga(key){
   const f = relEl('edc-destino'); if(f) f.focus();
 }
 function closeEdc(){ const m = relEl('edc-mask'); if(m) m.hidden = true; EDC_KEY = null; }
+/* ao trocar Veículo p/ frete ou Tipo (Agregado / Freelance), limpa negociação p/ recalcular pela tabela escolhida */
+function edcResetNegForTable(){
+  const vf = relEl('edc-valorfrete'), vk = relEl('edc-valorkg'), ng = relEl('edc-neg');
+  if(vf){ vf.value = ''; if(vf.dataset) vf.dataset.v0 = ''; }
+  if(vk){ vk.value = ''; if(vk.dataset) vk.dataset.v0 = ''; }
+  if(ng) ng.value = 'Não';
+  edcPreview();
+}
 /* preview ao vivo do cálculo (valor do frete + média da rota) com o que está digitado na janela */
 function edcPreview(){
   const it = relFindItem(EDC_KEY); const box = relEl('edc-calc'); if(!it || !box) return;
   const rd2 = v => { const x = String(v == null ? '' : v).trim(); return x === '' ? '' : Math.round(num(x) * 100) / 100; };
   // negociação automática na janela (mesmas regras da tabela):
   // · Vlr Kg preenchido/apagado → Neg? Sim/Não · valorFrete alterado → Sim; apagado → Não
-  const vkEl = relEl('edc-valorkg'), vfEl = relEl('edc-valorfrete'), ngEl = relEl('edc-neg');
-  const vfChanged = vfEl.value !== (vfEl.dataset.v0 || '');
-  const vkChanged = vkEl.value !== (vkEl.dataset.v0 || '');
+  const vkEl = relEl('edc-valorkg'), vfEl = relEl('edc-valorfrete'), ngEl = relEl('edc-neg'), tabEl = relEl('edc-tabela');
+  const vfChanged = vfEl.value !== ((vfEl.dataset && vfEl.dataset.v0) || '');
+  const vkChanged = vkEl.value !== ((vkEl.dataset && vkEl.dataset.v0) || '');
   if(vfChanged) ngEl.value = (String(vfEl.value).trim() === '') ? 'Não' : 'Sim';
   else if(vkChanged) ngEl.value = (String(vkEl.value).trim() === '') ? 'Não' : 'Sim';
-  const vfManual = vfChanged && String(vfEl.value).trim() !== '';
+  const wasManual = isNegSim(it.row) && !it.row._vfAuto && numVal(it.row.valorFrete) > 0;
+  const vfManual = (ngEl.value === 'Sim') && String(vfEl.value == null ? '' : vfEl.value).trim() !== '' && (vfChanged || wasManual);
+  const tabelaVal = normalizarTipo(tabEl ? tabEl.value : it.row.tabela);
   const tmp = Object.assign({}, it.row, {
     destino: relEl('edc-destino').value, carga: relEl('edc-carga').value,
+    tabela: tabelaVal,
     neg: relEl('edc-neg').value || 'Não', _vfAuto: !vfManual, valorKg: rd2(relEl('edc-valorkg').value), valorFrete: rd2(relEl('edc-valorfrete').value),
     peso: (relEl('edc-peso').value === '') ? '' : ceil2(num(relEl('edc-peso').value)),
     km: (relEl('edc-km').value === '') ? '' : Math.max(0, Math.floor(num(relEl('edc-km').value))),
@@ -4809,8 +5091,9 @@ function edcPreview(){
   const peso = numVal(tmp.peso), tot = numVal(cf.total);
   const med = (tot > 0 && peso > 0) ? tot / peso : null;
   const auto = selecionarFrota(tmp.peso);
+  const tabLbl = tabelaVal === 'freelancer' ? 'Freelance' : 'Agregado';
   box.innerHTML = '💰 Valor do frete: <b>' + fmtBRL(tot) + '</b> · Média da rota: <b>' + relFmtMedia(med) + '</b><br>' +
-    'Veículo p/ cálculo: <b>' + esc(cf.frota || '—') + '</b> ' +
+    'Tipo: <b>' + tabLbl + '</b> · Veículo p/ cálculo: <b>' + esc(cf.frota || '—') + '</b> ' +
     (tmp.frotaCalc ? '(tabela escolhida p/ esta carga)' : '(auto pelo peso: ' + esc(auto || 'N/A') + ')') +
     ' · Regra: ' + esc(cf.modo || '—');
 }
@@ -4827,17 +5110,26 @@ async function salvarEdicaoCarga(){
   relSetField(it, 'transportadora', relEl('edc-transp').value);
   const fv = String(relEl('edc-frota').value || '');
   if(fv) it.row.frotaCalc = fv; else delete it.row.frotaCalc;
+  const tabElS = relEl('edc-tabela');
+  if(tabElS) it.row.tabela = normalizarTipo(tabElS.value);
   const vkElS = relEl('edc-valorkg'), vfElS = relEl('edc-valorfrete');
   const vk = vkElS.value; const vkN = (String(vk == null ? '' : vk).trim() === '') ? null : Math.round(num(vk) * 100) / 100;
   if(vkN == null) delete it.row.valorKg; else it.row.valorKg = vkN;
   const vf = vfElS.value; const vfN = (String(vf == null ? '' : vf).trim() === '') ? null : Math.round(num(vf) * 100) / 100;
   if(vfN == null) delete it.row.valorFrete; else it.row.valorFrete = vfN;
-  const vfCh = vfElS.value !== (vfElS.dataset.v0 || '');
-  const vkCh = vkElS.value !== (vkElS.dataset.v0 || '');
+  const vfCh = vfElS.value !== ((vfElS.dataset && vfElS.dataset.v0) || '');
+  const vkCh = vkElS.value !== ((vkElS.dataset && vkElS.dataset.v0) || '');
   if(vfCh){ if(vfN != null){ it.row.neg = 'Sim'; it.row._vfAuto = false; } else { it.row.neg = 'Não'; it.row._vfAuto = true; } }
   else if(vkCh){ it.row.neg = (vkN != null) ? 'Sim' : 'Não'; it.row._vfAuto = true; }
-  else { const nv = String(relEl('edc-neg').value || 'Não'); it.row.neg = nv || 'Não'; it.row._vfAuto = (nv !== 'Sim'); }
+  else {
+    const nv = String(relEl('edc-neg').value || 'Não');
+    it.row.neg = nv || 'Não';
+    it.row._vfAuto = !(it.row.neg === 'Sim' && vfN != null && !it.row._vfAuto);
+  }
   it.calc = relCalc(it.sec, it.row, it.d, it.entrega);
+  if(it.row._vfAuto){
+    it.row.valorFrete = Math.round(numVal(it.calc.total) * 100) / 100;
+  }
   const d = it.d;
   await relPersistDate(d);
   if(d === currentMapDate){ REL.mapDirty = true; renderAll(); }
@@ -4924,9 +5216,53 @@ async function waAutoSendAll(){
   else toast('🤖 ' + okN + ' resumo(s) enviado(s) pelo WhatsApp', 'ok');
 }
 
-let FECH_SEL = {};   // key do grupo -> {codigo, abat, nf, boleto, exp, cargas:{itemKey:false}}
+var FECH_SEL = {};   // key do grupo -> {codigo, abat, nf, boleto, exp, cargas:{itemKey:false}}
+let FECH_DOC_SEQ = 0;
+function fechDocOf(key){
+  const nk = normKw(key);
+  const d = (typeof FECH_DOCS === 'object' && FECH_DOCS && (FECH_DOCS[nk] || FECH_DOCS[key])) || null;
+  return {
+    nf: d && d.nf === 'Sim' ? 'Sim' : 'Não',
+    boleto: d && d.boleto === 'Sim' ? 'Sim' : 'Não'
+  };
+}
+async function fechPersistDoc(key, nf, boleto){
+  const nk = normKw(key);
+  if(!nk) return;
+  const n = nf === 'Sim' ? 'Sim' : 'Não';
+  const b = boleto === 'Sim' ? 'Sim' : 'Não';
+  if(typeof FECH_DOCS !== 'object' || !FECH_DOCS) FECH_DOCS = {};
+  if(n === 'Não' && b === 'Não') delete FECH_DOCS[nk];
+  else FECH_DOCS[nk] = {nf: n, boleto: b};
+  ++FECH_DOC_SEQ;
+  try{
+    await Stor.set('fech-docs', FECH_DOCS);
+  }catch(err){
+    console.error(err);
+    toast('⚠️ NF/Boleto salvo localmente, mas falhou ao gravar no banco: ' + err.message, 'warn');
+  }
+}
+async function fechRefreshDocsFromStor(){
+  const seq0 = FECH_DOC_SEQ;
+  try{
+    const remote = await Stor.get('fech-docs');
+    if(seq0 !== FECH_DOC_SEQ) return;
+    const next = fechNormalizeDocs(remote);
+    if(JSON.stringify(next) === JSON.stringify(FECH_DOCS)) return;
+    FECH_DOCS = next;
+    for(const [k, s] of Object.entries(FECH_SEL)){
+      const doc = fechDocOf(k);
+      s.nf = doc.nf;
+      s.boleto = doc.boleto;
+    }
+    const m = relEl('fech-mask');
+    if(m && !m.hidden) renderFechTable();
+  }catch(e){}
+}
 function fechSelOf(key){
-  return FECH_SEL[key] || (FECH_SEL[key] = {codigo: TRANSP_CODES[key] || '', abat: '', nf: 'Não', boleto: 'Não', exp: false, cargas: {}});
+  if(FECH_SEL[key]) return FECH_SEL[key];
+  const doc = fechDocOf(key);
+  return (FECH_SEL[key] = {codigo: (typeof TRANSP_CODES === 'object' && TRANSP_CODES && TRANSP_CODES[key]) || '', abat: '', nf: doc.nf, boleto: doc.boleto, exp: false, cargas: {}});
 }
 /* Filtro de STATUS do painel de fechamento (select do cabeçalho): '' = Todas;
    'concluida' = somente Concluída; 'pendente' = somente Pendente. Vale para exibição,
@@ -5056,6 +5392,7 @@ function openFech(){
   relEl('fech-per').textContent = 'Período: ' + fechPeriodoTxt(REL) + ' (pela DATA DE ENTREGA) · entram cargas PENDENTES e CONCLUÍDAS (verde claro) · use o ▸ p/ marcar cargas individuais · use o ✏️ na lista de cargas p/ abrir a janela de edição do mapa';
   renderFechTable();
   renderFechHist();
+  fechRefreshDocsFromStor();
 }
 function closeFech(){
   // sub-telas do painel (drawers) fecham junto — nada fica "solto" sobre o app
@@ -5064,9 +5401,10 @@ function closeFech(){
   const m = relEl('fech-mask'); if(m) m.hidden = true;
 }
 function fechSelNF(field, val){
-  return '<select data-f="' + field + '">' +
-    '<option value="Sim"' + (val !== 'Não' ? ' selected' : '') + '>Sim</option>' +
-    '<option value="Não"' + (val === 'Não' ? ' selected' : '') + '>Não</option>' +
+  const isSim = val === 'Sim';
+  return '<select data-f="' + field + '"' + (isSim ? ' class="fech-sel-sim"' : '') + '>' +
+    '<option value="Sim"' + (isSim ? ' selected' : '') + '>Sim</option>' +
+    '<option value="Não"' + (!isSim ? ' selected' : '') + '>Não</option>' +
   '</select>';
 }
 /* linha-filha: lista as cargas do grupo com checkbox individual */
@@ -5078,10 +5416,11 @@ function fechDetRow(g){
   '</tr></thead><tbody>' +
   g.itens.filter(it=> fechStMatch(it.row)).map(it=>{
     const on = s.cargas[it.key] !== false;
+    const tabLbl = normalizarTipo(it.row.tabela) === 'freelancer' ? 'Freelance' : 'Agregado';
     return '<tr data-k="' + esc(it.key) + '" class="' + (on ? '' : 'off ') + (relIsConcluida(it.row) ? 'fech-row-concl' : '') + '"' + (relIsConcluida(it.row) ? ' title="CONCLUÍDA ✔ — entrega finalizada (aguardando fechamento)"' : '') + '>' +
       '<td style="text-align:center"><input type="checkbox" data-f="carga"' + (on ? ' checked' : '') + '></td>' +
       '<td>' + fmtBR(it.d) + '</td>' +
-      '<td><span class="rel-badge ' + (it.sec === 'capital' ? 'cap' : 'int') + '">' + (it.sec === 'capital' ? 'Capital' : 'Interior') + '</span></td>' +
+      '<td><span class="rel-badge ' + (it.sec === 'capital' ? 'cap' : 'int') + '">' + (it.sec === 'capital' ? 'Capital' : 'Interior') + '</span><span class="rel-frota" title="Tipo de tabela da carga (editável no ✏️)">' + tabLbl + '</span></td>' +
       '<td class="mono">' + esc(it.row.placa || '') + '</td>' +
       '<td>' + esc(it.row.destino || '') + '</td>' +
       '<td>' + esc(it.row.carga || '') + '</td>' +
@@ -5399,8 +5738,27 @@ function bindFechPanel(){
         const kTr = e.target.closest('tr[data-k]');
         if(kTr) s.cargas[kTr.getAttribute('data-k')] = !!e.target.checked;
         renderFechTable();
-      } else if(r.f === 'nf'){ s.nf = e.target.value; }
-      else if(r.f === 'boleto'){ s.boleto = e.target.value; }
+      } else if(r.f === 'nf' || r.f === 'boleto'){
+        if(!requireOperational()){ e.target.value = s[r.f]; return; }
+        const val = e.target.value === 'Sim' ? 'Sim' : 'Não';
+        s[r.f] = val;
+        e.target.classList.toggle('fech-sel-sim', val === 'Sim');
+        fechPersistDoc(r.g, s.nf, s.boleto);
+        const g = fechGroups().find(x=> x.key === r.g);
+        if(g){
+          const zapA = r.tr.querySelector('a.zap-link');
+          if(zapA && TRANSP_ZAP[g.key]) zapA.href = fechZapUrl(TRANSP_ZAP[g.key], g, fechGroupSel(g));
+        }
+        renderFechResumo();
+      } else if(r.f === 'codigo'){
+        if(!requireOperational()){ e.target.value = s.codigo || ''; return; }
+        const cod = String(e.target.value || '').trim();
+        s.codigo = cod;
+        if(cod !== (TRANSP_CODES[r.g] || '')){
+          if(cod) TRANSP_CODES[r.g] = cod; else delete TRANSP_CODES[r.g];
+          saveSettings();
+        }
+      }
     });
     body.addEventListener('input', e=>{
       const r = groupOf(e.target); if(!r || !r.f) return;
@@ -5732,6 +6090,21 @@ async function fechConfirm(){
     for(const d of datas) await relPersistDate(d);   // grava cada dia alterado (atual = mapa ao vivo)
     FECHAMENTOS.push(fech);
     await Stor.set('fechamentos', FECHAMENTOS);
+    // Limpa o status salvo de Entregou NF / Boleto apenas das transportadoras que não
+    // ficaram com nenhuma carga aberta restante no período (preserva em fechamento parcial).
+    let docsChanged = false;
+    for(const x of sel){
+      const nk = normKw(x.g.key);
+      const hasOpenRem = x.g.itens.some(it=> it.row.stFech !== 'fechado');
+      if(!hasOpenRem && FECH_DOCS && FECH_DOCS[nk]){
+        delete FECH_DOCS[nk];
+        docsChanged = true;
+      }
+    }
+    if(docsChanged){
+      ++FECH_DOC_SEQ;
+      try{ await Stor.set('fech-docs', FECH_DOCS); }catch(eDoc){ console.error(eDoc); }
+    }
     /* Atualiza a relação imediatamente. Antes ela só era redesenhada ao
        reabrir a tela, deixando o fechamento recém-criado fora da lista até
        uma nova abertura do painel. */
@@ -7017,10 +7390,23 @@ async function fechReopenSel(id, st, keys){
     }
   }
   let n = 0;
+  let docsRestored = false;
   for(const g of f.grupos){
     const antes = g.cargas.length;
     g.cargas = g.cargas.filter(c=> !keys.has(c.d + '|' + c.sec + '|' + c.id));
-    n += antes - g.cargas.length;
+    const reabertasGrupo = antes - g.cargas.length;
+    n += reabertasGrupo;
+    if(reabertasGrupo > 0){
+      const nk = normKw(g.key || g.transp);
+      const gNf = g.nf === 'Sim' ? 'Sim' : 'Não';
+      const gBol = g.boleto === 'Sim' ? 'Sim' : 'Não';
+      if(nk && (gNf === 'Sim' || gBol === 'Sim') && (!FECH_DOCS || !FECH_DOCS[nk])){
+        if(typeof FECH_DOCS !== 'object' || !FECH_DOCS) FECH_DOCS = {};
+        FECH_DOCS[nk] = {nf: gNf, boleto: gBol};
+        if(FECH_SEL && FECH_SEL[nk]){ FECH_SEL[nk].nf = gNf; FECH_SEL[nk].boleto = gBol; }
+        docsRestored = true;
+      }
+    }
     g.peso = g.cargas.reduce((a,c)=> a + (numVal(c.peso) || 0), 0);
     g.faturado = g.cargas.reduce((a,c)=> a + (numVal(c.total) || 0), 0);
     g.apagar = Math.max(0, g.faturado - (numVal(g.abatimento) || 0));
@@ -7029,9 +7415,13 @@ async function fechReopenSel(id, st, keys){
   f.grupos = f.grupos.filter(g=> g.cargas.length);
   if(!f.grupos.length) FECHAMENTOS = FECHAMENTOS.filter(x=> x.id !== id);
   await Stor.set('fechamentos', FECHAMENTOS);
+  if(docsRestored){
+    ++FECH_DOC_SEQ;
+    try{ await Stor.set('fech-docs', FECH_DOCS); }catch(eDoc){ console.error(eDoc); }
+  }
   audit('fechamento-reaberto-parcial', id + ' · ' + n + ' carga(s) → PENDENTE');
   renderFechHist();
-  if(REL.loaded){ relApplyFilters(); renderRelTable(); }
+  if(REL.loaded){ relApplyFilters(); renderRelTable(); renderFechTable(); }
   if(REL.mapDirty){ renderAll(); }
   toast('↺ ' + n + ' carga(s) reaberta(s) → PENDENTE' + (f.grupos.length ? '' : ' · fechamento saiu do histórico'), 'ok');
 }
@@ -9258,6 +9648,10 @@ function bindStatic(){
     if(e.key !== 'Escape') return;
     const frm = $('#fech-ref-mask');
     if(frm && !frm.hidden){ const c = $('#fech-ref-cancel'); if(c) c.click(); return; }
+    const edcm = $('#edc-mask');
+    if(edcm && !edcm.hidden){ closeEdc(); return; }
+    const retm = $('#ret-mask');
+    if(retm && !retm.hidden){ closeRet(); return; }
     const hrm = $('#fh-res-mask');
     if(hrm && !hrm.hidden){ closeFhRes(); return; }
     const mvm = $('#fech-move-mask');
@@ -9563,14 +9957,9 @@ function bindStatic(){
   $('#ret-mask').addEventListener('mousedown', e=>{ if(e.target.id === 'ret-mask') closeRet(); });
   $('#edc-mask').addEventListener('input', edcPreview);
   $('#edc-mask').addEventListener('change', edcPreview);
-  relEl('edc-frota').addEventListener('change', ()=>{
-    // mudar o veículo p/ frete = recalcular PELAA tabela dele (mesmo c/ peso de outra faixa):
-    // limpa os overrides de negociação p/ a tabela escolhida valer de fato
-    relEl('edc-valorfrete').value = '';
-    relEl('edc-valorkg').value = '';
-    relEl('edc-neg').value = '';
-    edcPreview();
-  });
+  relEl('edc-frota').addEventListener('change', edcResetNegForTable);
+  const edcTabEl = relEl('edc-tabela');
+  if(edcTabEl) edcTabEl.addEventListener('change', edcResetNegForTable);
   for(const fid of ['fh-ano','fh-mes','fh-mes-de','fh-mes-ate']){ const fe2 = relEl(fid); if(fe2) fe2.addEventListener('change', ()=> renderFechHist()); }
   const fhc = relEl('fh-clear'); if(fhc) fhc.addEventListener('click', ()=>{ for(const fid of ['fh-ano','fh-mes','fh-mes-de','fh-mes-ate']){ const i2 = relEl(fid); if(i2) i2.value = ''; } renderFechHist(); });
   const fhRes = relEl('fh-resumo'); if(fhRes) fhRes.addEventListener('click', openFhResumo);
@@ -9607,6 +9996,7 @@ function bindStatic(){
       if(nk !== key){
         TRANSP_CODES[nk] = TRANSP_CODES[key];
         if(TRANSP_ZAP[key] !== undefined){ TRANSP_ZAP[nk] = TRANSP_ZAP[key]; delete TRANSP_ZAP[key]; }
+        if(FECH_DOCS && FECH_DOCS[key] !== undefined){ FECH_DOCS[nk] = FECH_DOCS[key]; delete FECH_DOCS[key]; }
         delete TRANSP_CODES[key];
       }
     } else if(t.dataset.transp === 'cod'){

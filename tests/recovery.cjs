@@ -452,3 +452,369 @@ test('migração: simulação não grava e aplicação usa comparação/flag ap�
     fs.rmSync(dir,{recursive:true,force:true});
   }
 });
+test('FricoTrack: todos selecionados por padrão, seleção individual/intervalo e envio parcial sem apagar demais do dia',async()=>{
+  const stubs={};
+  const el=id=>stubs[id]||(stubs[id]={id,innerHTML:'',value:'',checked:false,indeterminate:false,disabled:false,textContent:'',title:'',addEventListener(){}});
+  let trStubs=[];
+  el('#ft-body').querySelectorAll=()=>trStubs;
+  let calls=[], audits=[], toasts=[];
+  const DATA={
+    frotas:[
+      {id:'f1',placa:'MFM-8075',carga:'11459000',destino:'TRINDADE',peso:1549.25,entregas:10,motorista:'WARLEY',ajudantes:'DEIVIDY',ajudante2:'GIL',frotaCalc:'Caminhão HR'},
+      {id:'f2',placa:'MFM-8075',carga:'135047',destino:'ALVORADA',peso:5513,entregas:1,motorista:'WARLEY',ajudantes:'DEIVIDY',ajudante2:'GIL',frotaCalc:'Caminhão Toco'},
+      {id:'f3',placa:'AAA-0000',carga:'—',destino:'IGNORAR',peso:100}
+    ],
+    capital:[
+      {id:'c1',placa:'HEB4H69',carga:'11462000/135039',destino:'APARECIDA 1+KING',peso:2759,entregas:14,motorista:'MARCIO',transportadora:'TRANSP. MARCIO',frotaCalc:'Caminhão 3/4'}
+    ],
+    interior:[
+      {id:'i1',placa:'RSD1E71',carga:'11451000',destino:'MINEIROS',peso:4735.67,entregas:59,motorista:'DOUGLACY',transportadora:'EDIMILSON',frotaCalc:'Caminhão Toco'},
+      {id:'i2',placa:'BBB1111',carga:'0',destino:'ZERO',peso:500}
+    ]
+  };
+  const c=context({
+    console:{...console,error:()=>{}},
+    SECTIONS:['frotas','capital','interior'],
+    DATA,
+    currentMapDate:'2026-10-23',
+    numVal:x=>Number(x)||0,
+    selecionarFrota:()=>'Caminhão HR',
+    requireOperational:()=>true,
+    Stor:{get:async()=>null,set:async()=>{},del:async()=>{}},
+    audit:(t,m)=>audits.push([t,m]),
+    toast:(m,t)=>toasts.push([m,t]),
+    fmtBR:d=>{const p=String(d||'').split('-');return p.length===3?p[2]+'/'+p[1]+'/'+p[0]:String(d||'');},
+    fmtPeso2:v=>Number(v).toFixed(2),
+    esc:s=>String(s==null?'':s).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch])),
+    $:sel=>{
+      if(sel==='#ft-mask') return {querySelector:s=>el(s),remove(){}};
+      return el(sel);
+    },
+    fetch:async(url,opts)=>{
+      calls.push({url,opts});
+      if(url.includes('/auth/v1/token')) return {ok:true,json:async()=>({access_token:'tok-123',user:{id:'usr-99'}})};
+      return {ok:true,json:async()=>([])};
+    }
+  });
+  vm.runInContext(block('/* ================= Envio direto p/ FricoTrack','/* ================= KM real da portaria'),c);
+  const st=c.ftInitState('2026-10-23');
+  // 4 veículos válidos (mesma placa MFM8075 em 2 viagens permanece distinta; ordens "—" e "0" ignoradas)
+  assert.equal(st.items.length,4);
+  assert.equal(st.sel.size,4);                                                  // todos selecionados por padrão
+  trStubs=st.items.map(it=>{
+    const cb={checked:true,disabled:false};
+    const cls=new Set();
+    return {
+      k:it.k, cb, cls,
+      getAttribute:a=>a==='data-k'?it.k:null,
+      classList:{toggle:(n,on)=>{if(on)cls.add(n);else cls.delete(n);}},
+      querySelector:()=>cb
+    };
+  });
+  c.ftSyncSelectionUI();
+  assert.equal(el('#ft-all').checked,true);
+  assert.equal(el('#ft-all').indeterminate,false);
+  assert.equal(el('#ft-ok').disabled,false);
+  assert.equal(el('#ft-ok').textContent,'📤 Enviar p/ FricoTrack (4)');
+  assert.ok(el('#ft-chips').innerHTML.includes('Selecionados <b>4</b> de <b>4</b>'));
+
+  // Desmarcar tudo -> bloqueia envio e não chama API
+  c.ftSetAll(false);
+  assert.equal(st.sel.size,0);
+  assert.equal(el('#ft-all').checked,false);
+  assert.equal(el('#ft-all').indeterminate,false);
+  assert.equal(el('#ft-ok').disabled,true);
+  await c.ftDoSend();
+  assert.equal(calls.length,0);
+  assert.equal(toasts.at(-1)[1],'warn');
+
+  // Seleção por intervalo (Shift+click): marca do item 1 ao item 2 (f2 e c1)
+  c.ftApplyRowClick(st.items[1].k, true, false);
+  c.ftApplyRowClick(st.items[2].k, true, true);
+  assert.deepEqual(Array.from(c.ftSelectedRows().map(r=>r.carga_id)),['135047','11462000/135039']);
+  assert.equal(el('#ft-all').checked,false);
+  assert.equal(el('#ft-all').indeterminate,true);
+  assert.equal(el('#ft-ok').disabled,false);
+  assert.equal(el('#ft-ok').textContent,'📤 Enviar p/ FricoTrack (2)');
+  assert.ok(el('#ft-chips').innerHTML.includes('Frotas <b>1/2</b>'));
+  assert.ok(el('#ft-chips').innerHTML.includes('Capital <b>1/1</b>'));
+  assert.ok(el('#ft-chips').innerHTML.includes('Interior <b>0/1</b>'));
+  assert.equal(trStubs[0].cls.has('ft-off'),true);
+  assert.equal(trStubs[1].cls.has('ft-off'),false);
+
+  // Envio parcial: envia só as 2 selecionadas e NÃO apaga o dia inteiro sem filtro de carga_id
+  el('#ft-user').value='logistica@frico.ind.br';
+  el('#ft-pass').value='segredo';
+  el('#ft-save').checked=false;
+  await c.ftDoSend();
+  assert.equal(calls.length,4);                                                 // auth + delete dia/cargas + delete não conferidas + post
+  assert.ok(calls[1].opts.method==='DELETE');
+  assert.ok(calls[1].url.includes('data_referencia=eq.2026-10-23&carga_id=in.('));
+  assert.ok(calls[1].url.includes(encodeURIComponent('"135047"')));
+  assert.ok(calls[1].url.includes(encodeURIComponent('"11462000/135039"')));
+  assert.ok(!calls[1].url.includes('11459000'));                                // carga desmarcada preservada!
+  assert.ok(!calls[1].url.includes('11451000'));                                // carga desmarcada preservada!
+  assert.ok(calls[2].opts.method==='DELETE' && calls[2].url.includes('conferido=eq.false'));
+  assert.equal(calls[3].opts.method,'POST');
+  const body=JSON.parse(calls[3].opts.body);
+  assert.equal(body.length,2);
+  assert.deepEqual(Object.keys(body[0]).sort(),[
+    'ajudantes','carga_id','criado_por','data_referencia','destino','grupo',
+    'motorista','peso','placa','qtd_entregas','tipo_veiculo','transportadora'
+  ]);
+  assert.equal(body[0].criado_por,'usr-99');
+  assert.equal(audits.at(-1)[1],'2026-10-23: 2/4 veículo(s) esperados');
+
+  // Inverter e Marcar todos
+  c.ftInitState('2026-10-23');
+  c.ftApplyRowClick(c.FT_STATE.items[0].k, false, false);
+  c.ftSetAll('invert');
+  assert.deepEqual(Array.from(c.ftSelectedRows().map(r=>r.carga_id)),['11459000']);
+  c.ftSetAll(true);
+  assert.equal(c.ftSelectedRows().length,4);
+
+  // Recuperação de erro no envio: restaura o botão habilitado com a contagem selecionada
+  c.ftApplyRowClick(c.FT_STATE.items[0].k, false, false);                       // 3 de 4 marcados
+  calls=[];
+  const origFetch=c.fetch;
+  c.fetch=async()=>({ok:false,status:401,json:async()=>({error_description:'credenciais inválidas'})});
+  await c.ftDoSend();
+  assert.equal(c.FT_STATE.sending,false);
+  assert.equal(el('#ft-ok').disabled,false);
+  assert.equal(el('#ft-ok').textContent,'📤 Enviar p/ FricoTrack (3)');
+  assert.equal(toasts.at(-1)[1],'err');
+  c.fetch=origFetch;
+
+  // Renderização das linhas: marcadas sem ft-off + checked; desmarcadas com ft-off
+  const rowOn=c.ftRowHtml(c.FT_STATE.items[1],true);
+  const rowOff=c.ftRowHtml(c.FT_STATE.items[0],false);
+  assert.ok(rowOn.includes('class="ft-sel"') && rowOn.includes(' checked') && !rowOn.includes('ft-off'));
+  assert.ok(rowOff.includes('class="ft-off"') && !rowOff.includes(' checked'));
+  for(const id of ['id="ft-all"','id="ft-sel-all"','id="ft-sel-none"','id="ft-sel-inv"','id="ft-sel-sum"','id="ft-body"','colspan="9"']) assert.ok(html.includes(id),id);
+});
+
+test('Editar carga do mapa (#edc-mask): opção Agregado/Freelance atualiza preview, limpa override e persiste no mapa',async()=>{
+  assert.ok(html.includes('id="edc-tabela"'));
+  const els={};
+  const el=id=>els[id]||(els[id]={id,value:'',innerHTML:'',textContent:'',hidden:true,dataset:{},focus(){}});
+  const persisted=[];
+  const items=new Map();
+  const c=vm.createContext({
+    console,Math,Number,String,Object,Array,
+    MARGEM_FRETE:10,currentMapDate:'2026-10-20',
+    REL:{mapDirty:false},
+    requireOperational:()=>true,
+    relIsFech:r=>!!(r&&r.stFech==='fechado'),
+    relFindItem:k=>items.get(k)||null,
+    relEl:id=>el(id),
+    fmtBR:d=>d.split('-').reverse().join('/'),
+    fmtBRL:n=>'R$ '+Number(n||0).toFixed(2),
+    relFmtMedia:n=>n==null?'—':'R$ '+Number(n).toFixed(2)+'/kg',
+    esc:s=>String(s==null?'':s).replace(/[&<>"']/g,'_'),
+    num:v=>{if(v===''||v==null)return 0;const n=Number(String(v).replace(',','.'));return Number.isFinite(n)?n:0;},
+    numVal:v=>{if(v===''||v==null)return 0;const n=Number(String(v).replace(',','.'));return Number.isFinite(n)?n:0;},
+    ceil2:v=>Math.ceil(Number(v)*100)/100,
+    relSetField:(it,f,v)=>{
+      if(f==='peso'||f==='km'||f==='dias') it.row[f]=v===''?'':Number(v);
+      else it.row[f]=v;
+      return true;
+    },
+    relCalc:(sec,row)=>{
+      const cf=c.calcularFrete(sec,row)||{};
+      const peso=Number(row.peso)||0,tot=Number(cf.total)||0;
+      return {peso,km:Number(row.km)||0,total:tot,media:(tot>0&&peso>0)?tot/peso:null,frota:cf.frota||'',modo:cf.modo||'',diarias:Number(row.dias)||1,dataFinal:'2026-10-20'};
+    },
+    relPersistDate:async d=>{persisted.push(d);},
+    renderAll:()=>{},relApplyFilters:()=>{},renderRelTable:()=>{},renderFechTable:()=>{},audit:()=>{},toast:()=>{}
+  });
+  vm.runInContext(
+    'const FLEET_TIERS=['+block('  {max:800,     name:\'Caminhão FIORINO\'},','const SAVE_DEBOUNCE_MS')+
+    '\n'+block('/* ================= Previsão de frete ================= */','/* ================= Linhas: build / registry')+
+    '\n'+block('let EDC_KEY = null;','let FECH_COPY_IDX = 0;'),
+    c
+  );
+
+  // Caso 1: Carga NÃO negociada mas com valorFrete automático (676.5 = HR Capital Agregado +10%)
+  const r1={id:'c1',placa:'SDY9G92',destino:'CARREFOUR T9 -GO',carga:'135147',peso:1511,km:0,dias:1,
+    motorista:'DIEGO JOSE',transportadora:'ADILSON LOG',tabela:'agregado',neg:'Não',_vfAuto:true,valorFrete:676.5};
+  items.set('2026-10-21|capital|c1',{key:'2026-10-21|capital|c1',d:'2026-10-21',sec:'capital',entrega:'2026-10-21',row:r1,calc:{}});
+
+  c.abrirEdicaoCarga('2026-10-21|capital|c1');
+  assert.equal(el('edc-tabela').value,'agregado');
+  // Não preenche valorFrete manual quando _vfAuto=true (evita travar em VLR Neg ao editar!)
+  assert.equal(el('edc-valorfrete').value,'');
+  assert.ok(el('edc-calc').innerHTML.includes('R$ 676.50'));
+  assert.ok(el('edc-calc').innerHTML.includes('Tipo: <b>Agregado</b>'));
+
+  // Troca de Agregado -> Freelance: preview cai para R$ 638.00 (580 + 10% DIARIA) e salva tabela='freelancer'
+  el('edc-tabela').value='freelancer';
+  c.edcResetNegForTable();
+  assert.equal(el('edc-neg').value,'Não');
+  assert.ok(el('edc-calc').innerHTML.includes('R$ 638.00'));
+  assert.ok(el('edc-calc').innerHTML.includes('Tipo: <b>Freelance</b>'));
+  assert.ok(el('edc-calc').innerHTML.includes('DIARIA (valor fixo) +10%'));
+
+  await c.salvarEdicaoCarga();
+  assert.equal(r1.tabela,'freelancer');
+  assert.equal(r1.neg,'Não');
+  assert.equal(r1._vfAuto,true);
+  assert.equal(r1.valorFrete,638);
+  assert.equal(r1.calc===undefined,true);
+  assert.equal(items.get('2026-10-21|capital|c1').calc.total,638);
+  assert.deepEqual(persisted,['2026-10-21']);
+
+  // Caso 2: Carga COM Valor Frete manual negociado (R$ 800,00) -> mantém R$ 800 se não trocar tipo,
+  // mas ao trocar Tipo (Freelance -> Agregado) limpa o override e recalcula pela tabela Agregado (R$ 676,50)
+  const r2={id:'c2',placa:'SDY9G92',destino:'CARREFOUR T9 -GO',carga:'135148',peso:1511,km:0,dias:1,
+    motorista:'DIEGO',transportadora:'ADILSON LOG',tabela:'freelancer',neg:'Sim',_vfAuto:false,valorFrete:800};
+  items.set('2026-10-21|capital|c2',{key:'2026-10-21|capital|c2',d:'2026-10-21',sec:'capital',entrega:'2026-10-21',row:r2,calc:{}});
+
+  c.abrirEdicaoCarga('2026-10-21|capital|c2');
+  assert.equal(el('edc-tabela').value,'freelancer');
+  assert.equal(el('edc-valorfrete').value,'800');
+  assert.ok(el('edc-calc').innerHTML.includes('R$ 800.00'));
+  // Salva só alterando motorista -> preserva negociação manual de R$ 800
+  el('edc-motorista').value='DIEGO NOVO';
+  await c.salvarEdicaoCarga();
+  assert.equal(r2.neg,'Sim');
+  assert.equal(r2._vfAuto,false);
+  assert.equal(r2.valorFrete,800);
+  assert.equal(r2.tabela,'freelancer');
+
+  // Reabre e troca de Freelance -> Agregado: limpa override manual e salva pela tabela Agregado (676.50)
+  c.abrirEdicaoCarga('2026-10-21|capital|c2');
+  el('edc-tabela').value='agregado';
+  c.edcResetNegForTable();
+  assert.equal(el('edc-valorfrete').value,'');
+  assert.equal(el('edc-neg').value,'Não');
+  assert.ok(el('edc-calc').innerHTML.includes('R$ 676.50'));
+  await c.salvarEdicaoCarga();
+  assert.equal(r2.tabela,'agregado');
+  assert.equal(r2.neg,'Não');
+  assert.equal(r2._vfAuto,true);
+  assert.equal(r2.valorFrete,676.5);
+});
+
+test('Fechamento quinzenal: Entregou NF e Boleto ficam salvos ao alterar, fechar/reabrir painel, fechar parcial/total e reabrir carga',async()=>{
+  const kv=new Map();
+  const els={};
+  const el=id=>els[id]||(els[id]={id,value:'',innerHTML:'',textContent:'',hidden:true,dataset:{}});
+  let groupsData=[];
+  const c=vm.createContext({
+    console,Math,Number,String,Object,Array,Set,Map,Date,JSON,
+    FECH_DOCS:{},TRANSP_CODES:{'adilson log':'1378'},FECHAMENTOS:[],
+    SESSION:{name:'Operador'},
+    REL:{loaded:true,start:'2026-10-01',end:'2026-10-15',recs:{},mapDirty:false},
+    currentMapDate:'2026-10-26',DATA:{frotas:[],capital:[],interior:[]},
+    Stor:{
+      get:async k=>kv.has(k)?JSON.parse(JSON.stringify(kv.get(k))):null,
+      set:async(k,v)=>{kv.set(k,JSON.parse(JSON.stringify(v)));}
+    },
+    normKw:s=>String(s==null?'':s).normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().replace(/\s+/g,' ').toLowerCase(),
+    normalizarTipo:t=>{const s=String(t==null?'':t).trim().toLowerCase();return(s==='normal'||s==='freelancer'||s==='freelance')?'freelancer':'agregado';},
+    requireOperational:()=>true,
+    relEl:id=>el(id),
+    fechPeriodoTxt:r=>r.start+' a '+r.end,
+    fechGroups:()=>groupsData,
+    renderFechTable:()=>{},renderFechHist:()=>{},relApplyFilters:()=>{},renderRelTable:()=>{},renderAll:()=>{},
+    fecharJanelaFallback:()=>{},
+    fechRefAsk:async()=>({ano:2026,mes:10,quinzena:1,label:'Outubro/2026 — 1ª quinzena'}),
+    hojeIso:()=>'2026-10-26',
+    fechTipoFrota:()=>'HR',
+    refreshSessionToken:async()=>true,
+    relPersistDate:async()=>{},
+    relNormalizeRec:r=>r,
+    numVal:v=>Number(v)||0,
+    fmtBRL:n=>'R$ '+Number(n||0).toFixed(2),
+    fmtBR:d=>d,
+    fmtPeso2:n=>String(n),
+    fmtNum:n=>String(n),
+    esc:s=>String(s==null?'':s),
+    relIsConcluida:r=>!!(r&&r.stFech==='concluida'),
+    audit:()=>{},toast:()=>{}
+  });
+  vm.runInContext(
+    block('function fechNormDocVal(v){','async function loadSettings(){')+
+    '\n'+block('var FECH_SEL = {};','/* resumo COMPLETO em texto')+
+    '\n'+block('function openFech(){','/* linha-filha: lista as cargas')+
+    '\n'+block('function fechDetRow(g){','function renderFechFoot(){').split('function renderFechTable()')[0]+
+    '\n'+block('async function fechConfirm(){','/* ---- Excel: resumo do financeiro ---- */')+
+    '\n'+block('async function fechReopenSel(id, st, keys){','/* ---- cadastro de códigos de transportadora'),
+    c
+  );
+
+  const rowA1={id:'a1',placa:'AAA1A11',destino:'ANAPOLIS',carga:'1001',peso:1000,km:120,motorista:'M1',tabela:'freelancer'};
+  const rowA2={id:'a2',placa:'AAA1A11',destino:'GOIANIA',carga:'1002',peso:1200,km:0,motorista:'M1',tabela:'agregado'};
+  const rowB1={id:'b1',placa:'BBB2B22',destino:'BRASILIA',carga:'2001',peso:2000,km:200,motorista:'M2',tabela:'agregado'};
+  c.REL.recs['2026-10-05']={data:{frotas:[],capital:[rowA2],interior:[rowA1,rowB1]}};
+  const rebuildGroups=()=>{
+    const mk=(d,sec,r,tot)=>({key:d+'|'+sec+'|'+r.id,d,sec,row:r,calc:{peso:r.peso,km:r.km,total:tot,media:tot/r.peso,dataFinal:d}});
+    const aItens=[mk('2026-10-05','interior',rowA1,650),mk('2026-10-05','capital',rowA2,676.5)].filter(it=>it.row.stFech!=='fechado');
+    const bItens=[mk('2026-10-05','interior',rowB1,1100)].filter(it=>it.row.stFech!=='fechado');
+    groupsData=[];
+    if(aItens.length) groupsData.push({key:'adilson log',nome:'ADILSON LOG',itens:aItens});
+    if(bItens.length) groupsData.push({key:'trans frete',nome:'TRANS FRETE',itens:bItens});
+  };
+  rebuildGroups();
+
+  // 1) Abre o painel -> começa Não/Não
+  c.openFech();
+  assert.equal(c.fechSelOf('adilson log').nf,'Não');
+  assert.equal(c.fechSelOf('adilson log').boleto,'Não');
+
+  // 2) Altera Entregou NF = Sim e Boleto = Sim -> grava em FECH_DOCS e em Stor('fech-docs')
+  const sAd=c.fechSelOf('adilson log');
+  sAd.nf='Sim';
+  await c.fechPersistDoc('adilson log',sAd.nf,sAd.boleto);
+  assert.deepEqual(kv.get('fech-docs'),{'adilson log':{nf:'Sim',boleto:'Não'}});
+  sAd.boleto='Sim';
+  await c.fechPersistDoc('adilson log',sAd.nf,sAd.boleto);
+  assert.deepEqual(kv.get('fech-docs'),{'adilson log':{nf:'Sim',boleto:'Sim'}});
+
+  // Verifica fechSelNF com classe verde fech-sel-sim e badge Freelance/Agregado em fechDetRow
+  assert.ok(c.fechSelNF('nf','Sim').includes('class="fech-sel-sim"') && c.fechSelNF('nf','Sim').includes('value="Sim" selected'));
+  assert.ok(!c.fechSelNF('nf','Não').includes('fech-sel-sim') && c.fechSelNF('nf','Não').includes('value="Não" selected'));
+  const detHtml=c.fechDetRow(groupsData[0]);
+  assert.ok(detHtml.includes('>Freelance</span>'));
+  assert.ok(detHtml.includes('>Agregado</span>'));
+
+  // 3) Fecha o modal e reabre (openFech zera FECH_SEL = {}): NF e Boleto continuam 'Sim'!
+  c.closeFech();
+  c.openFech();
+  assert.equal(c.fechSelOf('adilson log').nf,'Sim');
+  assert.equal(c.fechSelOf('adilson log').boleto,'Sim');
+  assert.equal(c.fechSelOf('trans frete').nf,'Não');
+
+  // 4) Simula reload completo da página lendo do Stor('fech-docs')
+  c.FECH_DOCS=c.fechNormalizeDocs(await c.Stor.get('fech-docs'));
+  c.openFech();
+  assert.equal(c.fechSelOf('adilson log').nf,'Sim');
+  assert.equal(c.fechSelOf('adilson log').boleto,'Sim');
+
+  // 5) Fechamento PARCIAL (fecha só 1 das 2 cargas da ADILSON LOG e a única da TRANS FRETE c/ NF=Sim):
+  // ADILSON LOG ainda tem carga aberta -> mantém FECH_DOCS['adilson log']; TRANS FRETE zerou -> limpa FECH_DOCS['trans frete']
+  c.fechSelOf('trans frete').nf='Sim';
+  await c.fechPersistDoc('trans frete','Sim','Não');
+  c.fechSelOf('adilson log').cargas['2026-10-05|capital|a2']=false; // deixa a2 aberta!
+  await c.fechConfirm();
+  assert.equal(c.FECHAMENTOS.length,1);
+  assert.equal(rowA1.stFech,'fechado');
+  assert.equal(rowA2.stFech,undefined);
+  assert.equal(rowB1.stFech,'fechado');
+  assert.deepEqual(kv.get('fech-docs'),{'adilson log':{nf:'Sim',boleto:'Sim'}});
+
+  // 6) Fecha a carga restante da ADILSON LOG -> agora limpa FECH_DOCS['adilson log']
+  rebuildGroups();
+  c.openFech();
+  assert.equal(c.fechSelOf('adilson log').nf,'Sim');
+  await c.fechConfirm();
+  assert.deepEqual(kv.get('fech-docs'),{});
+
+  // 7) Reabre a carga da TRANS FRETE -> restaura NF='Sim' do fechamento reaberto!
+  const fid1=c.FECHAMENTOS[0].id;
+  await c.fechReopenSel(fid1,'pendente',new Set(['2026-10-05|interior|b1']));
+  rebuildGroups();
+  c.openFech();
+  assert.equal(c.fechSelOf('trans frete').nf,'Sim');
+  assert.equal(c.fechSelOf('trans frete').boleto,'Não');
+});
