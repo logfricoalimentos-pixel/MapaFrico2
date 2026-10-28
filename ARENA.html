@@ -800,6 +800,18 @@ body.readonly .sec-actions{display:none}
 .pe-escalado .pe-st,.lupa-b.esc{background:#dcfce7;color:#166534;border:1px solid #bbf7d0}
 .pe-indisp .pe-st,.lupa-b.ind{background:#fee2e2;color:#991b1b;border:1px solid #fecaca}
 .lupa-b.cur{background:#dbeafe;color:#1e40af;border:1px solid #bfdbfe}
+.pe-edit .pe-chip:not(.pe-lock){cursor:pointer;user-select:none}
+.pe-edit .pe-chip:not(.pe-lock):hover{box-shadow:0 0 0 2px #c4b5fd}
+.pe-chip.pe-sel{box-shadow:0 0 0 2px #2563eb;background:#eff6ff;border-color:#93c5fd}
+.pe-chip.pe-sel .pe-plate::before{content:'✓ ';color:#2563eb}
+.pe-trl{display:flex;align-items:center;gap:6px}
+.pe-trt{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pe-nm{margin-left:auto;flex:none;font-size:9.5px;font-weight:800;letter-spacing:.3px;color:#1e40af;background:#dbeafe;border:1px solid #bfdbfe;border-radius:999px;padding:0 7px}
+.pe-hint{font-size:11px;color:#7c3aed;opacity:.85}
+.pe-btn{border:1px solid #c4b5fd;background:#fff;border-radius:6px;padding:2px 10px;font-size:12px;cursor:pointer;color:#4c1d95}
+.pe-btn.pe-add{background:#2563eb;border-color:#2563eb;color:#fff;font-weight:700}
+.pe-btn:disabled{opacity:.45;cursor:default}
+body.readonly .pe-btn,body.readonly .pe-hint{display:none}
 .lupa-btn{font-size:12px;line-height:1;cursor:pointer}
 body.readonly .lupa-btn{display:none}
 #capture-root.capturing .lupa-btn,#capture-root.capturing .pre-escala{display:none !important}
@@ -1271,7 +1283,7 @@ html.gerencial-request #settings{display:none!important}
       </ul>
       <h4>Pontos de melhoria incluídos nesta versão (auditoria)</h4>
       <ul>
-        <li><b>🚛 Pré-escala Capital + 🔍 lupa da ordem</b>: os veículos de <b>Capital e Interior</b> da planilha de motoristas estão no Pré-cadastro (placa → <b>transportadora</b> e <b>motorista</b>) e aparecem nos painéis <b>PRÉ-ESCALA · CAPITAL</b> e <b>PRÉ-ESCALA · INTERIOR</b> do mapa — <b>só status visual</b> (amarelo = pré-escala · verde = escalado em ordem · vermelho = indisponível, com a borda toda vermelha); não vira carga e não entra em totais, frete, fechamento ou prints. Em cada linha de <b>Capital e Interior</b>, o botão <b>🔍</b> (coluna de ações) busca por placa, motorista ou transportador e <b>altera veículo, motorista e transportador</b> da ordem. Cadastro editável em Configurações → Pré-escala Capital / Interior.</li>
+        <li><b>🚛 Pré-escala Capital + 🔍 lupa da ordem</b>: os veículos de <b>Capital e Interior</b> da planilha de motoristas estão no Pré-cadastro (placa → <b>transportadora</b> e <b>motorista</b>) e aparecem nos painéis <b>PRÉ-ESCALA · CAPITAL</b> e <b>PRÉ-ESCALA · INTERIOR</b> do mapa — <b>só status visual</b> (amarelo = pré-escala · verde = escalado em ordem · vermelho = indisponível, com a borda toda vermelha); não vira carga e não entra em totais, frete, fechamento ou prints. Em cada linha de <b>Capital e Interior</b>, o botão <b>🔍</b> (coluna de ações) busca por placa, motorista ou transportador e <b>altera veículo, motorista e transportador</b> da ordem. Para levar veículos ao mapa: <b>clique</b> nos cartões para marcar vários e use <b>➕ Adicionar ao mapa</b> (ou <b>dê 2 cliques</b> num cartão para adicionar só aquele) — cria uma linha com placa, motorista e transportadora; quem já está no mapa ganha a etiqueta <b>NO MAPA</b>. Cadastro editável em Configurações → Pré-escala Capital / Interior.</li>
         <li><b>Capturas 📷 em layout dedicado A4 paisagem</b> (colunas medidas pelo conteúdo, <b>larguras iguais nas 3 tabelas</b> — <b>nada de texto cortado ou oculto</b>): os dois prints mostram Placa, Destino, Nº Carga, Peso, T.Entrega, Motorista e Ajud./Transportador, mais os cards Cargas/Peso total/Entregas, no <b>modelo visual novo</b> (banner azul, faixas de seção, zebrado e cards com ícone). As colunas Vlr Kg, Neg?, Previsão, Custo Médio e Valor Frete nunca aparecem nas imagens.</li>
         <li><b>📊 Planejamento de Transporte</b>: relatório Capital × Interior × Total com Veículos (cargas), Entregas e Peso em TON (kg ÷ 1000, 2 casas, sem zeros finais) — Frotas não entra.</li>
         <li><b>🏷 Etiquetas SEMPRE em A4 RETRATO</b>: uma etiqueta por carga (9×5,5cm, 10 por página — 2 colunas × 5 linhas), impressa por um documento próprio e isolado, então a orientação não depende do CSS da tela nem de outro relatório (nada de página saindo deitada).</li>
@@ -2962,6 +2974,7 @@ function renderFooter(){
    Veículos cadastrados com tipo 'capital' ou 'interior' (Configurações → Pré-escala). É só um STATUS VISUAL
    derivado do cadastro + mapa do dia: NÃO cria linha nem carga e não entra em nenhum total/relatório. */
 let PE_COLLAPSED = {capital:false, interior:false};
+let PE_SEL = {capital:new Set(), interior:new Set()};   // veículos marcados p/ adicionar ao mapa (só memória)
 const PE_TITULO = {capital:'CAPITAL', interior:'INTERIOR'};
 function escalaList(tipo){
   const out = [];
@@ -2982,37 +2995,113 @@ function plateOrdersToday(k, exceptId){
   }
   return out;
 }
-function preEscalaStatus(k){
+/* status visual do veículo. inMap = já tem linha na tabela da seção `sec` (com ou sem Nº Carga) */
+function preEscalaStatus(k, sec){
   const orders = plateOrdersToday(k);
-  if(AVAILABILITY[k] === false) return {st:'indisp', label:'INDISPONÍVEL', orders};
-  if(orders.length) return {st:'escalado', label:'ESCALADO', orders};
-  return {st:'pre', label:'PRÉ-ESCALA', orders};
+  const inMap = !!sec && (DATA[sec] || []).some(r=> plateSegs(r.placa).includes(k));
+  if(AVAILABILITY[k] === false) return {st:'indisp', label:'INDISPONÍVEL', orders, inMap};
+  if(orders.length) return {st:'escalado', label:'ESCALADO', orders, inMap};
+  return {st:'pre', label:'PRÉ-ESCALA', orders, inMap};
+}
+/* veículos que ainda podem ser adicionados ao mapa: pré-escala, disponíveis e sem linha na seção */
+function peLivres(tipo){
+  return escalaList(tipo).map(v=> v.placa).filter(k=>{ const s = preEscalaStatus(k, tipo); return s.st === 'pre' && !s.inMap; });
 }
 function renderPreEscalaBox(tipo){
   const el = document.getElementById('pre-escala-' + tipo);
   if(!el) return;
   const list = escalaList(tipo);
-  if(!list.length){ el.hidden = true; el.innerHTML = ''; return; }
+  if(!list.length){ el.hidden = true; el.innerHTML = ''; PE_SEL[tipo].clear(); return; }
   el.hidden = false;
+  const edit = canEditOperational();
+  if(el.classList) el.classList.toggle('pe-edit', edit);
+  const livres = new Set(peLivres(tipo));
+  for(const k of Array.from(PE_SEL[tipo])) if(!livres.has(k)) PE_SEL[tipo].delete(k);   // marcado que ficou indisponível/no mapa sai da seleção
   let nPre = 0, nEsc = 0, nInd = 0;
   const chips = list.map(v=>{
-    const s = preEscalaStatus(v.placa);
+    const s = preEscalaStatus(v.placa, tipo);
     if(s.st === 'pre') nPre++; else if(s.st === 'escalado') nEsc++; else nInd++;
     const ords = s.orders.map(o=> o.carga);
-    const ttl = v.placa + ' — ' + (v.motorista || 'sem motorista') + ' — ' + (v.transportadora || 'sem transportadora') + ' — ' + s.label + (ords.length ? ' (ordem ' + ords.join(', ') + ')' : '');
-    return '<div class="pe-chip pe-' + s.st + '" title="' + esc(ttl) + '">' +
+    const noMapa = s.st === 'pre' && s.inMap;
+    const lock = !livres.has(v.placa);
+    const ttl = v.placa + ' — ' + (v.motorista || 'sem motorista') + ' — ' + (v.transportadora || 'sem transportadora') + ' — ' + s.label +
+      (ords.length ? ' (ordem ' + ords.join(', ') + ')' : '') + (noMapa ? ' — já está no mapa' : '') +
+      (edit ? (lock ? '' : ' — clique para marcar · 2 cliques adiciona ao mapa') : '');
+    return '<div class="pe-chip pe-' + s.st + (lock ? ' pe-lock' : '') + (PE_SEL[tipo].has(v.placa) ? ' pe-sel' : '') + '" data-pe-chip="' + esc(v.placa) + '" title="' + esc(ttl) + '">' +
       '<div class="pe-line"><span class="pe-plate">' + esc(v.placa) + '</span><span class="pe-st">' + s.label + (ords.length ? ' · ' + esc(ords.join('/')) : '') + '</span></div>' +
       '<div class="pe-mot">' + (esc(v.motorista) || '—') + '</div>' +
-      '<div class="pe-tr">' + (esc(v.transportadora) || '—') + '</div></div>';
+      '<div class="pe-tr pe-trl"><span class="pe-trt">' + (esc(v.transportadora) || '—') + '</span>' + (noMapa ? '<span class="pe-nm">NO MAPA</span>' : '') + '</div></div>';
   }).join('');
   const resumo = nPre + ' em pré-escala · ' + nEsc + ' escalado(s)' + (nInd ? ' · ' + nInd + ' indisponível(is)' : '');
-  const rec = PE_COLLAPSED[tipo];
+  const rec = PE_COLLAPSED[tipo], nSel = PE_SEL[tipo].size;
   el.innerHTML = '<div class="pe-head"><b>PRÉ-ESCALA · ' + PE_TITULO[tipo] + '</b>' +
     '<span class="pe-count" title="Status visual: não conta como carga nem entra em totais">' + resumo + '</span>' +
+    (edit ? '<span class="pe-hint">clique marca · 2 cliques adiciona ao mapa</span>' +
+      '<button type="button" class="pe-btn" data-pe-all="' + tipo + '" title="Marca (ou desmarca) todos os veículos disponíveis que ainda não estão no mapa">☑ Marcar todos</button>' +
+      '<button type="button" class="pe-btn pe-add" data-pe-add="' + tipo + '"' + (nSel ? '' : ' disabled') + ' title="Cria uma linha no mapa para cada veículo marcado (placa, motorista e transportadora já preenchidos)">➕ Adicionar ao mapa (' + nSel + ')</button>' : '') +
     '<button type="button" class="pe-toggle" data-pe-toggle="' + tipo + '" title="Recolher / expandir">' + (rec ? '▸ mostrar' : '▾ recolher') + '</button></div>' +
     '<div class="pe-grid"' + (rec ? ' hidden' : '') + '>' + chips + '</div>';
 }
 function renderPreEscala(){ renderPreEscalaBox('capital'); renderPreEscalaBox('interior'); }
+/* atualiza a marcação sem redesenhar (o duplo clique precisa do mesmo elemento) */
+function peSelUpdate(tipo){
+  const box = document.getElementById('pre-escala-' + tipo);
+  if(!box || !box.querySelectorAll) return;
+  box.querySelectorAll('[data-pe-chip]').forEach(c=> c.classList.toggle('pe-sel', PE_SEL[tipo].has(c.dataset.peChip)));
+  const b = box.querySelector('[data-pe-add]');
+  if(b){ b.disabled = !PE_SEL[tipo].size; b.textContent = '➕ Adicionar ao mapa (' + PE_SEL[tipo].size + ')'; }
+}
+function peClickChip(tipo, k){
+  if(!canEditOperational()) return;
+  const s = preEscalaStatus(k, tipo);
+  if(s.st === 'indisp'){ toast('⛔ ' + k + ' está INDISPONÍVEL', 'err'); return; }
+  if(s.st === 'escalado' || s.inMap){ toast('ℹ ' + k + ' já está no mapa' + (s.orders.length ? ' (ordem ' + s.orders.map(o=> o.carga).join(', ') + ')' : ''), 'ok'); return; }
+  if(PE_SEL[tipo].has(k)) PE_SEL[tipo].delete(k); else PE_SEL[tipo].add(k);
+  peSelUpdate(tipo);
+}
+function peToggleAll(tipo){
+  if(!canEditOperational()) return;
+  const livres = peLivres(tipo);
+  const todos = livres.length > 0 && livres.every(k=> PE_SEL[tipo].has(k));
+  PE_SEL[tipo].clear();
+  if(!todos) livres.forEach(k=> PE_SEL[tipo].add(k));
+  peSelUpdate(tipo);
+}
+/* cria uma linha por veículo (igual ao ＋ Linha + digitar a placa): ignora indisponível e quem já está no mapa */
+function peAddToMap(tipo, placas){
+  const out = {added:[], mapa:[], indisp:[]};
+  for(const k of placas){
+    if(AVAILABILITY[k] === false){ out.indisp.push(k); continue; }
+    if(SECTIONS.some(sec=> DATA[sec].some(r=> plateSegs(r.placa).includes(k)))){ out.mapa.push(k); continue; }
+    const row = emptyRow();
+    row.placa = k;
+    applyRegistry(row);            // transportadora, motorista (vazio), Vlr Kg/Neg? do cadastro da placa
+    DATA[tipo].push(row);
+    out.added.push({placa:k, id:row.id});
+  }
+  return out;
+}
+function peAddAndRender(tipo, placas){
+  if(!requireEdit()) return;
+  const r = peAddToMap(tipo, placas);
+  placas.forEach(k=> PE_SEL[tipo].delete(k));
+  if(!r.added.length){
+    toast('Nenhum veículo adicionado — ' + (r.indisp.length ? 'indisponível' : 'já está no mapa'), 'err');
+    peSelUpdate(tipo);
+    return;
+  }
+  audit('pre-escala-adicionada', PE_TITULO[tipo] + ' · ' + r.added.map(a=> a.placa).join(', '));
+  renderAll();
+  const first = document.querySelector('#sec-' + tipo + ' tr[data-id="' + r.added[0].id + '"] input[data-field="carga"]');
+  if(first){ try{ first.scrollIntoView({block:'center', behavior:'smooth'}); first.focus({preventScroll:true}); }catch(e){} }
+  toast('➕ ' + r.added.length + ' veículo(s) adicionado(s) em ' + PE_TITULO[tipo] + (r.mapa.length ? ' · ' + r.mapa.length + ' já estava(m) no mapa' : '') +
+    (r.indisp.length ? ' · ' + r.indisp.length + ' indisponível(is) ignorado(s)' : '') + ' — preencha Nº Carga e Destino', 'ok');
+}
+function peAddSelected(tipo){
+  const marcados = peLivres(tipo).filter(k=> PE_SEL[tipo].has(k));   // na ordem do painel
+  if(!marcados.length){ toast('Marque ao menos um veículo (clique no cartão)', 'err'); return; }
+  peAddAndRender(tipo, marcados);
+}
 /* ===== fim Pré-escala CAPITAL ===== */
 
 /* ================= Lupa da linha da ordem =================
@@ -10340,12 +10429,24 @@ function bindStatic(){
       toast('🗑 ' + k + ' saiu da pré-escala ' + nome + ' (pré-cadastro mantido)', 'ok');
     });
   }
-  /* painéis Pré-escala no mapa: recolher/expandir (só visual — vale p/ qualquer nível) */
+  /* painéis Pré-escala no mapa: recolher/expandir vale p/ qualquer nível; marcar/adicionar só p/ operação */
   for(const tipo of ['capital', 'interior']){
     const pe = $('#pre-escala-' + tipo);
-    if(pe) pe.addEventListener('click', e=>{
-      if(!e.target.closest('[data-pe-toggle]')) return;
-      PE_COLLAPSED[tipo] = !PE_COLLAPSED[tipo]; renderPreEscalaBox(tipo);
+    if(!pe) continue;
+    pe.addEventListener('click', e=>{
+      if(e.target.closest('[data-pe-toggle]')){ PE_COLLAPSED[tipo] = !PE_COLLAPSED[tipo]; renderPreEscalaBox(tipo); return; }
+      if(e.target.closest('[data-pe-all]')){ peToggleAll(tipo); return; }
+      if(e.target.closest('[data-pe-add]')){ peAddSelected(tipo); return; }
+      const chip = e.target.closest('[data-pe-chip]');
+      if(chip && e.detail < 2) peClickChip(tipo, chip.dataset.peChip);   // 2º clique do duplo clique não desmarca
+    });
+    pe.addEventListener('dblclick', e=>{
+      const chip = e.target.closest('[data-pe-chip]');
+      if(!chip || !canEditOperational()) return;
+      const k = chip.dataset.peChip;
+      const s = preEscalaStatus(k, tipo);
+      if(s.st !== 'pre' || s.inMap) return;     // travado: o 1º clique já avisou o motivo
+      peAddAndRender(tipo, [k]);
     });
   }
   /* lupa 🔍 da linha da ordem */
@@ -10685,7 +10786,7 @@ async function init(){
 /* AUTO-CHECK DE VERSAO: avisa (somente quando roda em github.io) se a aba estiver com
    copia antiga em cache — compara o selo APP_V local com o do arquivo publicado no repo.
    Falha de rede/offline = silencioso; nunca bloqueia o uso. */
-const APP_V = '2026-10-28a';
+const APP_V = '2026-10-28b';
 (function(){
   // Selo de versão VISÍVEL no canto da tela: qualquer print/print-screen mostra qual código
   // está rodando no aparelho (cópia antiga = selo antigo/ausente). Não entra nas capturas.
