@@ -324,7 +324,7 @@ test('cadastro de ajudantes e tripulação de Frotas: edição manual, sincroniz
   assert.ok(tripWrap.innerHTML.includes('data-trip="ajudante"') && tripWrap.innerHTML.includes('value="CARLOS"') && tripWrap.innerHTML.includes('value="LUCAS"'));
 });
 test('regressões: resumo por quinzena e impressão isolada permanecem',()=>{
-  for(const x of ['id="fh-resumo"','function fechRefOptions','function renderFechHist','A4 portrait','2026-10-27a','id="kp-f-sit"','function kpGroupRows','function kpKmJump','function kpSituation','@page{size:A4 landscape;margin:10mm}','tbody class="grp"','function printResumoRowsHtml','td{white-space:nowrap}','id="btn-rotas-window"','function rotasWinHtml','function rotasAbertasCollectRows','id="sec-frota-trip"','function renderFrotaTripulacao','function syncFrotaTripulacaoToMap']) assert.ok(html.includes(x),x);
+  for(const x of ['id="fh-resumo"','function fechRefOptions','function renderFechHist','A4 portrait','2026-10-28a','id="kp-f-sit"','function kpGroupRows','function kpKmJump','function kpSituation','@page{size:A4 landscape;margin:10mm}','tbody class="grp"','function printResumoRowsHtml','td{white-space:nowrap}','id="btn-rotas-window"','function rotasWinHtml','function rotasAbertasCollectRows','id="sec-frota-trip"','function renderFrotaTripulacao','function syncFrotaTripulacaoToMap']) assert.ok(html.includes(x),x);
   assert.ok(!html.includes("const APP_V = '2026-09-29d'"));
   assert.ok(!html.includes('tryAutoMigrarLote'));
 });
@@ -832,7 +832,7 @@ function escalaCtx(extra={}) {
     SECTIONS:['frotas','capital','interior'], DATA:{frotas:[],capital:[],interior:[]}, REGISTRY:{}, AVAILABILITY:{},
     FIXED_FROTAS:[], DEFAULT_FIXED_FROTAS:['MFM8075'], requireOperational:()=>true, toast(){}, audit(){}, renderAll(){}, ...extra});
   vm.runInContext(block('const CAPITAL_SEED_V','/* Faixas de peso'), c);                       // constantes (planilha)
-  vm.runInContext(block('function applyRegistry(','/* preenche o campo "dias"'), c);            // applyRegistry + seedCapitalEscala
+  vm.runInContext(block('function applyRegistry(','/* preenche o campo "dias"'), c);            // applyRegistry + seedEscalaPlanilha
   vm.runInContext(block('function fixedSet(){','function isFixedPlate('), c);
   vm.runInContext(block('/* ================= Pré-escala CAPITAL (status visual)','/* ===== fim Lupa da linha da ordem ===== */'), c);
   return c;
@@ -846,22 +846,22 @@ test('Pré-escala Capital: 16 veículos da planilha, atualização única por pl
   assert.ok(raw.every(r=> r[1] && r[1].length <= 32 && r[2]));                 // motorista no limite de 32 e transportadora presente
   // cadastro salvo ANTIGO (substitui o padrão do código): PRO0D73 ainda em TRANSP. NERCY, com Vlr/kg que deve ser mantido
   c.REGISTRY = {PRO0D73:{transportadora:'TRANSP. NERCY', valorKg:'1.5', neg:'Sim'}, OGR6D47:{transportadora:'TRANSP. NERCY'}};
-  assert.equal(c.seedCapitalEscala(), 16);
+  assert.equal(c.seedEscalaPlanilha(), 38);                                       // 16 Capital + 22 Interior
   assert.equal(c.REGISTRY.PRO0D73.transportadora, 'TRANSP. GLEISON');           // atualizada pela planilha
   assert.equal(c.REGISTRY.PRO0D73.motorista, 'GLEISON ALVES DE LIM');
   assert.equal(c.REGISTRY.PRO0D73.valorKg, '1.5');                               // demais campos do cadastro preservados
   assert.equal(c.REGISTRY.NKH7C02.transportadora, 'TRANSP. SEBASTIAO ROSA');    // placa nova
   assert.ok(CAP_PLACAS.every(p=> c.REGISTRY[p].tipo === 'capital' && c.REGISTRY[p]._seed === seedV));
-  assert.equal(c.REGISTRY.OGR6D47.tipo, undefined);                              // INTERIOR não entra na pré-escala
+  assert.equal(c.REGISTRY.OGR6D47.tipo, 'interior');                             // INTERIOR entra como pré-escala Interior (não Capital)
   // idempotente + edição do usuário depois da atualização vale
   c.REGISTRY.CZC2919.motorista = 'OUTRO MOTORISTA'; c.REGISTRY.CZC2919.transportadora = 'TRANSP. NOVA';
-  assert.equal(c.seedCapitalEscala(), 0);
+  assert.equal(c.seedEscalaPlanilha(), 0);
   assert.equal(c.REGISTRY.CZC2919.motorista, 'OUTRO MOTORISTA');
   assert.equal(c.REGISTRY.CZC2919.transportadora, 'TRANSP. NOVA');
 });
 test('applyRegistry: motorista do cadastro só entra quando a linha está sem motorista', ()=>{
   const c = escalaCtx();
-  c.seedCapitalEscala();
+  c.seedEscalaPlanilha();
   const vazia = {placa:'czc-2919', motorista:'', transportadora:''};
   c.applyRegistry(vazia);
   assert.equal(vazia.motorista, 'RODRIGO PEREIRA DE JESUS'); assert.equal(vazia.transportadora, 'TRANSP. DANILO');
@@ -872,7 +872,7 @@ test('applyRegistry: motorista do cadastro só entra quando a linha está sem mo
 test('Pré-escala Capital é só status visual: lista, estados e NENHUMA mudança em DATA', ()=>{
   const els = {}; const el = id=> els[id] || (els[id] = {id, hidden:true, innerHTML:''});
   const c = escalaCtx({document:{getElementById:el}});
-  c.seedCapitalEscala();
+  c.seedEscalaPlanilha();
   c.DATA.capital = [{id:'r1', placa:'CZC2919', carga:'12345', peso:100}];
   c.DATA.interior = [{id:'r2', placa:'TGK4D11', carga:'', peso:''}];            // sem ordem → continua pré-escala
   c.AVAILABILITY = {PQO8358:false};
@@ -893,15 +893,15 @@ test('Pré-escala Capital é só status visual: lista, estados e NENHUMA mudanç
 });
 test('Lupa da ordem: busca por placa/motorista/transportadora, avisos e alteração dos 3 campos', ()=>{
   const c = escalaCtx();
-  c.seedCapitalEscala();
+  c.seedEscalaPlanilha();
   c.REGISTRY.MFM8075 = {transportadora:'FROTA PROPRIA'};                          // placa fixa de Frotas não é candidata
   c.DATA.capital = [
     {id:'a', placa:'CZC2919', carga:'111', destino:'GOIANIA', motorista:'RODRIGO PEREIRA DE JESUS', transportadora:'TRANSP. DANILO'},
     {id:'b', placa:'TGK4D11', carga:'222', destino:'TRINDADE', motorista:'EVERTON FLORENTINO', transportadora:'TRANSP. EVERTON'}];
   c.DATA.interior = [{id:'i', placa:'OGR6D47', carga:'333', destino:'RIO VERDE', motorista:'NERCY LUIZ DA SILVA', transportadora:'TRANSP. NERCY'}];
-  const cands = c.lupaCandidates('a');
+  const cands = c.lupaCandidates('a', 'capital');
   assert.ok(!cands.some(x=>x.placa==='MFM8075'));
-  assert.equal(cands[0].capital, true);                                           // pré-escala Capital livre vem primeiro
+  assert.equal(cands[0].tipo, 'capital');                                         // pré-escala do tipo da seção (Capital) livre vem primeiro
   assert.ok(cands.some(x=>x.placa==='OGR6D47' && x.motorista==='NERCY LUIZ DA SILVA'));   // veículo só do mapa do dia também aparece
   const ids = q=>Array.from(c.lupaFilter(cands,q).map(x=>x.placa));
   assert.deepStrictEqual(ids('kfb-8419'), ['KFB8419']);                           // placa com hífen
@@ -936,10 +936,43 @@ test('Lupa/pré-escala: botão só em Capital/Interior, fechada bloqueada, fora 
   assert.ok(block('function lupaApply(', '/* ===== fim Lupa da linha da ordem ===== */').includes("row.stFech === 'fechado'"));
   assert.ok(html.includes('@media print{.lupa-btn,.pre-escala{display:none !important}}'));
   assert.ok(html.includes('body.readonly .lupa-btn{display:none}'));
-  assert.ok(html.includes('id="pre-escala-capital"') && html.includes('id="lupa-mask"') && html.includes('id="ce-rows"'));
+  assert.ok(html.includes('id="pre-escala-capital"') && html.includes('id="pre-escala-interior"') && html.includes('id="lupa-mask"') && html.includes('id="ce-rows"') && html.includes('id="ie-rows"'));
   // renderAll chama o painel; o painel/lupa nunca escrevem em DATA nem entram nos cálculos de totais/frete
   assert.ok(block('function renderAll(opts){', '/* ================= Persistência').includes('renderPreEscala();'));
   const visual = block('/* ================= Pré-escala CAPITAL (status visual)', '/* ===== fim Pré-escala CAPITAL ===== */');
   assert.ok(!/DATA\.\w+\s*(=|\.push)/.test(visual) && !visual.includes('DATA[sec] ='));
-  assert.ok(html.includes("loadSettings") && block('async function loadSettings(){', 'function saveSettings(){').includes('seedCapitalEscala();'));
+  assert.ok(html.includes("loadSettings") && block('async function loadSettings(){', 'function saveSettings(){').includes('seedEscalaPlanilha();'));
+});
+test('Pré-escala INTERIOR: 22 veículos, versão própria e borda vermelha completa p/ indisponível (ambos os painéis)', ()=>{
+  const els = {}; const el = id=> els[id] || (els[id] = {id, hidden:true, innerHTML:''});
+  const c = escalaCtx({document:{getElementById:el}});
+  const rawI = Array.from(vm.runInContext('DEFAULT_INTERIOR_ESCALA_RAW', c));
+  const rawC = Array.from(vm.runInContext('DEFAULT_CAPITAL_ESCALA_RAW', c));
+  assert.equal(rawI.length, 22);
+  assert.ok(rawI.every(r=> r[1] && r[1].length <= 32 && r[2]));
+  assert.equal(new Set(rawI.map(r=>r[0])).size, 22);
+  assert.ok(!rawI.some(r=> rawC.some(x=> x[0] === r[0])));                      // nenhum veículo nos dois tipos
+  assert.notEqual(vm.runInContext('INTERIOR_SEED_V', c), vm.runInContext('CAPITAL_SEED_V', c));   // versões independentes
+  // quem já editou a Capital (versão capital aplicada) não é sobrescrito pela versão do Interior
+  const vC = vm.runInContext('CAPITAL_SEED_V', c);
+  c.REGISTRY = {CZC2919:{transportadora:'TRANSP. EDITADA', motorista:'EDITADO', tipo:'capital', _seed:vC}};
+  c.seedEscalaPlanilha();
+  assert.equal(c.REGISTRY.CZC2919.motorista, 'EDITADO');
+  assert.equal(c.REGISTRY.OMN3I28.tipo, 'interior'); assert.equal(c.REGISTRY.OMN3I28.transportadora, 'TRANSP. RODOLPHO');   // placa nova
+  assert.equal(c.REGISTRY.OGR6D47.transportadora, 'TRANSP. NERCY');
+  assert.equal(c.escalaList('interior').length, 22); assert.equal(c.escalaList('capital').length, 16);
+  // indisponível em cada painel + classe que dá a borda vermelha
+  c.DATA.interior = [{id:'i1', placa:'OGX6A66', carga:'900', destino:'RIO VERDE'}];
+  c.AVAILABILITY = {OGR6D47:false, PQO8358:false};
+  c.renderPreEscala();
+  const hi = el('pre-escala-interior').innerHTML, hc = el('pre-escala-capital').innerHTML;
+  assert.ok(hi.includes('PRÉ-ESCALA · INTERIOR') && hi.includes('ESCALADO · 900') && hi.includes('20 em pré-escala · 1 escalado(s) · 1 indisponível(is)'));
+  assert.ok(/pe-chip pe-indisp[^>]*>\s*<div class="pe-line"><span class="pe-plate">OGR6D47/.test(hi));
+  assert.ok(/pe-chip pe-indisp[^>]*>\s*<div class="pe-line"><span class="pe-plate">PQO8358/.test(hc));
+  assert.ok(html.includes('.pe-chip.pe-indisp{border:2px solid #dc2626') && html.includes('.lupa-item.ind{border-color:#dc2626'));
+  // lupa: veículo indisponível ganha a classe da borda vermelha; pré-escala do Interior vem primeiro numa ordem de Interior
+  c.DATA.interior.push({id:'i2', placa:'', carga:'901', destino:'JATAI'});
+  const cs = c.lupaCandidates('i2', 'interior');
+  assert.equal(cs[0].tipo, 'interior');
+  assert.ok(block('function lupaRenderList(', 'function lupaPick(').includes("' ind'"));
 });
