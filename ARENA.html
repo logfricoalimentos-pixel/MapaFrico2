@@ -1312,6 +1312,7 @@ html.gerencial-request #settings{display:none!important}
       <label>Até <input type="date" id="period-end"></label>
     </div>
     <div id="dash-period-kpis" class="kpis-wrap"></div>
+    <p id="dash-period-note" class="dash-note" hidden></p>
     <h3>Evolução do custo no período <small>(com negociação · Capital × Interior)</small></h3>
     <div class="gran-toggle">
       <button class="gran-btn active" data-gran="daily">Diário</button>
@@ -7948,7 +7949,7 @@ function reclassifyAll(){
 }
 
 /* ================= Painel de Indicadores & Fechamento ================= */
-let DASH = {days: [], raw: [], period: null, preset: '7d', granularity: 'daily', showFrotas: true, statusFilter: 'todas', fechDates: [], fechDatesAvail: [], fechDatesAvailAll: [], fechDateCounts: {}};
+let DASH = {days: [], raw: [], period: null, preset: '7d', granularity: 'daily', showFrotas: true, statusFilter: 'todas', fechDates: [], fechDatesAvail: [], fechDatesAvailAll: [], fechDateCounts: {}, qzExtras: []};
 let dashVisible = false;
 
 function isoToDate(iso){ const p = String(iso).split('-'); return new Date(+p[0], (+p[1]||1)-1, +p[2]||1); }
@@ -8408,6 +8409,51 @@ function dashView(data){
           capital: ((data && data.capital) || []).filter(dashPickRow),
           interior: ((data && data.interior) || []).filter(dashPickRow)};
 }
+/* ---- fechamento quinzenal no filtro por quinzena (Indicadores & Mapa Gerencial) ----
+   Quando o filtro por quinzena está aplicado, as cargas FECHADAS que pertencem a um
+   fechamento cuja referência (ref) é exatamente a quinzena escolhida entram no período
+   do filtro, mesmo que a data de lançamento (faturamento) no mapa seja de outra
+   quinzena. (Ex.: o fechamento de Outubro Q1 inclui cargas lançadas em setembro; ao
+   filtrar Outubro Q1, elas aparecem.) As que já estão dentro do período não são
+   contadas duas vezes, e o filtro de status (Fechadas/Em Aberto/Todas) continua valendo. */
+function dashQzAtiva(){ return (DASH.preset === 'quinzena' && QZ && QZ.ano) ? QZ : null; }
+/* referência (ano/mês/quinzena) do fechamento de uma carga fechada, ou null */
+function dashFechRefOfRow(r){
+  if(!relIsFech(r) || !r.fechId) return null;
+  const f = (typeof FECHAMENTOS !== 'undefined' ? FECHAMENTOS : []).find(x=> x && x.id === r.fechId);
+  if(!f || !f.ref) return null;
+  const ano = Number(f.ref.ano), mes = Number(f.ref.mes), q = Number(f.ref.quinzena);
+  if(!ano || !mes || !q) return null;
+  return {ano: ano, mes: mes, quinzena: q};
+}
+/* linhas FECHADAS cuja referência de fechamento é a quinzena ativa e cujo dia de
+   faturamento está FORA do período (não conta duas vezes): [{date, sec, row, fech}] */
+function dashQzExtras(period){
+  const qz = dashQzAtiva();
+  if(!qz || !period || !period.start || !period.end) return [];
+  const out = [];
+  for(const rd of (DASH.raw || [])){
+    if(!rd || !rd.data) continue;
+    if(rd.date >= period.start && rd.date <= period.end) continue;
+    for(const sec of ['frotas','capital','interior']){
+      for(const r of (rd.data[sec] || [])){
+        if(!relIsFech(r)) continue;
+        const ref = dashFechRefOfRow(r);
+        if(!ref) continue;
+        if(ref.ano !== +qz.ano || ref.mes !== +qz.mes || ref.quinzena !== +qz.q) continue;
+        if(!dashPickRow(r)) continue;
+        out.push({date: rd.date, sec: sec, row: r, fech: (FECHAMENTOS || []).find(x=> x && x.id === r.fechId) || null});
+      }
+    }
+  }
+  return out;
+}
+/* objeto {frotas,capital,interior} com as linhas extras, p/ somar nas métricas/rotas */
+function dashQzExtraData(extras){
+  const d = {frotas: [], capital: [], interior: []};
+  for(const e of (extras || [])) d[e.sec].push(e.row);
+  return d;
+}
 /* Métricas de um dia (data completa): sem negociação (tabela) vs com negociação (calcularFrete).
    Frotas = custo ESTIMADO pela tabela Interior (indicador separado — não soma no Custo Geral). */
 function metricsFromData(data){
@@ -8484,6 +8530,12 @@ function gerencialEntradas(sec){
   const out = [];
   for(const d of gerencialDiasPeriodo()){
     for(const r of ((d.data && d.data[sec]) || [])) out.push({date: d.date, r: r});
+  }
+  /* AUDITORIA: quinzena — inclui as cargas FECHADAS do fechamento dessa quinzena que
+     foram lançadas em outro dia (fora do período), sem contar duas vezes. */
+  for(const e of (DASH.qzExtras || [])){
+    if(e.sec !== sec) continue;
+    out.push({date: e.date, r: e.row, fechRef: e.fech && e.fech.ref});
   }
   return out;
 }
@@ -8848,6 +8900,7 @@ function dashRecompute(){
     const dv = dashView(rd.data);
     return {date: rd.date, m: metricsFromData(dv), routes: routesFromData(dv)};
   });
+  DASH.qzExtras = dashQzExtras(DASH.period);   // quinzena: cargas fechadas lançadas fora do período
   renderDash(); // renderFechDatesBox() desenha o listbox c/ o período atual
 }
 /* Listbox c/ checkboxes das datas de fechamento — só datas DENTRO do período
@@ -8979,7 +9032,7 @@ function renderComparativo(){
         '<td class="num">' + (pe && pe.custo != null ? relFmtMedia(pe.custo) : '—') + '</td><td class="num">' + d + '</td></tr>';
     }).join('') + '</tbody></table>';
 }
-function aggregateRange(start, end){
+function aggregateRange(start, end, extras){
   const a = {cargas:0, peso:0, ent:0, capSem:0, intSem:0, capCom:0, intCom:0, capPeso:0, intPeso:0, frotasPeso:0, frotasCusto:0, frotasCargas:0, neg:0, diasAtivos:0};
   for(const d of DASH.days){
     if(d.date < start || d.date > end) continue;
@@ -8991,6 +9044,17 @@ function aggregateRange(start, end){
     a.frotasPeso += m.frotasPeso; a.frotasCusto += m.frotasCusto; a.frotasCargas += (m.frotasCargas||0);
     a.neg += (m.neg||0);
     if(m.cargas > 0) a.diasAtivos++;
+  }
+  /* AUDITORIA: quinzena — inclui as cargas FECHADAS do fechamento dessa quinzena que
+     foram lançadas em outro dia (fora do período), sem contar duas vezes. */
+  if(extras && extras.length){
+    const em = metricsFromData(dashQzExtraData(extras));
+    a.cargas += em.cargas; a.peso += em.peso; a.ent += em.ent;
+    a.capSem += em.capSem; a.intSem += em.intSem;
+    a.capCom += em.capCom; a.intCom += em.intCom;
+    a.capPeso += em.capPeso; a.intPeso += em.intPeso;
+    a.frotasPeso += em.frotasPeso; a.frotasCusto += em.frotasCusto; a.frotasCargas += (em.frotasCargas||0);
+    a.neg += (em.neg||0);
   }
   a.semNeg = a.capSem + a.intSem;
   a.comNeg = a.capCom + a.intCom;
@@ -9173,7 +9237,7 @@ function renderDashDaily(){
 function renderDashPeriodo(){
   const p = DASH.period;
   if(!p){ return; }
-  const agg = aggregateRange(p.start, p.end);
+  const agg = aggregateRange(p.start, p.end, DASH.qzExtras);
   const len = dateDiffDays(p.start, p.end) + 1;
   const prev = aggregateRange(dateAddDays(p.start, -len), dateAddDays(p.start, -1));
   const pctDelta = (cur, prev) => prev > 0 ? (cur - prev) / prev * 100 : null;
@@ -9185,6 +9249,17 @@ function renderDashPeriodo(){
   };
   const el = $('#dash-period-kpis');
   if(el) el.innerHTML = renderKpis(agg, deltas);
+  // quinzena: aviso de que as cargas fechadas do fechamento dessa quinzena (lançadas
+  // em outro dia, fora do período) entram nos indicadores do período.
+  const note = $('#dash-period-note');
+  if(note){
+    const ex = DASH.qzExtras || [];
+    if(ex.length){
+      const tot = ex.reduce((a,e)=> a + numVal(e.row.peso), 0);
+      note.hidden = false;
+      note.textContent = '🗓 Filtro por quinzena: incluindo ' + ex.length + ' carga(s) fechada(s) do fechamento dessa quinzena que foram lançadas em outro dia (fora do período) — ' + fmtPeso2(tot) + ' kg.';
+    } else note.hidden = true;
+  }
   renderEvolucao();
 }
 /* Evolução do custo no período, com granularidade (diário / mensal / anual) */
@@ -9206,6 +9281,20 @@ function aggregateCostByGranularity(p, gran){
     if(!buckets.has(key)) buckets.set(key, {key, label, cap:0, int:0, peso:0});
     const b = buckets.get(key);
     b.cap += m.capCom; b.int += m.intCom; b.peso += (m.capPeso + m.intPeso); // AUDITORIA: peso do Custo/kg deve bater com cap+int (o gráfico só mostra Capital/Interior, nunca Frotas)
+  }
+  /* AUDITORIA: quinzena — as cargas FECHADAS do fechamento dessa quinzena (lançadas
+     fora do período) entram na faixa da data de fechamento (do dia ao mês/ano). */
+  for(const e of (DASH.qzExtras || [])){
+    const m = metricsFromData(dashQzExtraData([e]));
+    const dd = (e.fech && e.fech.dataFech) ? String(e.fech.dataFech).slice(0,10) : p.start;
+    const ddC = (dd < p.start) ? p.start : ((dd > p.end) ? p.end : dd);
+    let key, label;
+    if(gran === 'monthly'){ key = ddC.slice(0,7); label = monthLabel(key); }
+    else if(gran === 'annual'){ key = ddC.slice(0,4); label = key; }
+    else { key = ddC; label = fmtBR(ddC).slice(0,5); }
+    if(!buckets.has(key)) buckets.set(key, {key, label, cap:0, int:0, peso:0});
+    const b = buckets.get(key);
+    b.cap += m.capCom; b.int += m.intCom; b.peso += (m.capPeso + m.intPeso);
   }
   return Array.from(buckets.values()).sort((a,b)=> a.key.localeCompare(b.key));
 }
@@ -10749,7 +10838,7 @@ async function init(){
 /* AUTO-CHECK DE VERSAO: avisa (somente quando roda em github.io) se a aba estiver com
    copia antiga em cache — compara o selo APP_V local com o do arquivo publicado no repo.
    Falha de rede/offline = silencioso; nunca bloqueia o uso. */
-const APP_V = '2026-10-07a';
+const APP_V = '2026-10-28a';
 (function(){
   // Selo de versão VISÍVEL no canto da tela: qualquer print/print-screen mostra qual código
   // está rodando no aparelho (cópia antiga = selo antigo/ausente). Não entra nas capturas.

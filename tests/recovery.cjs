@@ -324,7 +324,7 @@ test('cadastro de ajudantes e tripulação de Frotas: edição manual, sincroniz
   assert.ok(tripWrap.innerHTML.includes('data-trip="ajudante"') && tripWrap.innerHTML.includes('value="CARLOS"') && tripWrap.innerHTML.includes('value="LUCAS"'));
 });
 test('regressões: resumo por quinzena e impressão isolada permanecem',()=>{
-  for(const x of ['id="fh-resumo"','function fechRefOptions','function renderFechHist','A4 portrait','2026-10-07a','id="kp-f-sit"','function kpGroupRows','function kpKmJump','function kpSituation','@page{size:A4 landscape;margin:10mm}','tbody class="grp"','function printResumoRowsHtml','td{white-space:nowrap}','id="btn-rotas-window"','function rotasWinHtml','function rotasAbertasCollectRows','id="sec-frota-trip"','function renderFrotaTripulacao','function syncFrotaTripulacaoToMap']) assert.ok(html.includes(x),x);
+  for(const x of ['id="fh-resumo"','function fechRefOptions','function renderFechHist','A4 portrait','2026-10-28a','id="kp-f-sit"','function kpGroupRows','function kpKmJump','function kpSituation','@page{size:A4 landscape;margin:10mm}','tbody class="grp"','function printResumoRowsHtml','td{white-space:nowrap}','id="btn-rotas-window"','function rotasWinHtml','function rotasAbertasCollectRows','id="sec-frota-trip"','function renderFrotaTripulacao','function syncFrotaTripulacaoToMap']) assert.ok(html.includes(x),x);
   assert.ok(!html.includes("const APP_V = '2026-09-29d'"));
   assert.ok(!html.includes('tryAutoMigrarLote'));
 });
@@ -1036,4 +1036,61 @@ test('filtro por mês: padrão é o MÊS ATUAL (painel abre no mês de hoje e o 
   assert.ok(html.includes('function mmMesAtual(ref)'));
   assert.ok(html.includes('mmPadraoInicial();   // padrão do painel: MÊS ATUAL (filtro 📅 Meses já posicionado nele)'));
   assert.ok(html.includes('function mmPadraoInicial()'));
+});
+
+/* ---- 2026-10-28: filtro por quinzena contabiliza o fechamento quinzenal ---- */
+const dashQzBlock = block('function fechDateOfRow(r){', '/* Métricas de um dia');
+const metricsAggBlock = block('/* Métricas de um dia', 'function kpiCard(');
+const gerencialBlock = block('function gerencialDiasPeriodo(){', 'function gerencialPeriodoLabel(){');
+test('filtro por quinzena: cargas FECHADAS do fechamento dessa quinzena entram (mesmo lançadas em outro dia)',()=>{
+  const FECHAMENTOS=[
+    {id:'f1', ref:{ano:2026,mes:10,quinzena:1}, dataFech:'2026-10-15', start:'2026-10-01', end:'2026-10-15', grupos:[]},
+    {id:'f2', ref:{ano:2026,mes:10,quinzena:2}, dataFech:'2026-10-25', start:'2026-10-16', end:'2026-10-31', grupos:[]}
+  ];
+  const raw=[
+    {date:'2026-09-28', data:{frotas:[], capital:[{id:'r1', peso:100, stFech:'fechado', fechId:'f1'}], interior:[]}},
+    {date:'2026-10-10', data:{frotas:[], capital:[{id:'r2', peso:50, stFech:'fechado', fechId:'f1'},{id:'r3', peso:20, stFech:'concluida'}], interior:[]}},
+    {date:'2026-09-20', data:{frotas:[], capital:[{id:'r4', peso:30, stFech:'fechado', fechId:'f2'}], interior:[]}}
+  ];
+  const c=context({
+    relIsFech:r=>r.stFech==='fechado',
+    numVal:x=>Number(x)||0,
+    margemMult:()=>1,
+    tableForecast:(sec,r)=>({total:(Number(r.peso)||0)*5}),
+    calcularFrete:(sec,r)=>({total:(Number(r.peso)||0)*10}),
+    isNegSim:()=>false,
+    rowTemCarga:r=>!!(r.carga||r.destino),
+    FECHAMENTOS,
+    DASH:{raw, period:{start:'2026-10-01',end:'2026-10-15'}, preset:'quinzena', statusFilter:'todas', days:[], fechDates:[]},
+    QZ:{ano:2026,mes:10,q:'1'},
+    currentMapDate:'2026-10-01',
+    DATA:{frotas:[], capital:[], interior:[]}
+  });
+  vm.runInContext(dashQzBlock,c);
+  vm.runInContext(metricsAggBlock,c);
+  vm.runInContext(gerencialBlock,c);
+  // só a r1: fechada, ref Outubro Q1, lançada em setembro (fora do período)
+  const ex=c.dashQzExtras(c.DASH.period);
+  assert.deepEqual(j(ex.map(e=>e.row.id)),['r1']);
+  // sem o filtro de quinzena: nada entra
+  c.DASH.preset='custom';
+  assert.deepEqual(j(c.dashQzExtras(c.DASH.period)),[]);
+  // com status Em Aberto: cargas fechadas saem
+  c.DASH.preset='quinzena'; c.DASH.statusFilter='abertas';
+  assert.deepEqual(j(c.dashQzExtras(c.DASH.period)),[]);
+  c.DASH.statusFilter='todas';
+  // o agregado do período inclui a extra (sem o dia dela dentro do período)
+  const agg=c.aggregateRange('2026-10-01','2026-10-15', ex);
+  assert.equal(agg.cargas,1);
+  assert.equal(agg.peso,100);
+  assert.equal(agg.capCom,1000);                 // 100 kg × R$10/kg
+  // sem as extras, o agregado do período fica vazio
+  assert.equal(c.aggregateRange('2026-10-01','2026-10-15').cargas,0);
+  // Mapa Gerencial: a entrada da r1 entra na seção Capital (DASH.qzExtras, como no app)
+  c.DASH.qzExtras = c.dashQzExtras(c.DASH.period);
+  const ent=c.gerencialEntradas('capital');
+  assert.ok(ent.some(e=>e.r.id==='r1'),'r1 (extra) no Mapa Gerencial');
+  assert.ok(ent.some(e=>e.r.id==='r2'),'r2 (dentro do período) no Mapa Gerencial');
+  // HTML: helpers + aviso do período
+  for(const x of ['function dashQzExtras','function dashFechRefOfRow','function dashQzExtraData','id="dash-period-note"','DASH.qzExtras = dashQzExtras(DASH.period)','aggregateRange(p.start, p.end, DASH.qzExtras)']) assert.ok(html.includes(x),x);
 });

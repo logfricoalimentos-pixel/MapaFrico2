@@ -142,3 +142,36 @@ Selo de versão: **2026-10-07a** (`APP_V`), sobre a atualização 2026-10-02c ac
 - **📚 Fechamentos anteriores**: grupos **em data decrescente** (Setembro/2026 Q2 antes de Agosto/2026 Q2) e fechamentos dentro do grupo também decrescentes (`fechOrdemTs`); lista com **scroll de altura controlada** (`.win-scroll`, `max-height:70vh` + `overflow-y:auto`, tela cheia no celular); contador no cabeçalho; empty states com orientação; cada linha mantém **📥 Baixar de novo** e **↺ Reabrir cargas** e ganhou **↪ Mover** (modal `#fech-move-mask`: Ano/Mês/Quinzena ou "usar predominante", grava `f.ref`, auditoria `fechamento-movido`) e o selo **⚠ referência divergente** quando o `ref` gravado não bate com o período. `fechBaixarDeNovo` usa o overlay ⏳ Gerando… antes de gerar os Excel.
 - Validação: `python tests/validate.py` + `node --test tests/recovery.cjs` (**16 testes**, 5 novos: quinzena predominante, grade decrescente/ações, opções de referência pelo período, regressões de HTML das telas individuais) e teste de integração com DOM real (jsdom, fora do repo) cobrindo boot com banco simulado, ordem, ⚠, drawers, pop-up bloqueado → iframe, ↪ Mover persistindo e empty state.
 - Pendente: conferência visual no navegador logado (pop-up permitido e bloqueado), execução de `supabase/diagnostico-fechamentos.sql` no projeto `vvnpkraipzytrshaaruo` para confirmar em produção e deploy no Pages.
+
+## Atualização 28/10/2026 — filtro por quinzena contabiliza o fechamento quinzenal
+
+Selo de versão: **2026-10-28a** (`APP_V`), sobre a atualização 2026-10-07a acima.
+
+- **Problema**: o filtro por quinzena dos dois painéis (📊 Painel de Indicadores & Fechamento
+  e 🗺️ Mapa Gerencial) filtrava as cargas pela **data de lançamento (faturamento)** do mapa.
+  Uma carga lançada em setembro para entrega em outubro, fechada no fechamento quinzenal de
+  **Outubro — 1ª quinzena**, não aparecia quando se filtrava essa quinzena — porque o mapa
+  guarda a data de lançamento, não a referência do fechamento. O mesmo vale para o Mapa
+  Gerencial (coluna Faturamento).
+- **Regra nova**: quando o filtro por quinzena está aplicado (`DASH.preset === 'quinzena'`),
+  as cargas **FECHADAS** cujo fechamento tem `ref` **igual à quinzena escolhida** entram no
+  período do filtro, **mesmo que a data de lançamento seja de outra quinzena**. As que já
+  estão dentro do período **não são contadas duas vezes**, e o filtro de status
+  (Fechadas/Em Aberto/Todas) continua valendo — **Em Aberto** não inclui as fechadas.
+- **Implementação** (`ARENA.html`): novos helpers `dashQzAtiva()`, `dashFechRefOfRow(r)`
+  (lê `ref` do fechamento de origem via `r.fechId`), `dashQzExtras(period)` (linhas fechadas
+  de fora do período cujo `ref` bate com a quinzena ativa) e `dashQzExtraData()`.
+  `dashRecompute()` calcula `DASH.qzExtras` de uma vez; o agregado do período
+  (`aggregateRange(start, end, extras)`) soma as métricas das extras; a evolução do custo
+  (`aggregateCostByGranularity`) entra na faixa da data de fechamento; o **Mapa Gerencial**
+  (`gerencialEntradas`) inclui as entradas das extras nas seções Frotas/Capital/Interior.
+  Cargas fechadas **avulsa/em lote** (sem `fechId` no histórico) não têm referência e
+  continuam pelo dia de lançamento.
+- **Aviso na tela**: o painel de período mostra uma nota 🗓 informando quantas cargas
+  fechadas do fechamento dessa quinzena (lançadas em outro dia) entram nos indicadores.
+- **Padrão do período**: **inalterado** — continua o **mês atual** (📅 Out/2026), conforme o
+  PR #22; a quinzena aberta (a seguinte à última fechada) é escolhida pelo usuário no filtro.
+- Validação: `python tests/validate.py` + `node --test tests/recovery.cjs` (**23 testes**,
+  1 novo: extras de Outubro Q1 lançadas em setembro entram no agregado e no Mapa Gerencial,
+  sem o filtro de quinzena nada entra, Em Aberto exclui fechadas). `git diff --check` OK.
+- Pendente: conferência visual no navegador logado e deploy no Pages.
