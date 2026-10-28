@@ -795,7 +795,7 @@ body.readonly .sec-actions{display:none}
 .pe-st,.lupa-b{margin-left:auto;font-size:10px;font-weight:800;letter-spacing:.4px;border-radius:999px;padding:1px 8px;white-space:nowrap}
 .pe-chip.pe-pre{border-left-color:#f59e0b}
 .pe-chip.pe-escalado{border-left-color:#16a34a}
-.pe-chip.pe-indisp{border-left-color:#dc2626}
+.pe-chip.pe-indisp{border:2px solid #dc2626;border-left-width:4px;padding:4px 7px;background:#fff5f5}
 .pe-pre .pe-st,.lupa-b.pre{background:#fef3c7;color:#92400e;border:1px solid #fde68a}
 .pe-escalado .pe-st,.lupa-b.esc{background:#dcfce7;color:#166534;border:1px solid #bbf7d0}
 .pe-indisp .pe-st,.lupa-b.ind{background:#fee2e2;color:#991b1b;border:1px solid #fecaca}
@@ -812,6 +812,7 @@ body.readonly .lupa-btn{display:none}
 .lupa-list{display:flex;flex-direction:column;gap:4px;margin:8px 0;max-height:260px;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:4px;background:#f8fafc}
 .lupa-item{display:grid;grid-template-columns:84px 1.3fr 1.1fr 132px;gap:8px;align-items:center;text-align:left;width:100%;border:1px solid transparent;background:#fff;border-radius:6px;padding:5px 8px;font:inherit;font-size:12.5px;cursor:pointer;color:var(--ink)}
 .lupa-item:hover{background:#eff6ff;border-color:#bfdbfe}
+.lupa-item.ind{border-color:#dc2626;background:#fff5f5}
 .lupa-item.sel{background:#dbeafe;border-color:#60a5fa}
 .lupa-item .l-pl{font:700 12.5px var(--mono);letter-spacing:.5px}
 .lupa-item .l-m,.lupa-item .l-t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -1270,7 +1271,7 @@ html.gerencial-request #settings{display:none!important}
       </ul>
       <h4>Pontos de melhoria incluídos nesta versão (auditoria)</h4>
       <ul>
-        <li><b>🚛 Pré-escala Capital + 🔍 lupa da ordem</b>: os veículos de <b>Capital</b> da planilha de motoristas estão no Pré-cadastro (placa → <b>transportadora</b> e <b>motorista</b>) e aparecem no painel <b>PRÉ-ESCALA · CAPITAL</b> do mapa — <b>só status visual</b> (amarelo = pré-escala · verde = escalado em ordem · vermelho = indisponível); não vira carga e não entra em totais, frete, fechamento ou prints. Em cada linha de <b>Capital e Interior</b>, o botão <b>🔍</b> (coluna de ações) busca por placa, motorista ou transportador e <b>altera veículo, motorista e transportador</b> da ordem. Cadastro editável em Configurações → Pré-escala Capital.</li>
+        <li><b>🚛 Pré-escala Capital + 🔍 lupa da ordem</b>: os veículos de <b>Capital e Interior</b> da planilha de motoristas estão no Pré-cadastro (placa → <b>transportadora</b> e <b>motorista</b>) e aparecem nos painéis <b>PRÉ-ESCALA · CAPITAL</b> e <b>PRÉ-ESCALA · INTERIOR</b> do mapa — <b>só status visual</b> (amarelo = pré-escala · verde = escalado em ordem · vermelho = indisponível, com a borda toda vermelha); não vira carga e não entra em totais, frete, fechamento ou prints. Em cada linha de <b>Capital e Interior</b>, o botão <b>🔍</b> (coluna de ações) busca por placa, motorista ou transportador e <b>altera veículo, motorista e transportador</b> da ordem. Cadastro editável em Configurações → Pré-escala Capital / Interior.</li>
         <li><b>Capturas 📷 em layout dedicado A4 paisagem</b> (colunas medidas pelo conteúdo, <b>larguras iguais nas 3 tabelas</b> — <b>nada de texto cortado ou oculto</b>): os dois prints mostram Placa, Destino, Nº Carga, Peso, T.Entrega, Motorista e Ajud./Transportador, mais os cards Cargas/Peso total/Entregas, no <b>modelo visual novo</b> (banner azul, faixas de seção, zebrado e cards com ícone). As colunas Vlr Kg, Neg?, Previsão, Custo Médio e Valor Frete nunca aparecem nas imagens.</li>
         <li><b>📊 Planejamento de Transporte</b>: relatório Capital × Interior × Total com Veículos (cargas), Entregas e Peso em TON (kg ÷ 1000, 2 casas, sem zeros finais) — Frotas não entra.</li>
         <li><b>🏷 Etiquetas SEMPRE em A4 RETRATO</b>: uma etiqueta por carga (9×5,5cm, 10 por página — 2 colunas × 5 linhas), impressa por um documento próprio e isolado, então a orientação não depende do CSS da tela nem de outro relatório (nada de página saindo deitada).</li>
@@ -1343,6 +1344,7 @@ html.gerencial-request #settings{display:none!important}
         <button class="btn mini" data-conclui="interior" title="Marca as linhas ✓ como CONCLUÍDA (entrega finalizada) — a linha fica verde claro. Se todas as marcadas já estiverem Concluída, volta tudo p/ Pendente">✔ Concluir</button>
       </div>
     </div>
+    <div id="pre-escala-interior" class="pre-escala" hidden></div>
     <div class="table-scroll" id="sec-interior"></div>
   </div>
 
@@ -1400,6 +1402,19 @@ html.gerencial-request #settings{display:none!important}
       <input id="ce-add-mot" maxlength="32" placeholder="motorista">
       <input id="ce-add-transp" placeholder="transportadora">
       <button class="btn mini" id="btn-ce-add" title="Adicionar à pré-escala Capital">＋</button>
+    </div>
+  </section>
+
+  <section id="sec-interior-escala">
+    <h3>🚛 Pré-escala Interior (veículo · motorista · transportadora)</h3>
+    <p class="hint">Mesma lógica da Capital, para os veículos do <b>Interior</b>: painel <b>PRÉ-ESCALA · INTERIOR</b> no mapa (só status visual) e busca 🔍 na linha da ordem. O motorista preenche a linha com a placa digitada/importada quando o campo está vazio.</p>
+    <div class="reg-head ce-head"><span>Placa</span><span>Motorista</span><span>Transportadora</span><span></span></div>
+    <div id="ie-rows" class="reg-rows"></div>
+    <div class="reg-add ce-add">
+      <input id="ie-add-placa" class="mono" placeholder="placa">
+      <input id="ie-add-mot" maxlength="32" placeholder="motorista">
+      <input id="ie-add-transp" placeholder="transportadora">
+      <button class="btn mini" id="btn-ie-add" title="Adicionar à pré-escala Interior">＋</button>
     </div>
   </section>
 
@@ -2042,6 +2057,35 @@ const DEFAULT_CAPITAL_ESCALA_RAW = [
   ['RBY2D00','WILMAR ANTONIO DA SILVA','TRANSP. WILMAR']
 ];
 
+/* ===== Pré-escala INTERIOR — mesma planilha (tipo INTERIOR) · 28/10/2026 =====
+   Versão PRÓPRIA (INTERIOR_SEED_V): o que já foi editado na Capital não é sobrescrito. */
+const INTERIOR_SEED_V = '2026-10-28';
+const DEFAULT_INTERIOR_ESCALA_RAW = [
+  ['OGR6D47','NERCY LUIZ DA SILVA','TRANSP. NERCY'],
+  ['OMN3I28','RICARDO FELISBERTO W','TRANSP. RODOLPHO'],
+  ['OGX6A66','JAISON DE OLIVEIRA','TRANSP. JML'],
+  ['TFQ7A14','FRANK SOUZA DA LUZ','TRANSP. DIONE'],
+  ['EFO0D46','JOAQUIM CANDIDA','TRANSP. JOAQUIM'],
+  ['SCJ9H77','DIONE MARCIANO DE BR','TRANSP. DIONE'],
+  ['DKO0H12','FABRICIO FONSECA DE MOURA','TRANSP. FABRICIO'],
+  ['NVP6C21','IBANES FERREIRA RODRIGUES','TRANSP. IBANES'],
+  ['REL7G28','LEONARDO GONÇALVES FERREIRA','FP TRANSPORTE'],
+  ['QKA5057','SAVIO DA CONCEIÇÃO DA SILVA','RAPIDIM TRANSPORTES'],
+  ['EWJ9D30','CAIO VICTOR DOS SANTOS ALVES','TRANSP. CAIO'],
+  ['ONS5733','FREDERICO CASTELO BRANCO DE OLIV','TRANSP. FRED -'],
+  ['PAN9961','ANDERSON DE SOUZA PEREIRA','TRANSP. ANDERSON'],
+  ['SCH1G02','ROBERVAL CARDOSO DA SILVA','TRANSP. ROBERVAL'],
+  ['EDT6D92','JONATAN LANDA RODRIGUES DA SILVA','FP TRANSPORTE'],
+  ['RBS5J92','DIONE MARCIANO DE BRITO','TRANSP. DIONE'],
+  ['GXH6E91','JONIVAN DE JESUS LANDA','FP TRANSPORTE'],
+  ['OGN4E82','BRUNO ORNELO DE SOUZA','SOUZA FRIO TRANSPORTES'],
+  ['RES003','SEBASTIAO DAMACENO','TRANSP. SEBASTIAO ROSA'],
+  ['NKG0770','EDUARDO SOUZA ALVES','TRANSP. JOAO PAULO'],
+  ['NLL1957','MOACIR DOS REIS OLIVEIRA BORGES','SOUZA FRIO TRANSPORTES'],
+  ['EJW3H18','JOAO PAULO - EMERSON ELIAS','TRANSP. JOAO PAULO']
+];
+const ESCALA_SEED_V = {capital: CAPITAL_SEED_V, interior: INTERIOR_SEED_V};
+
 /* Faixas de peso -> tipo do veículo (mesma regra da calculadora Python:
    800=FIORINO · 1850=HR · 2200=VUC · 4000=3/4 · 8000=TOCO · TRUCK até 17000; acima = N/A) */
 const FLEET_TIERS = [
@@ -2488,22 +2532,25 @@ function applyRegistry(row){
     row.neg = (nn === 'sim' || nn === 's') ? 'Sim' : (nn === 'não' || nn === 'nao' || nn === 'n') ? 'Não' : reg.neg;
   }
 }
-/* Atualiza o Pré-cadastro com a Pré-escala Capital (planilha). Idempotente: a placa já marcada com a
-   versão atual (_seed) é preservada — vale o que o usuário editou depois. Devolve quantas placas mudou. */
-function seedCapitalEscala(){
+/* Atualiza o Pré-cadastro com a Pré-escala (Capital e Interior, planilha). Idempotente: a placa já marcada
+   com a versão do seu tipo (_seed) é preservada — vale o que o usuário editou depois. Devolve quantas mudou. */
+function seedEscalaPlanilha(){
   let changed = 0;
-  for(const [placa, motorista, transp] of DEFAULT_CAPITAL_ESCALA_RAW){
-    const k = normPlaca(placa);
-    if(!k) continue;
-    const cur = REGISTRY[k];
-    if(cur && cur._seed === CAPITAL_SEED_V) continue;
-    const v = Object.assign({}, cur || {});
-    v.transportadora = transp;
-    v.motorista = clampMotorista(String(motorista).trim());
-    v.tipo = 'capital';
-    v._seed = CAPITAL_SEED_V;
-    REGISTRY[k] = v;
-    changed++;
+  for(const [tipo, lista] of [['capital', DEFAULT_CAPITAL_ESCALA_RAW], ['interior', DEFAULT_INTERIOR_ESCALA_RAW]]){
+    const ver = ESCALA_SEED_V[tipo];
+    for(const [placa, motorista, transp] of lista){
+      const k = normPlaca(placa);
+      if(!k) continue;
+      const cur = REGISTRY[k];
+      if(cur && cur._seed === ver) continue;
+      const v = Object.assign({}, cur || {});
+      v.transportadora = transp;
+      v.motorista = clampMotorista(String(motorista).trim());
+      v.tipo = tipo;
+      v._seed = ver;
+      REGISTRY[k] = v;
+      changed++;
+    }
   }
   return changed;
 }
@@ -2911,19 +2958,21 @@ function renderFooter(){
     '<div class="sum-card" data-col="custoMedio">' + MIC.weight + '<div><span class="sum-k">Custo médio Cap.+Int.</span><span class="sum-v">'+(fp>0? 'R$ '+(ft/fp).toLocaleString('pt-BR',{minimumFractionDigits:2, maximumFractionDigits:2})+'/kg' : '—')+'</span></div></div>';
 }
 
-/* ================= Pré-escala CAPITAL (status visual) =================
-   Veículos cadastrados com tipo 'capital' (Configurações → Pré-escala Capital). É só um STATUS VISUAL
+/* ================= Pré-escala CAPITAL (status visual) — vale também p/ INTERIOR =================
+   Veículos cadastrados com tipo 'capital' ou 'interior' (Configurações → Pré-escala). É só um STATUS VISUAL
    derivado do cadastro + mapa do dia: NÃO cria linha nem carga e não entra em nenhum total/relatório. */
-let PE_COLLAPSED = false;
-function capitalEscalaList(){
+let PE_COLLAPSED = {capital:false, interior:false};
+const PE_TITULO = {capital:'CAPITAL', interior:'INTERIOR'};
+function escalaList(tipo){
   const out = [];
   for(const [k, v] of Object.entries(REGISTRY)){
-    if(!v || typeof v !== 'object' || String(v.tipo || '').toLowerCase() !== 'capital') continue;
+    if(!v || typeof v !== 'object' || String(v.tipo || '').toLowerCase() !== tipo) continue;
     out.push({placa: normPlaca(k), motorista: String(v.motorista || ''), transportadora: String(v.transportadora || '')});
   }
   out.sort((a, b)=> a.transportadora.localeCompare(b.transportadora, 'pt-BR') || a.placa.localeCompare(b.placa));
   return out;
 }
+function capitalEscalaList(){ return escalaList('capital'); }
 /* ordens (Nº Carga) em que a placa já está escalada no mapa do dia (exceto a linha exceptId) */
 function plateOrdersToday(k, exceptId){
   const out = [];
@@ -2939,10 +2988,10 @@ function preEscalaStatus(k){
   if(orders.length) return {st:'escalado', label:'ESCALADO', orders};
   return {st:'pre', label:'PRÉ-ESCALA', orders};
 }
-function renderPreEscala(){
-  const el = document.getElementById('pre-escala-capital');
+function renderPreEscalaBox(tipo){
+  const el = document.getElementById('pre-escala-' + tipo);
   if(!el) return;
-  const list = capitalEscalaList();
+  const list = escalaList(tipo);
   if(!list.length){ el.hidden = true; el.innerHTML = ''; return; }
   el.hidden = false;
   let nPre = 0, nEsc = 0, nInd = 0;
@@ -2957,11 +3006,13 @@ function renderPreEscala(){
       '<div class="pe-tr">' + (esc(v.transportadora) || '—') + '</div></div>';
   }).join('');
   const resumo = nPre + ' em pré-escala · ' + nEsc + ' escalado(s)' + (nInd ? ' · ' + nInd + ' indisponível(is)' : '');
-  el.innerHTML = '<div class="pe-head"><b>PRÉ-ESCALA · CAPITAL</b>' +
+  const rec = PE_COLLAPSED[tipo];
+  el.innerHTML = '<div class="pe-head"><b>PRÉ-ESCALA · ' + PE_TITULO[tipo] + '</b>' +
     '<span class="pe-count" title="Status visual: não conta como carga nem entra em totais">' + resumo + '</span>' +
-    '<button type="button" class="pe-toggle" data-pe-toggle title="Recolher / expandir">' + (PE_COLLAPSED ? '▸ mostrar' : '▾ recolher') + '</button></div>' +
-    '<div class="pe-grid"' + (PE_COLLAPSED ? ' hidden' : '') + '>' + chips + '</div>';
+    '<button type="button" class="pe-toggle" data-pe-toggle="' + tipo + '" title="Recolher / expandir">' + (rec ? '▸ mostrar' : '▾ recolher') + '</button></div>' +
+    '<div class="pe-grid"' + (rec ? ' hidden' : '') + '>' + chips + '</div>';
 }
+function renderPreEscala(){ renderPreEscalaBox('capital'); renderPreEscalaBox('interior'); }
 /* ===== fim Pré-escala CAPITAL ===== */
 
 /* ================= Lupa da linha da ordem =================
@@ -2969,25 +3020,26 @@ function renderPreEscala(){
    (cadastro + mapa do dia) e altera os três campos da ORDEM. Frotas fica de fora (veículo fixo). */
 let LUPA = null;   // {sec, id, sel, cands, curKeys}
 function lupaFindRow(){ return LUPA ? ((DATA[LUPA.sec] || []).find(r=> r.id === LUPA.id) || null) : null; }
-function lupaCandidates(exceptId){
+function lupaCandidates(exceptId, sec){
   const fixed = fixedSet();
   const m = new Map();
   const put = (k, o)=>{
     if(!k || fixed.has(k)) return;   // placa fixa de Frotas não é escalada em Capital/Interior
-    const cur = m.get(k) || {placa:k, motorista:'', transportadora:'', capital:false};
+    const cur = m.get(k) || {placa:k, motorista:'', transportadora:'', tipo:''};
     if(!cur.motorista && o.motorista) cur.motorista = clampMotorista(String(o.motorista).trim());
     if(!cur.transportadora && o.transportadora) cur.transportadora = String(o.transportadora).trim();
-    if(o.capital) cur.capital = true;
+    if(o.tipo && !cur.tipo) cur.tipo = o.tipo;
     m.set(k, cur);
   };
   for(const [k, v] of Object.entries(REGISTRY)){
-    if(v && typeof v === 'object') put(normPlaca(k), {motorista:v.motorista, transportadora:v.transportadora, capital: String(v.tipo || '').toLowerCase() === 'capital'});
+    if(v && typeof v === 'object') put(normPlaca(k), {motorista:v.motorista, transportadora:v.transportadora, tipo: String(v.tipo || '').toLowerCase()});
   }
   for(const sec of ['capital', 'interior']) for(const r of DATA[sec]) for(const k of plateSegs(r.placa)) put(k, {motorista:r.motorista, transportadora:r.transportadora});
   const out = Array.from(m.values());
   for(const c of out){ c.orders = plateOrdersToday(c.placa, exceptId); c.indisp = AVAILABILITY[c.placa] === false; }
-  // pré-escala Capital livre primeiro; depois os demais livres; escalados por último
-  out.sort((a, b)=> (b.capital - a.capital) || ((a.orders.length > 0) - (b.orders.length > 0)) ||
+  // pré-escala do tipo desta seção primeiro, depois a do outro tipo, depois os demais; livres antes de escalados
+  const rk = c=> c.tipo === sec ? 0 : (c.tipo ? 1 : 2);
+  out.sort((a, b)=> (rk(a) - rk(b)) || ((a.orders.length > 0) - (b.orders.length > 0)) ||
     a.transportadora.localeCompare(b.transportadora, 'pt-BR') || a.placa.localeCompare(b.placa));
   return out;
 }
@@ -3054,8 +3106,8 @@ function lupaRenderList(){
     if(LUPA.curKeys.includes(c.placa)) badge = '<span class="lupa-b cur">NESTA ORDEM</span>';
     else if(c.indisp) badge = '<span class="lupa-b ind">INDISPONÍVEL</span>';
     else if(c.orders.length) badge = '<span class="lupa-b esc">ESCALADO · ' + esc(c.orders.map(o=> o.carga).join('/')) + '</span>';
-    else if(c.capital) badge = '<span class="lupa-b pre">PRÉ-ESCALA</span>';
-    return '<button type="button" class="lupa-item' + (LUPA.sel === c.placa ? ' sel' : '') + '" data-lupa-pick="' + esc(c.placa) + '">' +
+    else if(c.tipo) badge = '<span class="lupa-b pre">PRÉ-ESCALA · ' + (c.tipo === 'capital' ? 'CAP.' : 'INT.') + '</span>';
+    return '<button type="button" class="lupa-item' + (c.indisp && !LUPA.curKeys.includes(c.placa) ? ' ind' : '') + (LUPA.sel === c.placa ? ' sel' : '') + '" data-lupa-pick="' + esc(c.placa) + '">' +
       '<span class="l-pl">' + esc(c.placa) + '</span><span class="l-m">' + (esc(c.motorista) || '—') + '</span>' +
       '<span class="l-t">' + (esc(c.transportadora) || '—') + '</span>' + badge + '</button>';
   }).join('') + (all.length > shown.length ? '<div class="hint" style="padding:4px 8px">…e mais ' + (all.length - shown.length) + ' veículo(s) — refine a busca.</div>' : '')
@@ -3076,7 +3128,7 @@ function openLupa(sec, id){
   const row = (DATA[sec] || []).find(r=> r.id === id);
   if(!row) return;
   if(row.stFech === 'fechado'){ toast('🔒 Carga FECHADA não pode ser alterada — reabra pelo ↺ do fechamento', 'err'); return; }
-  LUPA = {sec, id, sel:'', cands: lupaCandidates(id), curKeys: plateSegs(row.placa)};
+  LUPA = {sec, id, sel:'', cands: lupaCandidates(id, sec), curKeys: plateSegs(row.placa)};
   const set = (i, v)=>{ const e = document.getElementById(i); if(e) e.value = v; };
   const ttl = document.getElementById('lupa-title'); if(ttl) ttl.textContent = '🔍 Escala da ordem ' + (String(row.carga || '').trim() || '(sem nº)');
   const sub = document.getElementById('lupa-sub');
@@ -3450,7 +3502,7 @@ async function loadSettings(){
   if(reg && typeof reg === 'object'){
     for(const [k, v] of Object.entries(reg)) REGISTRY[normPlaca(k)] = v;
   }
-  seedCapitalEscala(); // Pré-escala Capital (planilha): atualiza transportadora/motorista das placas, uma vez por versão
+  seedEscalaPlanilha(); // Pré-escala Capital/Interior (planilha): atualiza transportadora/motorista das placas, uma vez por versão
   // tripulação/ajudantes de Frotas: os 5 veículos padrão sempre mesclados; o salvo pelo usuário tem prioridade
   {
     const m = {};
@@ -9580,7 +9632,7 @@ function fillSettingsUI(){
   $('#kw-interior').value = INTERIOR_KEYWORDS.join(', ');
   $$('.hc-chk').forEach(c=> c.checked = HIDDEN_COLS.includes(c.dataset.col));
   renderFrotaTripulacao();
-  renderCapitalEscala();
+  renderEscalaCadastro();
   renderRegistry();
   renderRotas();
   renderTranspCodes();
@@ -9598,17 +9650,20 @@ function renderFrotaTripulacao(){
     '</div>';
   }).join('') : '<div class="empty">Nenhuma tripulação cadastrada. Adicione abaixo.</div>';
 }
-function renderCapitalEscala(){
-  const wrap = $('#ce-rows'); if(!wrap) return;
-  const list = capitalEscalaList();
-  wrap.innerHTML = list.length ? list.map(v=>{
-    return '<div class="reg-row ce-row" data-key="'+esc(v.placa)+'">' +
-      '<input type="text" class="mono" data-ce="placa" value="'+esc(v.placa)+'" placeholder="placa">' +
-      '<input type="text" data-ce="motorista" maxlength="32" value="'+esc(v.motorista)+'" placeholder="motorista">' +
-      '<input type="text" data-ce="transportadora" value="'+esc(v.transportadora)+'" placeholder="transportadora">' +
-      '<button class="btn mini" data-act="ce-del" title="Tirar da pré-escala (o pré-cadastro da placa continua)">🗑</button>' +
-    '</div>';
-  }).join('') : '<div class="empty">Nenhum veículo em pré-escala. Adicione abaixo.</div>';
+const ESCALA_CFG = [{tipo:'capital', p:'ce'}, {tipo:'interior', p:'ie'}];
+function renderEscalaCadastro(){
+  for(const {tipo, p} of ESCALA_CFG){
+    const wrap = $('#' + p + '-rows'); if(!wrap) continue;
+    const list = escalaList(tipo);
+    wrap.innerHTML = list.length ? list.map(v=>{
+      return '<div class="reg-row ce-row" data-key="'+esc(v.placa)+'">' +
+        '<input type="text" class="mono" data-ce="placa" value="'+esc(v.placa)+'" placeholder="placa">' +
+        '<input type="text" data-ce="motorista" maxlength="32" value="'+esc(v.motorista)+'" placeholder="motorista">' +
+        '<input type="text" data-ce="transportadora" value="'+esc(v.transportadora)+'" placeholder="transportadora">' +
+        '<button class="btn mini" data-act="ce-del" title="Tirar da pré-escala (o pré-cadastro da placa continua)">🗑</button>' +
+      '</div>';
+    }).join('') : '<div class="empty">Nenhum veículo em pré-escala. Adicione abaixo.</div>';
+  }
 }
 function renderRotas(){
   const wrap = $('#rotas-rows');
@@ -10224,69 +10279,73 @@ function bindStatic(){
     }
   });
 
-  /* pré-escala Capital (Configurações) */
-  $('#btn-ce-add').addEventListener('click', ()=>{
-    if(!requireOperational()) return;
-    const k = normPlaca($('#ce-add-placa').value);
-    if(!k){ toast('Informe a placa do veículo de Capital', 'err'); return; }
-    const v = Object.assign({}, REGISTRY[k] || {});
-    v.tipo = 'capital';
-    v.motorista = clampMotorista($('#ce-add-mot').value.trim());
-    const tr = $('#ce-add-transp').value.trim();
-    if(tr) v.transportadora = tr;
-    v._seed = CAPITAL_SEED_V;   // edição manual: a atualização da planilha não sobrescreve mais
-    REGISTRY[k] = v;
-    saveSettings();
-    $('#ce-add-placa').value = ''; $('#ce-add-mot').value = ''; $('#ce-add-transp').value = '';
-    renderCapitalEscala(); renderRegistry(); renderAll();
-    toast('🚛 ' + k + ' na pré-escala Capital', 'ok');
-  });
-  $('#ce-rows').addEventListener('change', e=>{
-    if(!requireOperational()) return;
-    const t = e.target;
-    const rowEl = t.closest('[data-key]');
-    if(!rowEl) return;
-    const key = rowEl.dataset.key;
-    const f = t.dataset.ce;
-    const cur = REGISTRY[key];
-    if(!f || !cur) return;
-    if(f === 'placa'){
-      const nk = normPlaca(t.value);
-      if(!nk){ t.value = key; return; }
-      if(nk !== key){
-        const moved = Object.assign({}, REGISTRY[nk] || {}, {tipo:'capital', motorista: cur.motorista || '', _seed: CAPITAL_SEED_V});
-        if(cur.transportadora) moved.transportadora = cur.transportadora;
-        REGISTRY[nk] = moved;
-        // placa antiga sai da pré-escala mas o registro fica marcado (a atualização da planilha não a traz de volta)
-        const old = Object.assign({}, cur); delete old.tipo; old._seed = CAPITAL_SEED_V;
-        REGISTRY[key] = old;
+  /* pré-escala Capital e Interior (Configurações) */
+  for(const {tipo, p} of ESCALA_CFG){
+    const ver = ESCALA_SEED_V[tipo], nome = PE_TITULO[tipo];
+    $('#btn-' + p + '-add').addEventListener('click', ()=>{
+      if(!requireOperational()) return;
+      const k = normPlaca($('#' + p + '-add-placa').value);
+      if(!k){ toast('Informe a placa do veículo de ' + nome, 'err'); return; }
+      const v = Object.assign({}, REGISTRY[k] || {});
+      v.tipo = tipo;
+      v.motorista = clampMotorista($('#' + p + '-add-mot').value.trim());
+      const tr = $('#' + p + '-add-transp').value.trim();
+      if(tr) v.transportadora = tr;
+      v._seed = ver;   // edição manual: a atualização da planilha não sobrescreve mais
+      REGISTRY[k] = v;
+      saveSettings();
+      $('#' + p + '-add-placa').value = ''; $('#' + p + '-add-mot').value = ''; $('#' + p + '-add-transp').value = '';
+      renderEscalaCadastro(); renderRegistry(); renderAll();
+      toast('🚛 ' + k + ' na pré-escala ' + nome, 'ok');
+    });
+    $('#' + p + '-rows').addEventListener('change', e=>{
+      if(!requireOperational()) return;
+      const t = e.target;
+      const rowEl = t.closest('[data-key]');
+      if(!rowEl) return;
+      const key = rowEl.dataset.key;
+      const f = t.dataset.ce;
+      const cur = REGISTRY[key];
+      if(!f || !cur) return;
+      if(f === 'placa'){
+        const nk = normPlaca(t.value);
+        if(!nk){ t.value = key; return; }
+        if(nk !== key){
+          const moved = Object.assign({}, REGISTRY[nk] || {}, {tipo, motorista: cur.motorista || '', _seed: ver});
+          if(cur.transportadora) moved.transportadora = cur.transportadora;
+          REGISTRY[nk] = moved;
+          // placa antiga sai da pré-escala mas o registro fica marcado (a atualização da planilha não a traz de volta)
+          const old = Object.assign({}, cur); delete old.tipo; old._seed = ver;
+          REGISTRY[key] = old;
+        }
+      } else if(f === 'motorista'){
+        cur.motorista = clampMotorista(t.value.trim()); cur._seed = ver;
+      } else if(f === 'transportadora'){
+        cur.transportadora = t.value.trim(); cur._seed = ver;
       }
-    } else if(f === 'motorista'){
-      cur.motorista = clampMotorista(t.value.trim()); cur._seed = CAPITAL_SEED_V;
-    } else if(f === 'transportadora'){
-      cur.transportadora = t.value.trim(); cur._seed = CAPITAL_SEED_V;
-    }
-    saveSettings();
-    renderCapitalEscala(); renderRegistry(); renderAll();
-    toast('🚛 Pré-escala Capital atualizada (' + (f === 'placa' ? normPlaca(t.value) : key) + ')', 'ok');
-  });
-  $('#ce-rows').addEventListener('click', e=>{
-    if(!requireOperational()) return;
-    if(!e.target.closest('[data-act="ce-del"]')) return;
-    const rowEl = e.target.closest('[data-key]');
-    if(!rowEl) return;
-    const k = rowEl.dataset.key;
-    if(!REGISTRY[k]) return;
-    delete REGISTRY[k].tipo; REGISTRY[k]._seed = CAPITAL_SEED_V;
-    saveSettings();
-    renderCapitalEscala(); renderRegistry(); renderAll();
-    toast('🗑 ' + k + ' saiu da pré-escala Capital (pré-cadastro mantido)', 'ok');
-  });
-  /* painel Pré-escala no mapa: recolher/expandir (só visual — vale p/ qualquer nível) */
-  { const pe = $('#pre-escala-capital');
+      saveSettings();
+      renderEscalaCadastro(); renderRegistry(); renderAll();
+      toast('🚛 Pré-escala ' + nome + ' atualizada (' + (f === 'placa' ? normPlaca(t.value) : key) + ')', 'ok');
+    });
+    $('#' + p + '-rows').addEventListener('click', e=>{
+      if(!requireOperational()) return;
+      if(!e.target.closest('[data-act="ce-del"]')) return;
+      const rowEl = e.target.closest('[data-key]');
+      if(!rowEl) return;
+      const k = rowEl.dataset.key;
+      if(!REGISTRY[k]) return;
+      delete REGISTRY[k].tipo; REGISTRY[k]._seed = ver;
+      saveSettings();
+      renderEscalaCadastro(); renderRegistry(); renderAll();
+      toast('🗑 ' + k + ' saiu da pré-escala ' + nome + ' (pré-cadastro mantido)', 'ok');
+    });
+  }
+  /* painéis Pré-escala no mapa: recolher/expandir (só visual — vale p/ qualquer nível) */
+  for(const tipo of ['capital', 'interior']){
+    const pe = $('#pre-escala-' + tipo);
     if(pe) pe.addEventListener('click', e=>{
       if(!e.target.closest('[data-pe-toggle]')) return;
-      PE_COLLAPSED = !PE_COLLAPSED; renderPreEscala();
+      PE_COLLAPSED[tipo] = !PE_COLLAPSED[tipo]; renderPreEscalaBox(tipo);
     });
   }
   /* lupa 🔍 da linha da ordem */
@@ -10626,7 +10685,7 @@ async function init(){
 /* AUTO-CHECK DE VERSAO: avisa (somente quando roda em github.io) se a aba estiver com
    copia antiga em cache — compara o selo APP_V local com o do arquivo publicado no repo.
    Falha de rede/offline = silencioso; nunca bloqueia o uso. */
-const APP_V = '2026-10-27a';
+const APP_V = '2026-10-28a';
 (function(){
   // Selo de versão VISÍVEL no canto da tela: qualquer print/print-screen mostra qual código
   // está rodando no aparelho (cópia antiga = selo antigo/ausente). Não entra nas capturas.
