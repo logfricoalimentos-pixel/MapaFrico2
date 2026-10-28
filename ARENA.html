@@ -339,6 +339,8 @@ body.print-big-font .custo-cell{font-size:15px}
 .transp-add{grid-template-columns:1fr 72px 96px 34px}
 .trip-row,.trip-head{grid-template-columns:76px 1.25fr .9fr .9fr 28px}
 .trip-add{grid-template-columns:76px 1.25fr .9fr .9fr 34px}
+.ce-row,.ce-head{grid-template-columns:76px 1.3fr 1.1fr 28px}
+.ce-add{grid-template-columns:76px 1.3fr 1.1fr 34px}
 .fech-resumo tr.res-sub td{padding:2px 8px;line-height:1.25}
 .res-actions{display:flex;justify-content:flex-end;margin:0 0 8px}
 .res-actions #res-print{background:#dc2626;border-color:#b91c1c;color:#d1d5db;font-weight:700;font-size:14.5px;padding:9px 18px;border-radius:8px;box-shadow:0 2px 6px rgba(185,28,28,.35)}
@@ -394,42 +396,6 @@ body.print-big-font .custo-cell{font-size:15px}
 .dfd-opt:hover{background:#f1f5f9}
 .dfd-opt small{color:#64748b;margin-left:auto}
 .dfd-empty{font-size:12px;color:#64748b;padding:4px 6px}
-/* Filtro por QUINZENA (cabeçalho do Painel de Indicadores e do Mapa Gerencial):
-   botão + popover com três listas em cascata — ano → mês → quinzena. O período
-   do painel passa a ser a quinzena escolhida (Tudo = mês inteiro). */
-.qz-toggle,.mm-toggle{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:#fff;border-radius:8px;padding:4px 10px;font:inherit;font-size:12.5px;cursor:pointer;color:#334155}
-.qz-toggle:hover,.mm-toggle:hover{border-color:#94a3b8}
-.qz-toggle .dfd-caret,.mm-toggle .dfd-caret{font-size:9px;color:#64748b}
-.qz-toggle.active,.mm-toggle.active{background:#eff6ff;border-color:#93c5fd;color:#1d4ed8}
-.gerencial-head-actions .qz-toggle,.gerencial-head-actions .mm-toggle{background:rgba(255,255,255,.14);color:#f8fafc;border-color:rgba(255,255,255,.4);padding:4px 9px;font-size:12px}
-.gerencial-head-actions .qz-toggle:hover,.gerencial-head-actions .mm-toggle:hover{background:rgba(255,255,255,.3)}
-.gerencial-head-actions .qz-toggle.active,.gerencial-head-actions .mm-toggle.active{background:#fff;color:#0f172a;border-color:#fff}
-.qz-pop,.mm-pop{min-width:240px;max-height:none;gap:6px;padding:9px}
-/* filtro por MÊS: ➕ Add mês monta uma lista de meses (chips removíveis) no mesmo período */
-.mm-add{display:flex;align-items:center;gap:8px}
-.dfd-pop .mm-add .btn{background:#fff;color:#334155;border:1px solid var(--line);border-radius:7px;font-size:12px;padding:4px 9px;cursor:pointer;font-family:inherit;box-shadow:none}
-.dfd-pop .mm-add .btn:hover{border-color:#94a3b8}
-.dfd-pop .mm-add .btn:disabled{background:#f1f5f9;color:#94a3b8;cursor:not-allowed}
-.mm-hint{font-size:10.5px;color:#64748b}
-.mm-chips{display:flex;flex-wrap:wrap;gap:4px;min-height:20px}
-.mm-chip{display:inline-flex;align-items:center;gap:3px;background:#eff6ff;border:1px solid #bfdbfe;color:#1e3a8a;border-radius:999px;padding:2px 4px 2px 9px;font-size:11.5px}
-.mm-chip button{border:0;background:none;color:#1d4ed8;cursor:pointer;font:inherit;font-size:12px;line-height:1;padding:0 3px}
-.mm-chip button:hover{color:#b91c1c}
-.mm-empty{font-size:11.5px;color:#64748b}
-.mm-shortcuts{display:flex;gap:6px;flex-wrap:wrap}
-.mm-shortcuts button{border:1px solid var(--line);background:#f8fafc;border-radius:7px;padding:3px 9px;font:inherit;font-size:11.5px;color:#334155;cursor:pointer}
-.mm-shortcuts button:hover{border-color:#94a3b8}
-.qz-ctl{display:flex;flex-direction:column;gap:3px;font-size:10.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.3px}
-.qz-ctl select{border:1px solid var(--line);border-radius:7px;padding:5px 8px;font:inherit;font-size:12.5px;background:#fff;color:var(--ink);text-transform:none;letter-spacing:0;cursor:pointer}
-.qz-ctl select:focus{border-color:var(--blue);outline:none;box-shadow:0 0 0 3px rgba(37,99,235,.12)}
-.qz-ctl select:disabled{background:#f8fafc;color:#94a3b8;cursor:not-allowed}
-.qz-faixa{font-size:11.5px;color:#64748b;min-height:14px}
-.qz-actions{display:flex;gap:6px;justify-content:flex-end;border-top:1px solid var(--line);padding-top:7px;margin-top:2px}
-.dfd-pop .qz-actions .btn{background:#fff;color:#334155;border:1px solid var(--line);border-radius:7px;font-size:12px;padding:4px 10px;cursor:pointer;font-family:inherit;box-shadow:none}
-.dfd-pop .qz-actions .btn.primary{background:#2563eb;border-color:#1d4ed8;color:#fff}
-.dfd-pop .qz-actions .btn:hover{border-color:#94a3b8}
-.dfd-pop .qz-actions .btn.primary:hover{background:#1d4ed8}
-.dfd-pop .qz-actions .btn:disabled{background:#f1f5f9;color:#94a3b8;border-color:var(--line);cursor:not-allowed}
 .painel-head h2{font-size:15px}
 .painel-tabs{display:flex;gap:6px;margin-left:auto}
 .tab{border:1px solid var(--line);background:#fff;border-radius:8px;padding:6px 12px;font:inherit;font-size:13px;cursor:pointer;color:#334155}
@@ -812,6 +778,48 @@ body.readonly .sec-actions{display:none}
 .edc-grid label{display:flex;flex-direction:column;gap:3px;font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.3px}
 .edc-grid input,.edc-grid select{border:1px solid var(--line);border-radius:6px;padding:6px 8px;font:inherit;font-size:12.5px;background:#fff;width:100%;min-width:0}
 .edc-grid input:focus,.edc-grid select:focus{border-color:var(--blue);outline:none}
+/* ===== Pré-escala CAPITAL (status visual) · lupa 🔍 da linha da ordem ===== */
+.pre-escala{margin:0 0 8px;border:1px solid #ddd6fe;border-radius:10px;background:#faf8ff;padding:8px 10px}
+.pre-escala[hidden]{display:none}
+.pe-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:12.5px;color:#4c1d95}
+.pe-head b{letter-spacing:.3px}
+.pe-count{font-size:11.5px;color:#6b21a8}
+.pe-toggle{margin-left:auto;border:1px solid #ddd6fe;background:#fff;border-radius:6px;padding:1px 8px;font-size:12px;cursor:pointer;color:#4c1d95}
+.pe-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:6px;margin-top:8px}
+.pe-grid[hidden]{display:none}
+.pe-chip{display:flex;flex-direction:column;gap:1px;border:1px solid #e9d5ff;border-left-width:4px;border-radius:8px;background:#fff;padding:5px 8px;min-width:0}
+.pe-line{display:flex;align-items:center;gap:6px;min-width:0}
+.pe-plate{font:700 12.5px var(--mono);letter-spacing:.5px;color:#0f172a}
+.pe-mot,.pe-tr{font-size:11.5px;color:#334155;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pe-tr{color:#64748b;font-size:11px}
+.pe-st,.lupa-b{margin-left:auto;font-size:10px;font-weight:800;letter-spacing:.4px;border-radius:999px;padding:1px 8px;white-space:nowrap}
+.pe-chip.pe-pre{border-left-color:#f59e0b}
+.pe-chip.pe-escalado{border-left-color:#16a34a}
+.pe-chip.pe-indisp{border-left-color:#dc2626}
+.pe-pre .pe-st,.lupa-b.pre{background:#fef3c7;color:#92400e;border:1px solid #fde68a}
+.pe-escalado .pe-st,.lupa-b.esc{background:#dcfce7;color:#166534;border:1px solid #bbf7d0}
+.pe-indisp .pe-st,.lupa-b.ind{background:#fee2e2;color:#991b1b;border:1px solid #fecaca}
+.lupa-b.cur{background:#dbeafe;color:#1e40af;border:1px solid #bfdbfe}
+.lupa-btn{font-size:12px;line-height:1;cursor:pointer}
+body.readonly .lupa-btn{display:none}
+#capture-root.capturing .lupa-btn,#capture-root.capturing .pre-escala{display:none !important}
+@media print{.lupa-btn,.pre-escala{display:none !important}}
+#lupa-mask{position:fixed;inset:0;z-index:470;background:rgba(15,23,42,.6);display:flex;align-items:center;justify-content:center;padding:16px}
+#lupa-mask[hidden]{display:none}
+.modal-lupa{width:min(680px,94vw);max-height:92vh;overflow:auto}
+.lupa-search{width:100%;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font:inherit;font-size:14px;background:#fff}
+.lupa-search:focus{border-color:var(--blue);outline:none}
+.lupa-list{display:flex;flex-direction:column;gap:4px;margin:8px 0;max-height:260px;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:4px;background:#f8fafc}
+.lupa-item{display:grid;grid-template-columns:84px 1.3fr 1.1fr 132px;gap:8px;align-items:center;text-align:left;width:100%;border:1px solid transparent;background:#fff;border-radius:6px;padding:5px 8px;font:inherit;font-size:12.5px;cursor:pointer;color:var(--ink)}
+.lupa-item:hover{background:#eff6ff;border-color:#bfdbfe}
+.lupa-item.sel{background:#dbeafe;border-color:#60a5fa}
+.lupa-item .l-pl{font:700 12.5px var(--mono);letter-spacing:.5px}
+.lupa-item .l-m,.lupa-item .l-t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lupa-item .l-t{color:var(--muted)}
+.lupa-item .lupa-b{margin-left:0;justify-self:end;max-width:132px;overflow:hidden;text-overflow:ellipsis}
+.lupa-warn{border:1px solid #fde68a;background:#fffbeb;color:#92400e;border-radius:8px;padding:6px 10px;font-size:12px;line-height:1.5;margin:4px 0}
+.lupa-warn[hidden]{display:none}
+@media (max-width:560px){.lupa-item{grid-template-columns:78px 1fr 110px}.lupa-item .l-t{grid-column:1/-1}}
 .cmp-ctrl{display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin:8px 0 4px}
 .cmp-ctrl label{display:flex;flex-direction:column;gap:3px;font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.3px}
 .cmp-ctrl select{border:1px solid var(--line);border-radius:6px;padding:5px 7px;font-size:12px;background:#fff}
@@ -1154,49 +1162,9 @@ html.gerencial-request #settings{display:none!important}
          Indicadores & Fechamento; ambos gravam no mesmo período compartilhado (DASH.period/preset) -->
     <div class="gm-period-ctl" role="group" aria-label="Período do Mapa Gerencial (sincronizado com os Indicadores)">
       <button class="btn gm-chip chip-preset no-print" type="button" data-preset="7d">Últimos 7 dias</button>
-      <!-- Período por MÊS: substitui os atalhos "Este mês / Mês passado / Este trimestre".
-           ANO + MÊS + ➕ Add mês permite VÁRIOS meses no mesmo período (1 mês = o mês;
-           3 meses = o trimestre). Grava o mesmo DASH.period/preset dos Indicadores. -->
-      <div class="dfd-box mm-box" id="gm-mm-box">
-        <button class="mm-toggle no-print" type="button" id="gm-mm-toggle" aria-haspopup="true" aria-expanded="false" title="Filtrar por mês: escolha o ano e o mês e clique em ➕ Add mês (pode somar vários meses) — substitui os presets e o De/Até">
-          <span id="gm-mm-label">📅 Meses</span><span class="dfd-caret">▼</span>
-        </button>
-        <div class="dfd-pop mm-pop no-print" id="gm-mm-pop" hidden>
-          <label class="qz-ctl" title="Ano dos meses (anos do histórico/fechamentos + ano atual)">Ano<select id="gm-mm-ano"></select></label>
-          <label class="qz-ctl" title="Mês a adicionar (os 12 meses do ano escolhido)">Mês<select id="gm-mm-mes" disabled></select></label>
-          <div class="mm-add">
-            <button class="btn" type="button" id="gm-mm-add" disabled title="Adiciona o mês escolhido à lista">➕ Add mês</button>
-            <span class="mm-hint">pode adicionar vários (inclusive de anos diferentes)</span>
-          </div>
-          <div class="mm-chips" id="gm-mm-chips"><span class="mm-empty">nenhum mês adicionado</span></div>
-          <div class="mm-shortcuts">
-            <button type="button" data-mm-short="lastmonth" title="Adiciona o mês passado à lista">↩ Mês passado</button>
-            <button type="button" data-mm-short="quarter" title="Adiciona os 3 meses deste trimestre à lista">📆 Este trimestre</button>
-          </div>
-          <div class="qz-faixa" id="gm-mm-faixa"></div>
-          <div class="qz-actions">
-            <button class="btn" type="button" id="gm-mm-clear" title="Limpar o filtro e voltar ao período livre (7 dias / De-Até)">Limpar</button>
-            <button class="btn primary" type="button" id="gm-mm-apply" title="Aplicar os meses escolhidos como período dos dois painéis" disabled>Aplicar</button>
-          </div>
-        </div>
-      </div>
-      <!-- Filtro por QUINZENA (compartilhado com o Painel de Indicadores): grava o mesmo
-           DASH.period/preset e mantém os dois painéis no período escolhido. -->
-      <div class="dfd-box qz-box" id="gm-qz-box">
-        <button class="qz-toggle no-print" type="button" id="gm-qz-toggle" aria-haspopup="true" aria-expanded="false" title="Filtrar por quinzena: escolha ano, mês e quinzena (Tudo = mês inteiro) — substitui os presets e o De/Até">
-          <span id="gm-qz-label">🗓 Quinzenas</span><span class="dfd-caret">▼</span>
-        </button>
-        <div class="dfd-pop qz-pop no-print" id="gm-qz-pop" hidden>
-          <label class="qz-ctl" title="Ano da quinzena (anos do histórico/fechamentos + ano atual)">Ano<select id="gm-qz-ano"></select></label>
-          <label class="qz-ctl" title="Mês da quinzena (os 12 meses do ano escolhido)">Mês<select id="gm-qz-mes" disabled></select></label>
-          <label class="qz-ctl" title="Tudo = mês inteiro · Só a 1ª = dias 1 a 15 · Só a 2ª = dia 16 ao fim do mês">Quinzena<select id="gm-qz-q" disabled></select></label>
-          <div class="qz-faixa" id="gm-qz-faixa"></div>
-          <div class="qz-actions">
-            <button class="btn" type="button" id="gm-qz-clear" title="Limpar o filtro e voltar ao período livre (presets / De-Até)">Limpar</button>
-            <button class="btn primary" type="button" id="gm-qz-apply" title="Aplicar a quinzena como período dos dois painéis">Aplicar</button>
-          </div>
-        </div>
-      </div>
+      <button class="btn gm-chip chip-preset no-print" type="button" data-preset="month">Este mês</button>
+      <button class="btn gm-chip chip-preset no-print" type="button" data-preset="lastmonth">Mês passado</button>
+      <button class="btn gm-chip chip-preset no-print" type="button" data-preset="quarter">Este trimestre</button>
       <label class="gerencial-date-control">De <input type="date" id="gm-period-start"></label>
       <label class="gerencial-date-control">Até <input type="date" id="gm-period-end"></label>
       <label class="gerencial-date-control" title="Dia de referência: âncora dos presets de período"><span title="Dia de referência: âncora dos presets de período">Faturamento</span><input type="date" id="gerencial-date"></label>
@@ -1226,48 +1194,6 @@ html.gerencial-request #settings{display:none!important}
       <label class="chk" title="Somente cargas FECHADAS p/ pagamento"><input type="radio" name="dash-stf" value="fechadas"> Fechadas</label>
       <label class="chk" title="Pendentes + Concluídas (não fechadas)"><input type="radio" name="dash-stf" value="abertas"> Em Aberto</label>
       <label class="chk" title="Todas as cargas, independente do status"><input type="radio" name="dash-stf" value="todas" checked> Todas</label>
-    </div>
-    <!-- Período por MÊS (mesmo controle do cabeçalho gerencial): ANO + MÊS + ➕ Add mês,
-         com vários meses no mesmo período — 1 mês = o mês; 3 meses = o trimestre. -->
-    <div class="dfd-box mm-box" id="mm-box">
-      <button class="mm-toggle" type="button" id="mm-toggle" aria-haspopup="true" aria-expanded="false" title="Filtrar por mês: escolha o ano e o mês e clique em ➕ Add mês (pode somar vários meses) — substitui os presets e o De/Até">
-        <span id="mm-label">📅 Meses</span><span class="dfd-caret">▼</span>
-      </button>
-      <div class="dfd-pop mm-pop" id="mm-pop" hidden>
-        <label class="qz-ctl" title="Ano dos meses (anos do histórico/fechamentos + ano atual)">Ano<select id="mm-ano"></select></label>
-        <label class="qz-ctl" title="Mês a adicionar (os 12 meses do ano escolhido)">Mês<select id="mm-mes" disabled></select></label>
-        <div class="mm-add">
-          <button class="btn" type="button" id="mm-add" disabled title="Adiciona o mês escolhido à lista">➕ Add mês</button>
-          <span class="mm-hint">pode adicionar vários (inclusive de anos diferentes)</span>
-        </div>
-        <div class="mm-chips" id="mm-chips"><span class="mm-empty">nenhum mês adicionado</span></div>
-        <div class="mm-shortcuts">
-          <button type="button" data-mm-short="lastmonth" title="Adiciona o mês passado à lista">↩ Mês passado</button>
-          <button type="button" data-mm-short="quarter" title="Adiciona os 3 meses deste trimestre à lista">📆 Este trimestre</button>
-        </div>
-        <div class="qz-faixa" id="mm-faixa"></div>
-        <div class="qz-actions">
-          <button class="btn" type="button" id="mm-clear" title="Limpar o filtro e voltar ao período livre (7 dias / De-Até)">Limpar</button>
-          <button class="btn primary" type="button" id="mm-apply" title="Aplicar os meses escolhidos como período dos dois painéis" disabled>Aplicar</button>
-        </div>
-      </div>
-    </div>
-    <!-- Filtro por QUINZENA: o mesmo do cabeçalho do Mapa Gerencial (DASH.period/preset);
-         períodos contínuos, sem sobrepor dias — Tudo = mês inteiro. -->
-    <div class="dfd-box qz-box" id="qz-box">
-      <button class="qz-toggle" type="button" id="qz-toggle" aria-haspopup="true" aria-expanded="false" title="Filtrar por quinzena: escolha ano, mês e quinzena (Tudo = mês inteiro) — substitui os presets e o De/Até">
-        <span id="qz-label">🗓 Quinzenas</span><span class="dfd-caret">▼</span>
-      </button>
-      <div class="dfd-pop qz-pop" id="qz-pop" hidden>
-        <label class="qz-ctl" title="Ano da quinzena (anos do histórico/fechamentos + ano atual)">Ano<select id="qz-ano"></select></label>
-        <label class="qz-ctl" title="Mês da quinzena (os 12 meses do ano escolhido)">Mês<select id="qz-mes" disabled></select></label>
-        <label class="qz-ctl" title="Tudo = mês inteiro · Só a 1ª = dias 1 a 15 · Só a 2ª = dia 16 ao fim do mês">Quinzena<select id="qz-q" disabled></select></label>
-        <div class="qz-faixa" id="qz-faixa"></div>
-        <div class="qz-actions">
-          <button class="btn" type="button" id="qz-clear" title="Limpar o filtro e voltar ao período livre (presets / De-Até)">Limpar</button>
-          <button class="btn primary" type="button" id="qz-apply" title="Aplicar a quinzena como período dos dois painéis">Aplicar</button>
-        </div>
-      </div>
     </div>
     <div class="dash-fech-dates" id="dash-fech-dates" hidden>
       <span class="dash-stf-k">Fechadas em:</span>
@@ -1307,12 +1233,13 @@ html.gerencial-request #settings{display:none!important}
   <div id="tab-periodo" class="tab-panel" hidden>
     <div class="period-controls">
       <button class="tab chip-preset active" data-preset="7d">Últimos 7 dias</button>
-      <!-- período por mês (vários meses) agora no cabeçalho: botão 📅 Meses -->
+      <button class="tab chip-preset" data-preset="month">Este mês</button>
+      <button class="tab chip-preset" data-preset="lastmonth">Mês passado</button>
+      <button class="tab chip-preset" data-preset="quarter">Este trimestre</button>
       <label>De <input type="date" id="period-start"></label>
       <label>Até <input type="date" id="period-end"></label>
     </div>
     <div id="dash-period-kpis" class="kpis-wrap"></div>
-    <p id="dash-period-note" class="dash-note" hidden></p>
     <h3>Evolução do custo no período <small>(com negociação · Capital × Interior)</small></h3>
     <div class="gran-toggle">
       <button class="gran-btn active" data-gran="daily">Diário</button>
@@ -1343,6 +1270,7 @@ html.gerencial-request #settings{display:none!important}
       </ul>
       <h4>Pontos de melhoria incluídos nesta versão (auditoria)</h4>
       <ul>
+        <li><b>🚛 Pré-escala Capital + 🔍 lupa da ordem</b>: os veículos de <b>Capital</b> da planilha de motoristas estão no Pré-cadastro (placa → <b>transportadora</b> e <b>motorista</b>) e aparecem no painel <b>PRÉ-ESCALA · CAPITAL</b> do mapa — <b>só status visual</b> (amarelo = pré-escala · verde = escalado em ordem · vermelho = indisponível); não vira carga e não entra em totais, frete, fechamento ou prints. Em cada linha de <b>Capital e Interior</b>, o botão <b>🔍</b> (coluna de ações) busca por placa, motorista ou transportador e <b>altera veículo, motorista e transportador</b> da ordem. Cadastro editável em Configurações → Pré-escala Capital.</li>
         <li><b>Capturas 📷 em layout dedicado A4 paisagem</b> (colunas medidas pelo conteúdo, <b>larguras iguais nas 3 tabelas</b> — <b>nada de texto cortado ou oculto</b>): os dois prints mostram Placa, Destino, Nº Carga, Peso, T.Entrega, Motorista e Ajud./Transportador, mais os cards Cargas/Peso total/Entregas, no <b>modelo visual novo</b> (banner azul, faixas de seção, zebrado e cards com ícone). As colunas Vlr Kg, Neg?, Previsão, Custo Médio e Valor Frete nunca aparecem nas imagens.</li>
         <li><b>📊 Planejamento de Transporte</b>: relatório Capital × Interior × Total com Veículos (cargas), Entregas e Peso em TON (kg ÷ 1000, 2 casas, sem zeros finais) — Frotas não entra.</li>
         <li><b>🏷 Etiquetas SEMPRE em A4 RETRATO</b>: uma etiqueta por carga (9×5,5cm, 10 por página — 2 colunas × 5 linhas), impressa por um documento próprio e isolado, então a orientação não depende do CSS da tela nem de outro relatório (nada de página saindo deitada).</li>
@@ -1402,6 +1330,7 @@ html.gerencial-request #settings{display:none!important}
         <button class="btn mini" data-conclui="capital" title="Marca as linhas ✓ como CONCLUÍDA (entrega finalizada) — a linha fica verde claro. Se todas as marcadas já estiverem Concluída, volta tudo p/ Pendente">✔ Concluir</button>
       </div>
     </div>
+    <div id="pre-escala-capital" class="pre-escala" hidden></div>
     <div class="table-scroll" id="sec-capital"></div>
   </div>
 
@@ -1458,6 +1387,19 @@ html.gerencial-request #settings{display:none!important}
       <input id="trip-add-ajud" placeholder="1º ajudante">
       <input id="trip-add-ajud2" placeholder="2º ajudante">
       <button class="btn mini" id="btn-trip-add" title="Adicionar">＋</button>
+    </div>
+  </section>
+
+  <section id="sec-capital-escala">
+    <h3>🚛 Pré-escala Capital (veículo · motorista · transportadora)</h3>
+    <p class="hint">Veículos do tipo <b>Capital</b> em pré-escala: aparecem no painel <b>Pré-escala</b> do mapa (<b>só status visual</b> — não viram carga nem entram em totais) e na busca 🔍 da linha da ordem. O <b>motorista</b> preenche a linha quando a placa é digitada/importada com o campo vazio. A <b>transportadora</b> é a mesma do Pré-cadastro de placas. Seus valores têm prioridade. 🗑 tira o veículo da pré-escala (o pré-cadastro da placa continua).</p>
+    <div class="reg-head ce-head"><span>Placa</span><span>Motorista</span><span>Transportadora</span><span></span></div>
+    <div id="ce-rows" class="reg-rows"></div>
+    <div class="reg-add ce-add">
+      <input id="ce-add-placa" class="mono" placeholder="placa">
+      <input id="ce-add-mot" maxlength="32" placeholder="motorista">
+      <input id="ce-add-transp" placeholder="transportadora">
+      <button class="btn mini" id="btn-ce-add" title="Adicionar à pré-escala Capital">＋</button>
     </div>
   </section>
 
@@ -1753,6 +1695,25 @@ html.gerencial-request #settings{display:none!important}
     <div class="modal-actions">
       <button class="btn" type="button" id="edc-cancel">Cancelar</button>
       <button class="btn primary" type="button" id="edc-save">💾 Salvar no mapa</button>
+    </div>
+  </div>
+</div>
+<div id="lupa-mask" class="no-print" hidden>
+  <div class="modal modal-lupa" role="dialog" aria-modal="true" aria-labelledby="lupa-title">
+    <div class="fech-head"><h3 id="lupa-title">🔍 Escala da ordem</h3><button class="x" type="button" id="lupa-x" title="Fechar sem salvar">✕</button></div>
+    <p class="hint" id="lupa-sub"></p>
+    <input type="search" id="lupa-q" class="lupa-search" placeholder="Buscar veículo por placa, motorista ou transportador…" autocomplete="off">
+    <div id="lupa-list" class="lupa-list"></div>
+    <div class="edc-grid">
+      <label>Placa (veículo)<input id="lupa-placa" class="mono" maxlength="40" autocomplete="off"></label>
+      <label>Motorista<input id="lupa-mot" maxlength="32" autocomplete="off"></label>
+      <label>Transportador<input id="lupa-transp" maxlength="40" autocomplete="off"></label>
+    </div>
+    <div class="lupa-warn" id="lupa-warn" hidden></div>
+    <p class="hint">Clique num veículo da lista para preencher os três campos (dá para ajustar à mão antes de aplicar). Vale só para <b>esta ordem</b>; Vlr Kg / Neg? seguem o cadastro da nova placa, como ao digitar a placa na linha.</p>
+    <div class="modal-actions">
+      <button class="btn" type="button" id="lupa-cancel">Cancelar</button>
+      <button class="btn primary" type="button" id="lupa-save">💾 Aplicar na ordem</button>
     </div>
   </div>
 </div>
@@ -2055,6 +2016,31 @@ const DEFAULT_REGISTRY_RAW = [
 ];
 const DEFAULT_REGISTRY = {};
 for(const [p, t] of DEFAULT_REGISTRY_RAW) DEFAULT_REGISTRY[normPlaca(p)] = {transportadora: t};
+
+/* ===== Pré-escala CAPITAL — planilha cadastro_motorista.xlsx (tipo CAPITAL) · 27/10/2026 =====
+   [placa, motorista, transportadora]. Cada veículo vira entrada do Pré-cadastro de placas com
+   tipo:'capital' + motorista. O cadastro SALVO substitui o padrão do código, então a atualização é
+   aplicada UMA vez por placa (marca _seed = CAPITAL_SEED_V) e, depois disso, o que o usuário
+   editar em Configurações tem prioridade. Para reaplicar uma planilha nova, troque a versão. */
+const CAPITAL_SEED_V = '2026-10-27';
+const DEFAULT_CAPITAL_ESCALA_RAW = [
+  ['CZC2919','RODRIGO PEREIRA DE JESUS','TRANSP. DANILO'],
+  ['TGK4D11','EVERTON FLORENTINO','TRANSP. EVERTON'],
+  ['PRO0D73','GLEISON ALVES DE LIM','TRANSP. GLEISON'],
+  ['REK7D83','ILDEMIR AUGUSTO GONÇALVES','TRANSP. ILDEMIR'],
+  ['PQO8358','JADERSON MARCELINO DE CASTILHO','TRANSP. JADERSON'],
+  ['JKL0G11','REILER DE SOUZA SILVA','TRANSP. JADERSON'],
+  ['KFB8419','LUCIANO JOSE DE OLIVEIRA','TRANSP. LUCIANO'],
+  ['HEB4H69','MARCIO ROSA DE SOUSA','TRANSP. MARCIO'],
+  ['OND0B48','PEDRO SOUSA SANTOS','TRANSP. PEDRO'],
+  ['NKU2C52','RAFAEL AGUIAR TELES','TRANSP. RAFAEL AGUIAR'],
+  ['ONQ5D83','RICARDO GONÇALVES GRACIANO','TRANSP. RICARDO'],
+  ['FFW4J99','ROBERTO ALVES FERNANDES','TRANSP. ROBERTO'],
+  ['OMJ3C34','RODRIGO MARCIO SANTANA RESENDE','TRANSP. RODRIGO R'],
+  ['NKH7C02','SEBASTIAO DAMACENO ROSA SOBRINHO','TRANSP. SEBASTIAO ROSA'],
+  ['NGD9A75','VALDIR APARECIDO RODRIGUES DA SI','TRANSP. VALDIR'],
+  ['RBY2D00','WILMAR ANTONIO DA SILVA','TRANSP. WILMAR']
+];
 
 /* Faixas de peso -> tipo do veículo (mesma regra da calculadora Python:
    800=FIORINO · 1850=HR · 2200=VUC · 4000=3/4 · 8000=TOCO · TRUCK até 17000; acima = N/A) */
@@ -2492,6 +2478,8 @@ function applyRegistry(row){
   const reg = k ? REGISTRY[k] : null;
   if(!reg) return;
   if(reg.transportadora) row.transportadora = reg.transportadora;
+  // motorista do cadastro (Pré-escala Capital): só preenche quando a linha está SEM motorista
+  if(reg.motorista && !String(row.motorista==null?'':row.motorista).trim()) row.motorista = clampMotorista(reg.motorista);
   if(reg.ajudantes !== undefined && reg.ajudantes !== '') row.ajudantes = reg.ajudantes;
   if(reg.valorKg !== undefined && reg.valorKg !== '' && reg.valorKg !== null) row.valorKg = reg.valorKg;
   if(reg.neg !== undefined && reg.neg !== ''){
@@ -2499,6 +2487,25 @@ function applyRegistry(row){
     const nn = String(reg.neg).trim().toLowerCase();
     row.neg = (nn === 'sim' || nn === 's') ? 'Sim' : (nn === 'não' || nn === 'nao' || nn === 'n') ? 'Não' : reg.neg;
   }
+}
+/* Atualiza o Pré-cadastro com a Pré-escala Capital (planilha). Idempotente: a placa já marcada com a
+   versão atual (_seed) é preservada — vale o que o usuário editou depois. Devolve quantas placas mudou. */
+function seedCapitalEscala(){
+  let changed = 0;
+  for(const [placa, motorista, transp] of DEFAULT_CAPITAL_ESCALA_RAW){
+    const k = normPlaca(placa);
+    if(!k) continue;
+    const cur = REGISTRY[k];
+    if(cur && cur._seed === CAPITAL_SEED_V) continue;
+    const v = Object.assign({}, cur || {});
+    v.transportadora = transp;
+    v.motorista = clampMotorista(String(motorista).trim());
+    v.tipo = 'capital';
+    v._seed = CAPITAL_SEED_V;
+    REGISTRY[k] = v;
+    changed++;
+  }
+  return changed;
 }
 /* preenche o campo "dias" a partir do cadastro de diárias por rota:
    1º por Nº Carga (nº da rota) · 2º por nome da rota/destino (busca "contém") */
@@ -2646,7 +2653,7 @@ function sectionCols(sec){
   // full:true -> coluna se ajusta ao tamanho total do texto (sem limite prático)
   const cols = [
     {key:'sel',      icon:true, label:'<span class="th-mini" title="marcar/desmarcar cargas">✓</span>'},
-    {key:'move',     icon:true, label:'<span class="th-mini" title="ações da linha: seção e excluir">⋯</span>'},
+    {key:'move',     icon:true, label:'<span class="th-mini" title="ações da linha: 🔍 buscar/alterar escala (Capital e Interior), seção e excluir">⋯</span>'},
     {key:'placa',    label:'Placa', cls:'mono'},
     {key:'destino',  label:'Destino', full:true},
     {key:'carga',    label:'Nº Carga', cls:'mono', full:true},
@@ -2693,6 +2700,7 @@ function cellHtml(sec, r, c, x){
       return '<td class="icon"><input type="checkbox"' + (r._sel?' checked':'') + ' data-act="sel" title="marcar linhas (mesclar ⇄ / concluir ✔)"></td>';
     case 'move':
       return '<td class="icon">' +
+        (sec !== 'frotas' ? '<button class="btn mini lupa-btn" type="button" data-act="lupa" title="🔍 Buscar / alterar veículo, motorista e transportador desta ordem">🔍</button> ' : '') +
         '<select data-act="move" title="mover para outra seção">' +
           SECTIONS.map(s=>'<option value="'+s+'"'+(s===sec?' selected':'')+'>'+(s==='frotas'?'Frotas':s==='capital'?'Capital':'Interior')+'</option>').join('') +
         '</select> ' +
@@ -2902,6 +2910,207 @@ function renderFooter(){
     '<div class="sum-card" data-col="frete">' + MIC.truck + '<div><span class="sum-k">Previsão frete Cap.+Int.</span><span class="sum-v">'+fmtBRL(ft)+'</span></div></div>' +
     '<div class="sum-card" data-col="custoMedio">' + MIC.weight + '<div><span class="sum-k">Custo médio Cap.+Int.</span><span class="sum-v">'+(fp>0? 'R$ '+(ft/fp).toLocaleString('pt-BR',{minimumFractionDigits:2, maximumFractionDigits:2})+'/kg' : '—')+'</span></div></div>';
 }
+
+/* ================= Pré-escala CAPITAL (status visual) =================
+   Veículos cadastrados com tipo 'capital' (Configurações → Pré-escala Capital). É só um STATUS VISUAL
+   derivado do cadastro + mapa do dia: NÃO cria linha nem carga e não entra em nenhum total/relatório. */
+let PE_COLLAPSED = false;
+function capitalEscalaList(){
+  const out = [];
+  for(const [k, v] of Object.entries(REGISTRY)){
+    if(!v || typeof v !== 'object' || String(v.tipo || '').toLowerCase() !== 'capital') continue;
+    out.push({placa: normPlaca(k), motorista: String(v.motorista || ''), transportadora: String(v.transportadora || '')});
+  }
+  out.sort((a, b)=> a.transportadora.localeCompare(b.transportadora, 'pt-BR') || a.placa.localeCompare(b.placa));
+  return out;
+}
+/* ordens (Nº Carga) em que a placa já está escalada no mapa do dia (exceto a linha exceptId) */
+function plateOrdersToday(k, exceptId){
+  const out = [];
+  for(const sec of SECTIONS) for(const r of DATA[sec]){
+    if(r.id === exceptId || !rowTemCarga(r)) continue;
+    if(plateSegs(r.placa).includes(k)) out.push({sec, carga: String(r.carga).trim()});
+  }
+  return out;
+}
+function preEscalaStatus(k){
+  const orders = plateOrdersToday(k);
+  if(AVAILABILITY[k] === false) return {st:'indisp', label:'INDISPONÍVEL', orders};
+  if(orders.length) return {st:'escalado', label:'ESCALADO', orders};
+  return {st:'pre', label:'PRÉ-ESCALA', orders};
+}
+function renderPreEscala(){
+  const el = document.getElementById('pre-escala-capital');
+  if(!el) return;
+  const list = capitalEscalaList();
+  if(!list.length){ el.hidden = true; el.innerHTML = ''; return; }
+  el.hidden = false;
+  let nPre = 0, nEsc = 0, nInd = 0;
+  const chips = list.map(v=>{
+    const s = preEscalaStatus(v.placa);
+    if(s.st === 'pre') nPre++; else if(s.st === 'escalado') nEsc++; else nInd++;
+    const ords = s.orders.map(o=> o.carga);
+    const ttl = v.placa + ' — ' + (v.motorista || 'sem motorista') + ' — ' + (v.transportadora || 'sem transportadora') + ' — ' + s.label + (ords.length ? ' (ordem ' + ords.join(', ') + ')' : '');
+    return '<div class="pe-chip pe-' + s.st + '" title="' + esc(ttl) + '">' +
+      '<div class="pe-line"><span class="pe-plate">' + esc(v.placa) + '</span><span class="pe-st">' + s.label + (ords.length ? ' · ' + esc(ords.join('/')) : '') + '</span></div>' +
+      '<div class="pe-mot">' + (esc(v.motorista) || '—') + '</div>' +
+      '<div class="pe-tr">' + (esc(v.transportadora) || '—') + '</div></div>';
+  }).join('');
+  const resumo = nPre + ' em pré-escala · ' + nEsc + ' escalado(s)' + (nInd ? ' · ' + nInd + ' indisponível(is)' : '');
+  el.innerHTML = '<div class="pe-head"><b>PRÉ-ESCALA · CAPITAL</b>' +
+    '<span class="pe-count" title="Status visual: não conta como carga nem entra em totais">' + resumo + '</span>' +
+    '<button type="button" class="pe-toggle" data-pe-toggle title="Recolher / expandir">' + (PE_COLLAPSED ? '▸ mostrar' : '▾ recolher') + '</button></div>' +
+    '<div class="pe-grid"' + (PE_COLLAPSED ? ' hidden' : '') + '>' + chips + '</div>';
+}
+/* ===== fim Pré-escala CAPITAL ===== */
+
+/* ================= Lupa da linha da ordem =================
+   🔍 na linha de cada carga de Capital/Interior: busca veículo (placa), motorista e transportador
+   (cadastro + mapa do dia) e altera os três campos da ORDEM. Frotas fica de fora (veículo fixo). */
+let LUPA = null;   // {sec, id, sel, cands, curKeys}
+function lupaFindRow(){ return LUPA ? ((DATA[LUPA.sec] || []).find(r=> r.id === LUPA.id) || null) : null; }
+function lupaCandidates(exceptId){
+  const fixed = fixedSet();
+  const m = new Map();
+  const put = (k, o)=>{
+    if(!k || fixed.has(k)) return;   // placa fixa de Frotas não é escalada em Capital/Interior
+    const cur = m.get(k) || {placa:k, motorista:'', transportadora:'', capital:false};
+    if(!cur.motorista && o.motorista) cur.motorista = clampMotorista(String(o.motorista).trim());
+    if(!cur.transportadora && o.transportadora) cur.transportadora = String(o.transportadora).trim();
+    if(o.capital) cur.capital = true;
+    m.set(k, cur);
+  };
+  for(const [k, v] of Object.entries(REGISTRY)){
+    if(v && typeof v === 'object') put(normPlaca(k), {motorista:v.motorista, transportadora:v.transportadora, capital: String(v.tipo || '').toLowerCase() === 'capital'});
+  }
+  for(const sec of ['capital', 'interior']) for(const r of DATA[sec]) for(const k of plateSegs(r.placa)) put(k, {motorista:r.motorista, transportadora:r.transportadora});
+  const out = Array.from(m.values());
+  for(const c of out){ c.orders = plateOrdersToday(c.placa, exceptId); c.indisp = AVAILABILITY[c.placa] === false; }
+  // pré-escala Capital livre primeiro; depois os demais livres; escalados por último
+  out.sort((a, b)=> (b.capital - a.capital) || ((a.orders.length > 0) - (b.orders.length > 0)) ||
+    a.transportadora.localeCompare(b.transportadora, 'pt-BR') || a.placa.localeCompare(b.placa));
+  return out;
+}
+function lupaFilter(list, q){
+  const toks = norm(q).split(/\s+/).filter(Boolean);
+  if(!toks.length) return list;
+  return list.filter(c=>{
+    const hay = norm(c.placa + ' ' + c.motorista + ' ' + c.transportadora);
+    return toks.every(t=>{ const tp = normPlaca(t); return hay.includes(t) || (!!tp && c.placa.includes(tp)); });
+  });
+}
+/* avisos da placa escolhida p/ esta linha (puro: não mexe em DOM) */
+function lupaWarnings(row, placa, sec){
+  const k = plateSegs(placa)[0] || '';
+  const out = {k, fixed:false, merge:'', other:[], indisp:false};
+  if(!k) return out;
+  out.fixed = fixedSet().has(k);
+  out.indisp = AVAILABILITY[k] === false;
+  for(const s2 of SECTIONS) for(const r of DATA[s2]){
+    if(r.id === row.id || !plateSegs(r.placa).includes(k)) continue;
+    const ord = rowTemCarga(r) ? String(r.carga).trim() : '(sem nº)';
+    if(s2 === sec && normPlaca(r.placa) === normPlaca(placa)) out.merge = ord;   // mesma regra do autoMergeByPlate
+    else out.other.push(ord + ' (' + (s2 === 'frotas' ? 'Frotas' : s2 === 'capital' ? 'Capital' : 'Interior') + ')');
+  }
+  return out;
+}
+/* aplica placa/motorista/transportador na linha (puro). Placa nova → cadastro da placa (ajud./Vlr Kg/Neg?),
+   igual a digitar a placa na linha; motorista e transportador do formulário valem por último. */
+function lupaApplyToRow(row, f){
+  const prev = {placa: row.placa, motorista: row.motorista, transportadora: row.transportadora};
+  const prevKey = plateSegs(row.placa).join('|');
+  row.placa = String(f.placa || '').trim().toUpperCase();
+  if(plateSegs(row.placa).join('|') !== prevKey) applyRegistry(row);
+  row.motorista = clampMotorista(String(f.motorista || '').trim());
+  row.transportadora = String(f.transportadora || '').trim().slice(0, 40);
+  return prev;
+}
+function lupaReadFields(){
+  const g = id => { const e = document.getElementById(id); return e ? String(e.value || '') : ''; };
+  return {placa: g('lupa-placa').trim(), motorista: g('lupa-mot').trim(), transportadora: g('lupa-transp').trim()};
+}
+function lupaShowWarn(){
+  const box = document.getElementById('lupa-warn');
+  const row = lupaFindRow();
+  if(!box || !row) return;
+  const f = lupaReadFields();
+  const w = lupaWarnings(row, f.placa, LUPA.sec);
+  const msgs = [];
+  if(w.fixed) msgs.push('⚠ <b>' + esc(w.k) + '</b> é veículo fixo de FROTAS — a linha será movida para FROTAS.');
+  if(w.merge) msgs.push('⚠ <b>' + esc(w.k) + '</b> já está na ordem <b>' + esc(w.merge) + '</b> desta seção — ao aplicar, as duas cargas serão <b>mescladas</b> no mesmo veículo (regra do mapa).');
+  if(w.other.length) msgs.push('ℹ <b>' + esc(w.k) + '</b> também está escalada em: ' + esc(w.other.join(', ')) + '.');
+  if(w.indisp) msgs.push('⚠ <b>' + esc(w.k) + '</b> está marcada como <b>INDISPONÍVEL</b>.');
+  box.innerHTML = msgs.join('<br>');
+  box.hidden = !msgs.length;
+}
+function lupaRenderList(){
+  const wrap = document.getElementById('lupa-list');
+  const qEl = document.getElementById('lupa-q');
+  if(!wrap || !LUPA) return;
+  const all = lupaFilter(LUPA.cands, qEl ? qEl.value : '');
+  const shown = all.slice(0, 80);
+  wrap.innerHTML = shown.length ? shown.map(c=>{
+    let badge = '';
+    if(LUPA.curKeys.includes(c.placa)) badge = '<span class="lupa-b cur">NESTA ORDEM</span>';
+    else if(c.indisp) badge = '<span class="lupa-b ind">INDISPONÍVEL</span>';
+    else if(c.orders.length) badge = '<span class="lupa-b esc">ESCALADO · ' + esc(c.orders.map(o=> o.carga).join('/')) + '</span>';
+    else if(c.capital) badge = '<span class="lupa-b pre">PRÉ-ESCALA</span>';
+    return '<button type="button" class="lupa-item' + (LUPA.sel === c.placa ? ' sel' : '') + '" data-lupa-pick="' + esc(c.placa) + '">' +
+      '<span class="l-pl">' + esc(c.placa) + '</span><span class="l-m">' + (esc(c.motorista) || '—') + '</span>' +
+      '<span class="l-t">' + (esc(c.transportadora) || '—') + '</span>' + badge + '</button>';
+  }).join('') + (all.length > shown.length ? '<div class="hint" style="padding:4px 8px">…e mais ' + (all.length - shown.length) + ' veículo(s) — refine a busca.</div>' : '')
+    : '<div class="empty">Nenhum veículo encontrado no cadastro/mapa. Preencha placa, motorista e transportador abaixo para escalar um veículo novo.</div>';
+}
+function lupaPick(placa){
+  if(!LUPA) return;
+  const c = LUPA.cands.find(x=> x.placa === placa);
+  if(!c) return;
+  LUPA.sel = c.placa;
+  const set = (id, v)=>{ const e = document.getElementById(id); if(e) e.value = v; };
+  set('lupa-placa', c.placa); set('lupa-mot', c.motorista); set('lupa-transp', c.transportadora);
+  lupaRenderList(); lupaShowWarn();
+}
+function openLupa(sec, id){
+  if(!requireOperational()) return;
+  if(sec !== 'capital' && sec !== 'interior') return;
+  const row = (DATA[sec] || []).find(r=> r.id === id);
+  if(!row) return;
+  if(row.stFech === 'fechado'){ toast('🔒 Carga FECHADA não pode ser alterada — reabra pelo ↺ do fechamento', 'err'); return; }
+  LUPA = {sec, id, sel:'', cands: lupaCandidates(id), curKeys: plateSegs(row.placa)};
+  const set = (i, v)=>{ const e = document.getElementById(i); if(e) e.value = v; };
+  const ttl = document.getElementById('lupa-title'); if(ttl) ttl.textContent = '🔍 Escala da ordem ' + (String(row.carga || '').trim() || '(sem nº)');
+  const sub = document.getElementById('lupa-sub');
+  if(sub) sub.textContent = (sec === 'capital' ? 'Capital' : 'Interior') + ' · ' + (row.destino || 'sem destino') + ' · escalado agora: ' +
+    (row.placa || '—') + ' / ' + (row.motorista || '—') + ' / ' + (row.transportadora || '—');
+  set('lupa-q', ''); set('lupa-placa', row.placa || ''); set('lupa-mot', row.motorista || ''); set('lupa-transp', row.transportadora || '');
+  lupaRenderList(); lupaShowWarn();
+  const mask = document.getElementById('lupa-mask'); if(mask) mask.hidden = false;
+  const q = document.getElementById('lupa-q'); if(q) setTimeout(()=> q.focus(), 0);
+}
+function closeLupa(){
+  const mask = document.getElementById('lupa-mask'); if(mask) mask.hidden = true;
+  LUPA = null;
+}
+function lupaApply(){
+  if(!requireOperational()) return;
+  const row = lupaFindRow();
+  if(!row){ closeLupa(); return; }
+  if(row.stFech === 'fechado'){ toast('🔒 Carga FECHADA não pode ser alterada — reabra pelo ↺ do fechamento', 'err'); return; }
+  const f = lupaReadFields();
+  if(!plateSegs(f.placa).length){ toast('Informe a placa do veículo escalado', 'err'); return; }
+  const w = lupaWarnings(row, f.placa, LUPA.sec);
+  if(w.merge && !confirm('A placa ' + w.k + ' já está na ordem ' + w.merge + ' desta seção. Ao aplicar, as duas cargas serão mescladas no mesmo veículo (regra do mapa). Continuar?')) return;
+  if(w.fixed && !confirm('A placa ' + w.k + ' é veículo fixo de FROTAS — a linha será movida para FROTAS. Continuar?')) return;
+  const sec = LUPA.sec;
+  const ordem = String(row.carga || '').trim() || '(sem nº)';
+  const prev = lupaApplyToRow(row, f);
+  audit('escala-alterada', (sec === 'capital' ? 'Capital' : 'Interior') + ' · ordem ' + ordem + ' · ' + (prev.placa || '—') + ' / ' + (prev.motorista || '—') + ' / ' + (prev.transportadora || '—') +
+    ' → ' + row.placa + ' / ' + (row.motorista || '—') + ' / ' + (row.transportadora || '—'));
+  closeLupa();
+  renderAll();
+  toast('🔍 Ordem ' + ordem + ': escala atualizada (' + f.placa.toUpperCase() + ')', 'ok');
+}
+/* ===== fim Lupa da linha da ordem ===== */
 
 function allPlates(){
   const m = new Map();
@@ -3123,6 +3332,7 @@ function renderAll(opts){
   renderPool();
   renderSection('frotas');
   renderSection('capital');
+  renderPreEscala();      // painel visual da Pré-escala Capital (não entra em totais)
   renderSection('interior');
   renderFooter();
   renderChips();
@@ -3240,6 +3450,7 @@ async function loadSettings(){
   if(reg && typeof reg === 'object'){
     for(const [k, v] of Object.entries(reg)) REGISTRY[normPlaca(k)] = v;
   }
+  seedCapitalEscala(); // Pré-escala Capital (planilha): atualiza transportadora/motorista das placas, uma vez por versão
   // tripulação/ajudantes de Frotas: os 5 veículos padrão sempre mesclados; o salvo pelo usuário tem prioridade
   {
     const m = {};
@@ -7949,7 +8160,7 @@ function reclassifyAll(){
 }
 
 /* ================= Painel de Indicadores & Fechamento ================= */
-let DASH = {days: [], raw: [], period: null, preset: '7d', granularity: 'daily', showFrotas: true, statusFilter: 'todas', fechDates: [], fechDatesAvail: [], fechDatesAvailAll: [], fechDateCounts: {}, qzExtras: []};
+let DASH = {days: [], raw: [], period: null, preset: '7d', granularity: 'daily', showFrotas: true, statusFilter: 'todas', fechDates: [], fechDatesAvail: [], fechDatesAvailAll: [], fechDateCounts: {}};
 let dashVisible = false;
 
 function isoToDate(iso){ const p = String(iso).split('-'); return new Date(+p[0], (+p[1]||1)-1, +p[2]||1); }
@@ -7964,418 +8175,6 @@ function periodFromPreset(preset, ref){
   if(preset === 'quarter'){ const q = Math.floor((m-1)/3); return {start: y+'-'+String(q*3+1).padStart(2,'0')+'-01', end: monthEnd(y, q*3+3)}; }
   return null;
 }
-/* ---- filtro por quinzena (cabeçalhos do Painel de Indicadores e do Mapa Gerencial) ----
-   O período do painel pode virar uma QUINZENA escolhida em três listas em cascata:
-   ANO (anos do histórico/fechamentos + ano atual) → MÊS (os 12 do ano) → QUINZENA
-   (Tudo = mês inteiro · 1ª = dias 1–15 · 2ª = dia 16 ao fim do mês). As listas abrem
-   SEM seleção e as de baixo zeram quando a de cima muda. Aplicar grava DASH.period
-   com o preset 'quinzena' (um período contínuo — as quinzenas nunca se sobrepõem);
-   Limpar devolve o período ao modo livre (presets / De-Até). */
-const QZ_OPCOES = [
-  {q: 'all', curto: 'Tudo', label: 'Tudo (mês inteiro)'},
-  {q: '1',   curto: '1ª',   label: 'Só a 1ª (01–15)'},
-  {q: '2',   curto: '2ª',   label: 'Só a 2ª (16–fim)'}
-];
-const QZ_PREFIXOS = ['qz', 'gm-qz'];   // os dois cabeçalhos (Indicadores · Mapa Gerencial)
-let QZ = {ano: null, mes: null, q: ''};          // quinzena APLICADA (DASH.preset === 'quinzena')
-let QZ_DRAFT = {ano: '', mes: '', q: ''};        // escolhas em andamento (compartilhadas pelos 2 cabeçalhos)
-
-function qzQuinzenas(){ return QZ_OPCOES.map(o=> ({q: o.q, curto: o.curto, label: o.label})); }
-function qzMeses(){ return MESES_NOME.map((nome, i)=> ({mes: i + 1, label: nome})); }
-/* rótulo curto do mês: Setembro/2026 → Set/2026 (usado no botão e no título) */
-function qzShort(ano, mes){
-  const n = +mes;
-  return (MESES_NOME[n - 1] || 'Mês' + n).slice(0, 3) + '/' + (+ano);
-}
-/* período CONTÍNUO da quinzena: Tudo = mês inteiro; 1 = 01–15; 2 = 16–fim.
-   monthEnd() resolve o fim do mês (fevereiro bissexto incluso). */
-function qzPeriodo(ano, mes, q){
-  const a = +ano, m = +mes;
-  if(!(a >= 1900 && a <= 2999) || !(m >= 1 && m <= 12)) return null;
-  const mm = qp2(m), fim = monthEnd(a, m);
-  const k = String(q == null ? '' : q);
-  if(k === '' || k === 'all') return {start: a + '-' + mm + '-01', end: fim};
-  if(k !== '1' && k !== '2') return null;
-  return k === '1' ? {start: a + '-' + mm + '-01', end: a + '-' + mm + '-15'}
-                   : {start: a + '-' + mm + '-16', end: fim};
-}
-function qzPeriodoTxt(ano, mes, q){
-  const p = qzPeriodo(ano, mes, q);
-  return p ? fmtBR(p.start) + ' a ' + fmtBR(p.end) : '';
-}
-/* resumo do botão: Set/2026 · Tudo · Ago/2026 · 2ª */
-function qzLabel(ano, mes, q){
-  if(!qzPeriodo(ano, mes, q)) return '';
-  const o = QZ_OPCOES.find(x=> x.q === String(q == null ? '' : q));
-  return qzShort(ano, mes) + ' · ' + (o ? o.curto : '');
-}
-/* anos oferecidos: histórico carregado (DASH.raw) + referências/fechamentos + ano atual */
-function qzYears(){
-  const ys = new Set([new Date().getFullYear()]);
-  if(/^\d{4}-/.test(String(currentMapDate || ''))) ys.add(+String(currentMapDate).slice(0, 4));
-  for(const d of (DASH.raw || [])) if(d && /^\d{4}-/.test(String(d.date || ''))) ys.add(+String(d.date).slice(0, 4));
-  for(const f of (FECHAMENTOS || [])){
-    const r = fechRefOf(f) || {};
-    if(r.ano) ys.add(+r.ano);
-    for(const d of [f && f.start, f && f.end, f && f.dataFech]){
-      if(/^\d{4}-/.test(String(d || ''))) ys.add(+String(d).slice(0, 4));
-    }
-  }
-  return Array.from(ys).filter(y=> y >= 1900 && y <= 2999).sort((a, b)=> b - a);
-}
-/* cascata: trocar o ANO zera mês + quinzena; trocar o MÊS zera a quinzena */
-function qzDraftNext(draft, campo, valor){
-  const d = {ano: String((draft && draft.ano) || ''), mes: String((draft && draft.mes) || ''), q: String((draft && draft.q) || '')};
-  const v = String(valor == null ? '' : valor);
-  if(campo === 'ano'){ d.ano = v; d.mes = ''; d.q = ''; }
-  else if(campo === 'mes'){ d.mes = v; d.q = ''; }
-  else if(campo === 'q'){ d.q = v; }
-  return d;
-}
-/* rascunho ao abrir o popover: parte da quinzena aplicada (ou vazio, sem pré-seleção) */
-function qzDraftReset(){
-  if(DASH.preset === 'quinzena' && QZ.ano) return {ano: String(QZ.ano), mes: String(QZ.mes), q: String(QZ.q)};
-  return {ano: '', mes: '', q: ''};
-}
-function qzState(){ return {ano: QZ.ano, mes: QZ.mes, q: QZ.q}; }
-/* desenha as 3 listas de um cabeçalho respeitando a cascata (nada pré-selecionado) */
-function qzFill(prefix){
-  const sel = campo=> $('#' + prefix + '-' + campo);
-  const selAno = sel('ano'), selMes = sel('mes'), selQ = sel('q'), faixa = sel('faixa'), ap = sel('apply');
-  if(!selAno || !selMes || !selQ) return;
-  const anos = qzYears();
-  selAno.innerHTML = '<option value="">— Selecione o ano —</option>' +
-    anos.map(a=> '<option value="' + a + '">' + a + '</option>').join('');
-  const temAno = anos.map(String).indexOf(String(QZ_DRAFT.ano || '')) > -1;
-  QZ_DRAFT.ano = temAno ? String(QZ_DRAFT.ano) : '';
-  selAno.value = QZ_DRAFT.ano;
-  // MÊS: os 12 meses do ano escolhido; recriado (sem seleção) a cada troca de ano
-  const temMes = temAno && /^([1-9]|1[0-2])$/.test(String(QZ_DRAFT.mes || ''));
-  if(!temMes) QZ_DRAFT.mes = '';
-  selMes.innerHTML = '<option value="">— Selecione o mês —</option>' +
-    (temAno ? qzMeses().map(m=> '<option value="' + m.mes + '">' + esc(m.label) + '</option>').join('') : '');
-  selMes.value = QZ_DRAFT.mes;
-  selMes.disabled = !temAno;
-  // QUINZENA: Tudo / 1ª / 2ª — só depois do mês e sempre sem seleção
-  const temQ = temMes && QZ_OPCOES.some(o=> o.q === String(QZ_DRAFT.q || ''));
-  if(!temQ) QZ_DRAFT.q = '';
-  selQ.innerHTML = '<option value="">— Selecione a quinzena —</option>' +
-    (temMes ? qzQuinzenas().map(o=> '<option value="' + o.q + '">' + esc(o.label) + '</option>').join('') : '');
-  selQ.value = QZ_DRAFT.q;
-  selQ.disabled = !temMes;
-  const ok = temAno && temMes && temQ;
-  if(ap) ap.disabled = !ok;
-  if(faixa) faixa.textContent = ok ? '📅 ' + qzPeriodoTxt(QZ_DRAFT.ano, QZ_DRAFT.mes, QZ_DRAFT.q)
-    : (temMes ? 'Escolha a quinzena.' : 'Escolha o ano e o mês.');
-}
-/* resumo nos dois botões: \"🗓 Quinzenas\" ou \"🗓 Set/2026 · Tudo\""" */
-function renderQuinzenaControls(){
-  const aplicada = (DASH.preset === 'quinzena' && QZ.ano) ? qzLabel(QZ.ano, QZ.mes, QZ.q) : '';
-  for(const p of QZ_PREFIXOS){
-    const lab = $('#' + p + '-label'), tgl = $('#' + p + '-toggle');
-    if(lab) lab.textContent = '🗓 ' + (aplicada || 'Quinzenas');
-    if(tgl){
-      tgl.classList.toggle('active', !!aplicada);
-      tgl.title = aplicada
-        ? 'Quinzena aplicada: ' + aplicada + ' (' + qzPeriodoTxt(QZ.ano, QZ.mes, QZ.q) + ') — clique para trocar ou limpar'
-        : 'Filtrar por quinzena: escolha ano, mês e quinzena (Tudo = mês inteiro) — substitui os presets e o De/Até';
-    }
-  }
-}
-/* Aplicar: o período passa a ser a quinzena (preset 'quinzena') nos DOIS painéis */
-function qzSet(ano, mes, q){
-  const p = qzPeriodo(ano, mes, q);
-  if(!p) return false;
-  QZ = {ano: +ano, mes: +mes, q: String(q)};
-  DASH.period = p;
-  DASH.preset = 'quinzena';
-  MM = {meses: []};                 // quinzena e meses são mutuamente exclusivos
-  dashRecompute();                  // KPIs, dia a dia, período e datas de fechamento do período
-  if(GERENCIAL_PAGE){ updateGerencialHead(); renderGerencialMap(); }
-  renderQuinzenaControls();
-  return true;
-}
-/* Limpar: volta ao período livre — presets e De/Até voltam a mandar (intervalo atual mantido) */
-function qzClear(){
-  QZ = {ano: null, mes: null, q: ''};
-  MM = {meses: []};
-  QZ_DRAFT = {ano: '', mes: '', q: ''};
-  DASH.preset = 'custom';
-  dashRecompute();
-  if(GERENCIAL_PAGE){ updateGerencialHead(); renderGerencialMap(); }
-  renderQuinzenaControls();
-  return true;
-}
-/* liga as 2 cópias do controle (Painel de Indicadores e Mapa Gerencial) */
-function qzWire(prefix){
-  const tgl = $('#' + prefix + '-toggle'), pop = $('#' + prefix + '-pop'), box = $('#' + prefix + '-box');
-  if(!tgl || !pop || !box) return false;
-  const close = ()=>{ pop.hidden = true; tgl.setAttribute('aria-expanded', 'false'); };
-  const open = ()=>{
-    QZ_DRAFT = qzDraftReset();      // rascunho único: os dois cabeçalhos mostram o mesmo
-    qzFill(prefix);
-    pop.hidden = false;
-    tgl.setAttribute('aria-expanded', 'true');
-  };
-  tgl.addEventListener('click', ()=>{ if(pop.hidden) open(); else close(); });
-  document.addEventListener('click', e=>{ if(!pop.hidden && !box.contains(e.target)) close(); });
-  document.addEventListener('keydown', e=>{ if(e.key === 'Escape' && !pop.hidden) close(); });
-  for(const campo of ['ano', 'mes', 'q']){
-    const el = $('#' + prefix + '-' + campo);
-    if(el) el.addEventListener('change', ()=>{ QZ_DRAFT = qzDraftNext(QZ_DRAFT, campo, el.value); qzFill(prefix); });
-  }
-  const apply = $('#' + prefix + '-apply');
-  if(apply) apply.addEventListener('click', ()=>{
-    if(!QZ_DRAFT.ano || !QZ_DRAFT.mes || !QZ_DRAFT.q){ toast('Escolha ano, mês e quinzena', 'err'); return; }
-    const txt = qzLabel(QZ_DRAFT.ano, QZ_DRAFT.mes, QZ_DRAFT.q);
-    const faixa = qzPeriodoTxt(QZ_DRAFT.ano, QZ_DRAFT.mes, QZ_DRAFT.q);
-    qzSet(QZ_DRAFT.ano, QZ_DRAFT.mes, QZ_DRAFT.q);
-    close();
-    toast('🗓 Período: ' + txt + ' (' + faixa + ')', 'ok');
-  });
-  const clear = $('#' + prefix + '-clear');
-  if(clear) clear.addEventListener('click', ()=>{
-    qzClear();
-    close();
-    toast('Período livre: presets e De/Até', 'ok');
-  });
-  return true;
-}
-/* ---- filtro por MÊS (cabeçalhos do Painel de Indicadores e do Mapa Gerencial) ----
-   Substitui os atalhos avulsos "Este mês / Mês passado / Este trimestre": escolhe-se o
-   ANO, o MÊS e clica-se em ➕ Add mês quantas vezes quiser — VÁRIOS meses no mesmo
-   filtro (inclusive de anos diferentes). Aplicar usa o MENOR início e o MAIOR fim dos
-   meses escolhidos, ou seja, um período CONTÍNUO (1 mês = o mês inteiro; 3 meses = o
-   trimestre; meses não vizinhos incluem os do meio). Os atalhos "↩ Mês passado" e
-   "📆 Este trimestre" só PRÉ-PREENCHem a lista (não aplicam sozinhos). Aplicar grava
-   DASH.period com o preset 'meses'; Limpar devolve o período ao modo livre.
-   PADRÃO: o MÊS ATUAL — o painel abre já no mês de hoje e o popover já vem com
-   ano/mês escolhidos e o mês atual na lista (pronto para ➕ Add mês ou Aplicar). */
-const MM_PREFIXOS = ['mm', 'gm-mm'];          // os dois cabeçalhos (Indicadores · Mapa Gerencial)
-let MM = {meses: []};                          // meses APLICADOS ('YYYY-MM') — DASH.preset === 'meses'
-let MM_DRAFT = {ano: '', mes: '', meses: []};  // escolhas em andamento (compartilhadas pelos 2 cabeçalhos)
-
-function mmKey(ano, mes){ return (+ano) + '-' + qp2(+mes); }
-/* data de referência do app (dia de faturamento; hoje quando ainda não carregou) */
-function mmRefDate(){
-  return /^\d{4}-\d{2}-\d{2}$/.test(String(currentMapDate || '')) ? isoToDate(currentMapDate) : new Date();
-}
-/* mês ATUAL ('YYYY-MM') — é o padrão do filtro ao abrir o app e do popover */
-function mmMesAtual(ref){ const d = ref || mmRefDate(); return mmKey(d.getFullYear(), d.getMonth() + 1); }
-function mmParse(key){ const m = String(key == null ? '' : key).match(/^(\d{4})-(\d{2})$/); return m ? {ano: +m[1], mes: +m[2]} : null; }
-/* 'YYYY-MM' → Set/2026 (mesmo rótulo curto do filtro de quinzena) */
-function mmShort(key){ const k = mmParse(key); return k ? qzShort(k.ano, k.mes) : ''; }
-/* meses válidos, sem repetição, em ordem cronológica */
-function mmSort(meses){
-  const out = [];
-  for(const k of (meses || [])) if(mmParse(k) && out.indexOf(String(k)) < 0) out.push(String(k));
-  return out.sort();
-}
-/* atalhos que só montam a lista de meses
-   lastmonth = 1 mês (mês anterior; em janeiro vira dezembro do ano anterior)
-   quarter   = 3 meses do trimestre corrente */
-function mmAtalho(preset, ref){
-  const base = ref ? new Date(ref.getFullYear(), ref.getMonth(), ref.getDate()) : new Date();
-  const y = base.getFullYear(), m = base.getMonth() + 1;
-  if(preset === 'lastmonth'){ const py = m === 1 ? y - 1 : y, pm = m === 1 ? 12 : m - 1; return [mmKey(py, pm)]; }
-  if(preset === 'quarter'){ const q = Math.floor((m - 1) / 3) * 3 + 1; return [mmKey(y, q), mmKey(y, q + 1), mmKey(y, q + 2)]; }
-  return [];
-}
-/* período CONTÍNUO: do 1º dia do mês mais antigo ao último dia do mês mais novo */
-function mmPeriodo(meses){
-  const ks = mmSort(meses);
-  if(!ks.length) return null;
-  const a = mmParse(ks[0]), b = mmParse(ks[ks.length - 1]);
-  return {start: mmKey(a.ano, a.mes) + '-01', end: monthEnd(b.ano, b.mes)};
-}
-/* resumo: Set/2026 · Ago–Out/2026 (mesmo ano) · Nov/2026–Jan/2027 (anos diferentes) */
-function mmLabel(meses){
-  const ks = mmSort(meses);
-  if(!ks.length) return '';
-  const a = mmParse(ks[0]), b = mmParse(ks[ks.length - 1]);
-  const ma = (MESES_NOME[a.mes - 1] || '').slice(0, 3), mb = (MESES_NOME[b.mes - 1] || '').slice(0, 3);
-  if(ks.length === 1) return ma + '/' + a.ano;
-  return a.ano === b.ano ? ma + '–' + mb + '/' + a.ano : ma + '/' + a.ano + '–' + mb + '/' + b.ano;
-}
-function mmPeriodoTxt(meses){ const p = mmPeriodo(meses); return p ? fmtBR(p.start) + ' a ' + fmtBR(p.end) : ''; }
-/* cascata do rascunho: trocar o ANO zera o mês escolhido; a LISTA de meses é preservada
-   (quem adicionou meses de outro ano continua com eles) */
-function mmDraftNext(draft, campo, valor){
-  const d = {ano: String((draft && draft.ano) || ''), mes: String((draft && draft.mes) || ''), meses: mmSort(draft && draft.meses)};
-  const v = String(valor == null ? '' : valor);
-  if(campo === 'ano'){ d.ano = v; d.mes = ''; }
-  else if(campo === 'mes'){ d.mes = v; }
-  return d;
-}
-/* ➕ Add mês: precisa de ano + mês válidos; mês repetido é ignorado */
-function mmDraftAdd(draft){
-  const d = mmDraftNext(draft, '', '');
-  if(/^\d{4}$/.test(d.ano) && /^([1-9]|1[0-2])$/.test(d.mes)){
-    const k = mmKey(d.ano, d.mes);
-    if(d.meses.indexOf(k) < 0) d.meses.push(k);
-    d.meses = mmSort(d.meses);
-  }
-  return d;
-}
-function mmDraftDel(draft, key){
-  const d = mmDraftNext(draft, '', '');
-  d.meses = d.meses.filter(k=> k !== String(key));
-  return d;
-}
-/* atalhos: substituem a lista pelos meses do atalho (base = dia de faturamento) */
-function mmDraftShortcut(draft, preset){
-  const d = mmDraftNext(draft, '', '');
-  d.meses = mmAtalho(preset, mmRefDate());
-  return d;
-}
-/* rascunho ao abrir: ANO/MÊS já vêm no MÊS ATUAL (padrão) e a lista parte do que
-   estiver aplicado — sem filtro aplicado, o padrão é o próprio mês atual */
-function mmDraftReset(){
-  const k = mmParse(mmMesAtual()) || {ano: new Date().getFullYear(), mes: new Date().getMonth() + 1};
-  const aplicados = (DASH.preset === 'meses' && MM.meses.length) ? MM.meses.slice() : [mmKey(k.ano, k.mes)];
-  return {ano: String(k.ano), mes: String(k.mes), meses: mmSort(aplicados)};
-}
-/* padrão do painel: MÊS ATUAL (o filtro 📅 Meses já abre com o mês de hoje).
-   Roda uma vez, no carregamento, e respeita qualquer filtro escolhido antes. */
-let MM_DEFAULT_DONE = false;
-function mmPadraoInicial(){
-  if(MM_DEFAULT_DONE) return false;
-  MM_DEFAULT_DONE = true;
-  if(DASH.period || (DASH.preset && DASH.preset !== '7d')) return false;
-  const k = mmMesAtual();
-  MM = {meses: [k]};
-  DASH.preset = 'meses';
-  DASH.period = mmPeriodo(MM.meses);
-  return true;
-}
-function mmState(){ return {meses: (MM.meses || []).slice()}; }
-/* desenha as listas + os chips de um cabeçalho (ano/mês vêm posicionados no mês atual;
-   trocar o ano zera o mês até escolher outro) */
-function mmFill(prefix){
-  const sel = campo=> $('#' + prefix + '-' + campo);
-  const selAno = sel('ano'), selMes = sel('mes'), chips = sel('chips'), faixa = sel('faixa'), ap = sel('apply'), add = sel('add');
-  if(!selAno || !selMes) return;
-  const anos = qzYears();
-  selAno.innerHTML = '<option value="">— Selecione o ano —</option>' +
-    anos.map(a=> '<option value="' + a + '">' + a + '</option>').join('');
-  const temAno = anos.map(String).indexOf(String(MM_DRAFT.ano || '')) > -1;
-  MM_DRAFT.ano = temAno ? String(MM_DRAFT.ano) : '';
-  selAno.value = MM_DRAFT.ano;
-  // MÊS: os 12 meses do ano escolhido; recriado (sem seleção) a cada troca de ano
-  const temMes = temAno && /^([1-9]|1[0-2])$/.test(String(MM_DRAFT.mes || ''));
-  if(!temMes) MM_DRAFT.mes = '';
-  selMes.innerHTML = '<option value="">— Selecione o mês —</option>' +
-    (temAno ? qzMeses().map(m=> '<option value="' + m.mes + '">' + esc(m.label) + '</option>').join('') : '');
-  selMes.value = MM_DRAFT.mes;
-  selMes.disabled = !temAno;
-  if(add) add.disabled = !(temAno && temMes);
-  MM_DRAFT.meses = mmSort(MM_DRAFT.meses);
-  if(chips){
-    chips.innerHTML = MM_DRAFT.meses.length
-      ? MM_DRAFT.meses.map(k=> '<span class="mm-chip">' + esc(mmShort(k)) +
-          '<button type="button" data-mm-del="' + esc(k) + '" title="Remover ' + esc(mmShort(k)) + '">✕</button></span>').join('')
-      : '<span class="mm-empty">nenhum mês adicionado</span>';
-  }
-  if(ap) ap.disabled = !MM_DRAFT.meses.length;
-  if(faixa) faixa.textContent = MM_DRAFT.meses.length
-    ? '📅 ' + mmPeriodoTxt(MM_DRAFT.meses) + ' · ' + MM_DRAFT.meses.length + ' mês(es)'
-    : 'Adicione 1 ou mais meses (➕ Add mês).';
-}
-/* resumo nos dois botões: "📅 Meses" ou "📅 Ago–Out/2026" */
-function renderMesesControls(){
-  const aplicado = (DASH.preset === 'meses' && MM.meses.length) ? mmLabel(MM.meses) : '';
-  for(const p of MM_PREFIXOS){
-    const lab = $('#' + p + '-label'), tgl = $('#' + p + '-toggle');
-    if(lab) lab.textContent = '📅 ' + (aplicado || 'Meses');
-    if(tgl){
-      tgl.classList.toggle('active', !!aplicado);
-      tgl.title = aplicado
-        ? 'Meses aplicados: ' + aplicado + ' (' + mmPeriodoTxt(MM.meses) + ') — clique para trocar ou limpar'
-        : 'Filtrar por mês: escolha o ano e o mês e clique em ➕ Add mês (pode somar vários meses) — substitui os presets e o De/Até';
-    }
-  }
-}
-/* Aplicar: o período passa a ser o intervalo dos meses escolhidos (preset 'meses') */
-function mmSet(meses){
-  const ks = mmSort(meses), p = mmPeriodo(ks);
-  if(!p) return false;
-  MM = {meses: ks};
-  DASH.period = p;
-  DASH.preset = 'meses';
-  QZ = {ano: null, mes: null, q: ''};      // quinzena e meses são mutuamente exclusivos
-  dashRecompute();                          // KPIs, dia a dia, período e datas de fechamento do período
-  if(GERENCIAL_PAGE){ updateGerencialHead(); renderGerencialMap(); }
-  renderMesesControls();
-  renderQuinzenaControls();
-  return true;
-}
-/* Limpar: volta ao período livre — 7 dias e De/Até voltam a mandar (intervalo atual mantido) */
-function mmClear(){
-  MM = {meses: []};
-  MM_DRAFT = {ano: '', mes: '', meses: []};
-  DASH.preset = 'custom';
-  dashRecompute();
-  if(GERENCIAL_PAGE){ updateGerencialHead(); renderGerencialMap(); }
-  renderMesesControls();
-  renderQuinzenaControls();
-  return true;
-}
-/* liga as 2 cópias do controle (Painel de Indicadores e Mapa Gerencial) */
-function mmWire(prefix){
-  const tgl = $('#' + prefix + '-toggle'), pop = $('#' + prefix + '-pop'), box = $('#' + prefix + '-box');
-  if(!tgl || !pop || !box) return false;
-  const close = ()=>{ pop.hidden = true; tgl.setAttribute('aria-expanded', 'false'); };
-  const open = ()=>{ MM_DRAFT = mmDraftReset(); mmFill(prefix); pop.hidden = false; tgl.setAttribute('aria-expanded', 'true'); };
-  tgl.addEventListener('click', ()=>{ if(pop.hidden) open(); else close(); });
-  document.addEventListener('click', e=>{ if(!pop.hidden && !box.contains(e.target)) close(); });
-  document.addEventListener('keydown', e=>{ if(e.key === 'Escape' && !pop.hidden) close(); });
-  for(const campo of ['ano', 'mes']){
-    const el = $('#' + prefix + '-' + campo);
-    if(el) el.addEventListener('change', ()=>{ MM_DRAFT = mmDraftNext(MM_DRAFT, campo, el.value); mmFill(prefix); });
-  }
-  const add = $('#' + prefix + '-add');
-  if(add) add.addEventListener('click', ()=>{
-    if(!MM_DRAFT.ano || !MM_DRAFT.mes){ toast('Escolha o ano e o mês para adicionar', 'err'); return; }
-    const antes = MM_DRAFT.meses.length, k = mmKey(MM_DRAFT.ano, MM_DRAFT.mes);
-    MM_DRAFT = mmDraftAdd(MM_DRAFT);
-    mmFill(prefix);
-    if(MM_DRAFT.meses.length === antes) toast('📅 ' + mmShort(k) + ' já está na lista', 'err');
-  });
-  const chips = $('#' + prefix + '-chips');
-  if(chips) chips.addEventListener('click', e=>{
-    const b = e.target.closest('[data-mm-del]');
-    if(!b) return;
-    MM_DRAFT = mmDraftDel(MM_DRAFT, b.dataset.mmDel);
-    mmFill(prefix);
-  });
-  $$('#' + prefix + '-pop [data-mm-short]').forEach(b=> b.addEventListener('click', ()=>{
-    const preset = b.dataset.mmShort, antes = MM_DRAFT.meses.slice();
-    MM_DRAFT = mmDraftShortcut(MM_DRAFT, preset);
-    mmFill(prefix);
-    if(!MM_DRAFT.meses.length) toast('Não foi possível montar os meses do atalho', 'err');
-    else if(MM_DRAFT.meses.join() !== antes.join()) toast('📅 ' + (preset === 'quarter' ? 'Trimestre' : 'Mês passado') + ': ' + mmLabel(MM_DRAFT.meses) + ' na lista', 'ok');
-  }));
-  const apply = $('#' + prefix + '-apply');
-  if(apply) apply.addEventListener('click', ()=>{
-    if(!MM_DRAFT.meses.length){ toast('Adicione ao menos um mês', 'err'); return; }
-    const txt = mmLabel(MM_DRAFT.meses), faixa = mmPeriodoTxt(MM_DRAFT.meses);
-    mmSet(MM_DRAFT.meses);
-    close();
-    toast('📅 Período: ' + txt + ' (' + faixa + ')', 'ok');
-  });
-  const clear = $('#' + prefix + '-clear');
-  if(clear) clear.addEventListener('click', ()=>{ mmClear(); close(); toast('Período livre: 7 dias e De/Até', 'ok'); });
-  return true;
-}
-/* período do filtro atual (usado quando DASH.period ainda não existe): respeita os
-   filtros de MÊS e de QUINZENA; caso contrário, o preset comum (7 dias etc.) */
-function dashPeriodoAtual(ref){
-  if(DASH.preset === 'meses' && MM.meses.length) return mmPeriodo(MM.meses);
-  if(DASH.preset === 'quinzena' && QZ.ano) return qzPeriodo(QZ.ano, QZ.mes, QZ.q);
-  return periodFromPreset(DASH.preset, ref);
-}
-/* ---- fim do filtro por mês ---- */
-/* ---- fim do filtro por quinzena ---- */
 function fmtMoney(v){ return 'R$ ' + numVal(v).toLocaleString('pt-BR',{minimumFractionDigits:2, maximumFractionDigits:2}); }
 function fmtNum2(v){ return numVal(v).toLocaleString('pt-BR',{maximumFractionDigits:2}); }
 function fmtInt(v){ return Math.round(numVal(v)).toLocaleString('pt-BR'); }
@@ -8408,51 +8207,6 @@ function dashView(data){
   return {frotas: ((data && data.frotas) || []).filter(dashPickRow),
           capital: ((data && data.capital) || []).filter(dashPickRow),
           interior: ((data && data.interior) || []).filter(dashPickRow)};
-}
-/* ---- fechamento quinzenal no filtro por quinzena (Indicadores & Mapa Gerencial) ----
-   Quando o filtro por quinzena está aplicado, as cargas FECHADAS que pertencem a um
-   fechamento cuja referência (ref) é exatamente a quinzena escolhida entram no período
-   do filtro, mesmo que a data de lançamento (faturamento) no mapa seja de outra
-   quinzena. (Ex.: o fechamento de Outubro Q1 inclui cargas lançadas em setembro; ao
-   filtrar Outubro Q1, elas aparecem.) As que já estão dentro do período não são
-   contadas duas vezes, e o filtro de status (Fechadas/Em Aberto/Todas) continua valendo. */
-function dashQzAtiva(){ return (DASH.preset === 'quinzena' && QZ && QZ.ano) ? QZ : null; }
-/* referência (ano/mês/quinzena) do fechamento de uma carga fechada, ou null */
-function dashFechRefOfRow(r){
-  if(!relIsFech(r) || !r.fechId) return null;
-  const f = (typeof FECHAMENTOS !== 'undefined' ? FECHAMENTOS : []).find(x=> x && x.id === r.fechId);
-  if(!f || !f.ref) return null;
-  const ano = Number(f.ref.ano), mes = Number(f.ref.mes), q = Number(f.ref.quinzena);
-  if(!ano || !mes || !q) return null;
-  return {ano: ano, mes: mes, quinzena: q};
-}
-/* linhas FECHADAS cuja referência de fechamento é a quinzena ativa e cujo dia de
-   faturamento está FORA do período (não conta duas vezes): [{date, sec, row, fech}] */
-function dashQzExtras(period){
-  const qz = dashQzAtiva();
-  if(!qz || !period || !period.start || !period.end) return [];
-  const out = [];
-  for(const rd of (DASH.raw || [])){
-    if(!rd || !rd.data) continue;
-    if(rd.date >= period.start && rd.date <= period.end) continue;
-    for(const sec of ['frotas','capital','interior']){
-      for(const r of (rd.data[sec] || [])){
-        if(!relIsFech(r)) continue;
-        const ref = dashFechRefOfRow(r);
-        if(!ref) continue;
-        if(ref.ano !== +qz.ano || ref.mes !== +qz.mes || ref.quinzena !== +qz.q) continue;
-        if(!dashPickRow(r)) continue;
-        out.push({date: rd.date, sec: sec, row: r, fech: (FECHAMENTOS || []).find(x=> x && x.id === r.fechId) || null});
-      }
-    }
-  }
-  return out;
-}
-/* objeto {frotas,capital,interior} com as linhas extras, p/ somar nas métricas/rotas */
-function dashQzExtraData(extras){
-  const d = {frotas: [], capital: [], interior: []};
-  for(const e of (extras || [])) d[e.sec].push(e.row);
-  return d;
 }
 /* Métricas de um dia (data completa): sem negociação (tabela) vs com negociação (calcularFrete).
    Frotas = custo ESTIMADO pela tabela Interior (indicador separado — não soma no Custo Geral). */
@@ -8531,29 +8285,12 @@ function gerencialEntradas(sec){
   for(const d of gerencialDiasPeriodo()){
     for(const r of ((d.data && d.data[sec]) || [])) out.push({date: d.date, r: r});
   }
-  /* AUDITORIA: quinzena — inclui as cargas FECHADAS do fechamento dessa quinzena que
-     foram lançadas em outro dia (fora do período), sem contar duas vezes. */
-  for(const e of (DASH.qzExtras || [])){
-    if(e.sec !== sec) continue;
-    out.push({date: e.date, r: e.row, fechRef: e.fech && e.fech.ref});
-  }
   return out;
 }
 function gerencialPeriodoLabel(){
   const p = DASH.period;
   if(!p) return '—';
-  const faixa = p.start === p.end ? fmtBR(p.start) : fmtBR(p.start) + ' a ' + fmtBR(p.end);
-  // filtro por mês: o rótulo (e o título da aba) mostram os meses escolhidos
-  if(DASH.preset === 'meses' && MM.meses.length){
-    const lm = mmLabel(MM.meses);
-    if(lm) return lm + ' (' + faixa + ')';
-  }
-  // filtro por quinzena: o rótulo (e o título da aba) mostram a quinzena escolhida
-  if(DASH.preset === 'quinzena' && QZ.ano){
-    const l = qzLabel(QZ.ano, QZ.mes, QZ.q);
-    if(l) return l + ' (' + faixa + ')';
-  }
-  return faixa;
+  return p.start === p.end ? fmtBR(p.start) : fmtBR(p.start) + ' a ' + fmtBR(p.end);
 }
 function gerencialResumoSec(sec, entries){
   const rows = (entries || []).map(e=> e.r);
@@ -8872,8 +8609,7 @@ async function loadDashboard(){
   }
   raw.sort((a,b)=> a.date.localeCompare(b.date));
   DASH.raw = raw;
-  mmPadraoInicial();   // padrão do painel: MÊS ATUAL (filtro 📅 Meses já posicionado nele)
-  if(!DASH.period) DASH.period = dashPeriodoAtual(currentMapDate) || {start: dateAddDays(currentMapDate,-6), end: currentMapDate};
+  if(!DASH.period) DASH.period = periodFromPreset(DASH.preset, currentMapDate) || {start: dateAddDays(currentMapDate,-6), end: currentMapDate};
   dashRecompute(); // aplica filtros de status/datas SEM recarregar do banco
   // dados do período atualizados → o Mapa Gerencial (mesma fonte) redesenha junto
   if(GERENCIAL_PAGE && SESSION && SESSION.level >= 3){ updateGerencialHead(); renderGerencialMap(); }
@@ -8900,7 +8636,6 @@ function dashRecompute(){
     const dv = dashView(rd.data);
     return {date: rd.date, m: metricsFromData(dv), routes: routesFromData(dv)};
   });
-  DASH.qzExtras = dashQzExtras(DASH.period);   // quinzena: cargas fechadas lançadas fora do período
   renderDash(); // renderFechDatesBox() desenha o listbox c/ o período atual
 }
 /* Listbox c/ checkboxes das datas de fechamento — só datas DENTRO do período
@@ -9032,7 +8767,7 @@ function renderComparativo(){
         '<td class="num">' + (pe && pe.custo != null ? relFmtMedia(pe.custo) : '—') + '</td><td class="num">' + d + '</td></tr>';
     }).join('') + '</tbody></table>';
 }
-function aggregateRange(start, end, extras){
+function aggregateRange(start, end){
   const a = {cargas:0, peso:0, ent:0, capSem:0, intSem:0, capCom:0, intCom:0, capPeso:0, intPeso:0, frotasPeso:0, frotasCusto:0, frotasCargas:0, neg:0, diasAtivos:0};
   for(const d of DASH.days){
     if(d.date < start || d.date > end) continue;
@@ -9044,17 +8779,6 @@ function aggregateRange(start, end, extras){
     a.frotasPeso += m.frotasPeso; a.frotasCusto += m.frotasCusto; a.frotasCargas += (m.frotasCargas||0);
     a.neg += (m.neg||0);
     if(m.cargas > 0) a.diasAtivos++;
-  }
-  /* AUDITORIA: quinzena — inclui as cargas FECHADAS do fechamento dessa quinzena que
-     foram lançadas em outro dia (fora do período), sem contar duas vezes. */
-  if(extras && extras.length){
-    const em = metricsFromData(dashQzExtraData(extras));
-    a.cargas += em.cargas; a.peso += em.peso; a.ent += em.ent;
-    a.capSem += em.capSem; a.intSem += em.intSem;
-    a.capCom += em.capCom; a.intCom += em.intCom;
-    a.capPeso += em.capPeso; a.intPeso += em.intPeso;
-    a.frotasPeso += em.frotasPeso; a.frotasCusto += em.frotasCusto; a.frotasCargas += (em.frotasCargas||0);
-    a.neg += (em.neg||0);
   }
   a.semNeg = a.capSem + a.intSem;
   a.comNeg = a.capCom + a.intCom;
@@ -9087,8 +8811,6 @@ function kpiCard(label, value, sub, tip, tone, delta){
     '</div>';
 }
 function renderDash(){
-  renderMesesControls();    // resumo do filtro de meses nos 2 cabeçalhos (reflete DASH.preset)
-  renderQuinzenaControls(); // resumo do filtro de quinzena nos 2 cabeçalhos (reflete DASH.preset)
   renderFechDatesBox(); // listbox de datas de fechamento (reflete período + seleção)
   renderDashDaily();
   renderDashPeriodo();
@@ -9237,7 +8959,7 @@ function renderDashDaily(){
 function renderDashPeriodo(){
   const p = DASH.period;
   if(!p){ return; }
-  const agg = aggregateRange(p.start, p.end, DASH.qzExtras);
+  const agg = aggregateRange(p.start, p.end);
   const len = dateDiffDays(p.start, p.end) + 1;
   const prev = aggregateRange(dateAddDays(p.start, -len), dateAddDays(p.start, -1));
   const pctDelta = (cur, prev) => prev > 0 ? (cur - prev) / prev * 100 : null;
@@ -9249,17 +8971,6 @@ function renderDashPeriodo(){
   };
   const el = $('#dash-period-kpis');
   if(el) el.innerHTML = renderKpis(agg, deltas);
-  // quinzena: aviso de que as cargas fechadas do fechamento dessa quinzena (lançadas
-  // em outro dia, fora do período) entram nos indicadores do período.
-  const note = $('#dash-period-note');
-  if(note){
-    const ex = DASH.qzExtras || [];
-    if(ex.length){
-      const tot = ex.reduce((a,e)=> a + numVal(e.row.peso), 0);
-      note.hidden = false;
-      note.textContent = '🗓 Filtro por quinzena: incluindo ' + ex.length + ' carga(s) fechada(s) do fechamento dessa quinzena que foram lançadas em outro dia (fora do período) — ' + fmtPeso2(tot) + ' kg.';
-    } else note.hidden = true;
-  }
   renderEvolucao();
 }
 /* Evolução do custo no período, com granularidade (diário / mensal / anual) */
@@ -9281,20 +8992,6 @@ function aggregateCostByGranularity(p, gran){
     if(!buckets.has(key)) buckets.set(key, {key, label, cap:0, int:0, peso:0});
     const b = buckets.get(key);
     b.cap += m.capCom; b.int += m.intCom; b.peso += (m.capPeso + m.intPeso); // AUDITORIA: peso do Custo/kg deve bater com cap+int (o gráfico só mostra Capital/Interior, nunca Frotas)
-  }
-  /* AUDITORIA: quinzena — as cargas FECHADAS do fechamento dessa quinzena (lançadas
-     fora do período) entram na faixa da data de fechamento (do dia ao mês/ano). */
-  for(const e of (DASH.qzExtras || [])){
-    const m = metricsFromData(dashQzExtraData([e]));
-    const dd = (e.fech && e.fech.dataFech) ? String(e.fech.dataFech).slice(0,10) : p.start;
-    const ddC = (dd < p.start) ? p.start : ((dd > p.end) ? p.end : dd);
-    let key, label;
-    if(gran === 'monthly'){ key = ddC.slice(0,7); label = monthLabel(key); }
-    else if(gran === 'annual'){ key = ddC.slice(0,4); label = key; }
-    else { key = ddC; label = fmtBR(ddC).slice(0,5); }
-    if(!buckets.has(key)) buckets.set(key, {key, label, cap:0, int:0, peso:0});
-    const b = buckets.get(key);
-    b.cap += m.capCom; b.int += m.intCom; b.peso += (m.capPeso + m.intPeso);
   }
   return Array.from(buckets.values()).sort((a,b)=> a.key.localeCompare(b.key));
 }
@@ -9883,6 +9580,7 @@ function fillSettingsUI(){
   $('#kw-interior').value = INTERIOR_KEYWORDS.join(', ');
   $$('.hc-chk').forEach(c=> c.checked = HIDDEN_COLS.includes(c.dataset.col));
   renderFrotaTripulacao();
+  renderCapitalEscala();
   renderRegistry();
   renderRotas();
   renderTranspCodes();
@@ -9899,6 +9597,18 @@ function renderFrotaTripulacao(){
       '<button class="btn mini" data-act="trip-del" title="Remover / limpar">🗑</button>' +
     '</div>';
   }).join('') : '<div class="empty">Nenhuma tripulação cadastrada. Adicione abaixo.</div>';
+}
+function renderCapitalEscala(){
+  const wrap = $('#ce-rows'); if(!wrap) return;
+  const list = capitalEscalaList();
+  wrap.innerHTML = list.length ? list.map(v=>{
+    return '<div class="reg-row ce-row" data-key="'+esc(v.placa)+'">' +
+      '<input type="text" class="mono" data-ce="placa" value="'+esc(v.placa)+'" placeholder="placa">' +
+      '<input type="text" data-ce="motorista" maxlength="32" value="'+esc(v.motorista)+'" placeholder="motorista">' +
+      '<input type="text" data-ce="transportadora" value="'+esc(v.transportadora)+'" placeholder="transportadora">' +
+      '<button class="btn mini" data-act="ce-del" title="Tirar da pré-escala (o pré-cadastro da placa continua)">🗑</button>' +
+    '</div>';
+  }).join('') : '<div class="empty">Nenhum veículo em pré-escala. Adicione abaixo.</div>';
 }
 function renderRotas(){
   const wrap = $('#rotas-rows');
@@ -10084,6 +9794,12 @@ function bindStatic(){
     const btn = e.target.closest('[data-act]');
     if(!btn) return;
     const act = btn.dataset.act;
+    if(act === 'lupa'){
+      const trL = btn.closest('tr[data-id]');
+      const secL = trL && trL.closest('.section');
+      if(trL && secL) openLupa(secL.dataset.sec, trL.dataset.id);
+      return;
+    }
     if(act === 'del'){
       const tr = btn.closest('tr[data-id]');
       const secEl = tr.closest('.section');
@@ -10508,6 +10224,89 @@ function bindStatic(){
     }
   });
 
+  /* pré-escala Capital (Configurações) */
+  $('#btn-ce-add').addEventListener('click', ()=>{
+    if(!requireOperational()) return;
+    const k = normPlaca($('#ce-add-placa').value);
+    if(!k){ toast('Informe a placa do veículo de Capital', 'err'); return; }
+    const v = Object.assign({}, REGISTRY[k] || {});
+    v.tipo = 'capital';
+    v.motorista = clampMotorista($('#ce-add-mot').value.trim());
+    const tr = $('#ce-add-transp').value.trim();
+    if(tr) v.transportadora = tr;
+    v._seed = CAPITAL_SEED_V;   // edição manual: a atualização da planilha não sobrescreve mais
+    REGISTRY[k] = v;
+    saveSettings();
+    $('#ce-add-placa').value = ''; $('#ce-add-mot').value = ''; $('#ce-add-transp').value = '';
+    renderCapitalEscala(); renderRegistry(); renderAll();
+    toast('🚛 ' + k + ' na pré-escala Capital', 'ok');
+  });
+  $('#ce-rows').addEventListener('change', e=>{
+    if(!requireOperational()) return;
+    const t = e.target;
+    const rowEl = t.closest('[data-key]');
+    if(!rowEl) return;
+    const key = rowEl.dataset.key;
+    const f = t.dataset.ce;
+    const cur = REGISTRY[key];
+    if(!f || !cur) return;
+    if(f === 'placa'){
+      const nk = normPlaca(t.value);
+      if(!nk){ t.value = key; return; }
+      if(nk !== key){
+        const moved = Object.assign({}, REGISTRY[nk] || {}, {tipo:'capital', motorista: cur.motorista || '', _seed: CAPITAL_SEED_V});
+        if(cur.transportadora) moved.transportadora = cur.transportadora;
+        REGISTRY[nk] = moved;
+        // placa antiga sai da pré-escala mas o registro fica marcado (a atualização da planilha não a traz de volta)
+        const old = Object.assign({}, cur); delete old.tipo; old._seed = CAPITAL_SEED_V;
+        REGISTRY[key] = old;
+      }
+    } else if(f === 'motorista'){
+      cur.motorista = clampMotorista(t.value.trim()); cur._seed = CAPITAL_SEED_V;
+    } else if(f === 'transportadora'){
+      cur.transportadora = t.value.trim(); cur._seed = CAPITAL_SEED_V;
+    }
+    saveSettings();
+    renderCapitalEscala(); renderRegistry(); renderAll();
+    toast('🚛 Pré-escala Capital atualizada (' + (f === 'placa' ? normPlaca(t.value) : key) + ')', 'ok');
+  });
+  $('#ce-rows').addEventListener('click', e=>{
+    if(!requireOperational()) return;
+    if(!e.target.closest('[data-act="ce-del"]')) return;
+    const rowEl = e.target.closest('[data-key]');
+    if(!rowEl) return;
+    const k = rowEl.dataset.key;
+    if(!REGISTRY[k]) return;
+    delete REGISTRY[k].tipo; REGISTRY[k]._seed = CAPITAL_SEED_V;
+    saveSettings();
+    renderCapitalEscala(); renderRegistry(); renderAll();
+    toast('🗑 ' + k + ' saiu da pré-escala Capital (pré-cadastro mantido)', 'ok');
+  });
+  /* painel Pré-escala no mapa: recolher/expandir (só visual — vale p/ qualquer nível) */
+  { const pe = $('#pre-escala-capital');
+    if(pe) pe.addEventListener('click', e=>{
+      if(!e.target.closest('[data-pe-toggle]')) return;
+      PE_COLLAPSED = !PE_COLLAPSED; renderPreEscala();
+    });
+  }
+  /* lupa 🔍 da linha da ordem */
+  $('#lupa-x').addEventListener('click', closeLupa);
+  $('#lupa-cancel').addEventListener('click', closeLupa);
+  $('#lupa-save').addEventListener('click', lupaApply);
+  $('#lupa-q').addEventListener('input', lupaRenderList);
+  $('#lupa-q').addEventListener('keydown', e=>{
+    if(e.key !== 'Enter') return;
+    e.preventDefault();
+    const first = LUPA ? lupaFilter(LUPA.cands, $('#lupa-q').value)[0] : null;
+    if(first) lupaPick(first.placa);
+  });
+  $('#lupa-list').addEventListener('click', e=>{
+    const b = e.target.closest('[data-lupa-pick]');
+    if(b) lupaPick(b.dataset.lupaPick);
+  });
+  ['lupa-placa', 'lupa-mot', 'lupa-transp'].forEach(id=> $('#' + id).addEventListener('input', lupaShowWarn));
+  document.addEventListener('keydown', e=>{ if(e.key === 'Escape' && LUPA) closeLupa(); });
+
   /* dias por rota */
   $('#btn-rotas-add').addEventListener('click', ()=>{
     if(!requireOperational()) return;
@@ -10732,19 +10531,10 @@ function bindStatic(){
      Gerencial gravam no mesmo DASH.period/preset e atualizam os dois painéis. */
   const onPresetPeriod = preset=>{
     DASH.preset = preset;
-    QZ = {ano: null, mes: null, q: ''};   // preset escolhido: quinzena e meses saem de cena
-    MM = {meses: []};
     const p = periodFromPreset(DASH.preset, currentMapDate);
     if(p){ DASH.period = p; dashRecompute(); if(GERENCIAL_PAGE){ updateGerencialHead(); renderGerencialMap(); } } // refaz métricas + lista de datas do período + mapa
   };
   $$('.chip-preset').forEach(c=> c.addEventListener('click', ()=> onPresetPeriod(c.dataset.preset)));
-  /* filtro por quinzena: um controle em cada cabeçalho (Indicadores + Mapa Gerencial),
-     ambos gravando no mesmo DASH.period/preset */
-  qzWire('qz');
-  qzWire('gm-qz');
-  /* filtro por mês (ano + mês + ➕ Add mês, vários meses): mesmo esquema do de quinzena */
-  mmWire('mm');
-  mmWire('gm-mm');
   $$('.gran-btn').forEach(b=> b.addEventListener('click', ()=>{
     DASH.granularity = b.dataset.gran;
     $$('.gran-btn').forEach(x=> x.classList.toggle('active', x===b));
@@ -10756,8 +10546,6 @@ function bindStatic(){
     const si = $(idStart), ei = $(idEnd);
     if(!si || !ei) return;
     DASH.preset = 'custom';
-    QZ = {ano: null, mes: null, q: ''};   // intervalo livre (De/Até): quinzena e meses saem de cena
-    MM = {meses: []};
     const s = si.value, e = ei.value;
     if(s && e && s <= e){ DASH.period = {start:s, end:e}; dashRecompute(); if(GERENCIAL_PAGE){ updateGerencialHead(); renderGerencialMap(); } } // refaz métricas + lista de datas do período + mapa
   };
@@ -10838,7 +10626,7 @@ async function init(){
 /* AUTO-CHECK DE VERSAO: avisa (somente quando roda em github.io) se a aba estiver com
    copia antiga em cache — compara o selo APP_V local com o do arquivo publicado no repo.
    Falha de rede/offline = silencioso; nunca bloqueia o uso. */
-const APP_V = '2026-10-28a';
+const APP_V = '2026-10-27a';
 (function(){
   // Selo de versão VISÍVEL no canto da tela: qualquer print/print-screen mostra qual código
   // está rodando no aparelho (cópia antiga = selo antigo/ausente). Não entra nas capturas.
