@@ -990,3 +990,50 @@ test('filtro por mês: 1/3 meses contínuos, Add/✕, atalhos, Aplicar/Limpar e 
   assert.ok(html.includes('MM = {meses: []};                 // quinzena e meses são mutuamente exclusivos'));
   assert.ok(html.includes('QZ = {ano: null, mes: null, q: \'\'};      // quinzena e meses são mutuamente exclusivos'));
 });
+
+/* ---- padrão do filtro por mês: MÊS ATUAL ---- */
+test('filtro por mês: padrão é o MÊS ATUAL (painel abre no mês de hoje e o popover já vem posicionado)',()=>{
+  const base = {
+    MESES_NOME:['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'],
+    qp2:n=>String(n).padStart(2,'0'),
+    qzShort:(ano,mes)=>(['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][mes-1])+'/'+ano,
+    qzMeses:()=>[], qzYears:()=>[2026], qzLabel:()=>'', 
+    monthEnd:(y,m)=> y+'-'+String(m).padStart(2,'0')+'-'+String(new Date(y,m,0).getDate()).padStart(2,'0'),
+    fmtBR:iso=>{ const p=String(iso).split('-'); return p.length===3? p[2]+'/'+p[1]+'/'+p[0] : iso; },
+    esc:s=>String(s==null?'':s), isoToDate:iso=>{ const p=String(iso).split('-'); return new Date(+p[0], (+p[1]||1)-1, +p[2]||1); },
+    currentMapDate:'2026-10-28', FECHAMENTOS:[], fechRefOf:()=>({}),
+    DASH:{raw:[], period:null, preset:'7d'},
+    QZ:{ano:null, mes:null, q:''},
+    GERENCIAL_PAGE:false, dashRecompute:()=>{}, updateGerencialHead:()=>{}, renderGerencialMap:()=>{}, renderQuinzenaControls:()=>{},
+    $:()=>null, $$:()=>[], toast:()=>{}, document:{addEventListener(){}}
+  };
+  // mês de referência = dia de faturamento (currentMapDate), não o relógio da máquina
+  const c=context({...base}); vm.runInContext(mmBlock,c);
+  assert.equal(c.mmMesAtual(),'2026-10');
+  assert.equal(c.mmMesAtual(new Date(2027,0,5)),'2027-01');
+  // sem filtro aplicado: ano/mês já vêm no mês atual e o mês atual já está na lista
+  assert.deepEqual(j(c.mmDraftReset()),{ano:'2026',mes:'10',meses:['2026-10']});
+  // com meses aplicados: a lista continua sendo a aplicada (ano/mês seguem no mês atual)
+  // (MM é 'let' do script → escreve/lê pelo próprio contexto, não como propriedade global)
+  vm.runInContext('MM = {meses:["2026-08","2026-09"]}; DASH.preset = "meses";', c);
+  assert.deepEqual(j(c.mmDraftReset()),{ano:'2026',mes:'10',meses:['2026-08','2026-09']});
+  // padrão do painel: preset 'meses' com o mês atual, aplicado uma única vez
+  vm.runInContext('MM = {meses:[]}; DASH.preset = "7d"; DASH.period = null;', c);
+  assert.equal(c.mmPadraoInicial(),true);
+  assert.equal(c.DASH.preset,'meses');
+  assert.deepEqual(j(c.DASH.period),{start:'2026-10-01',end:'2026-10-31'});
+  assert.deepEqual(JSON.parse(vm.runInContext('JSON.stringify(MM)',c)),{meses:['2026-10']});
+  assert.equal(c.mmPadraoInicial(),false);                       // não reaplica
+  assert.deepEqual(j(c.DASH.period),{start:'2026-10-01',end:'2026-10-31'});
+  // respeita um filtro já escolhido (não sobrescreve)
+  const c2=context({...base, DASH:{raw:[], period:{start:'2026-07-01',end:'2026-09-30'}, preset:'meses'}});
+  vm.runInContext(mmBlock,c2);
+  vm.runInContext('MM = {meses:["2026-07","2026-08","2026-09"]};', c2);
+  assert.equal(c2.mmPadraoInicial(),false);
+  assert.deepEqual(j(c2.DASH.period),{start:'2026-07-01',end:'2026-09-30'});
+  assert.deepEqual(JSON.parse(vm.runInContext('JSON.stringify(MM)',c2)),{meses:['2026-07','2026-08','2026-09']});
+  // o padrão entra no carregamento do painel (loadDashboard), antes de calcular o período
+  assert.ok(html.includes('function mmMesAtual(ref)'));
+  assert.ok(html.includes('mmPadraoInicial();   // padrão do painel: MÊS ATUAL (filtro 📅 Meses já posicionado nele)'));
+  assert.ok(html.includes('function mmPadraoInicial()'));
+});
