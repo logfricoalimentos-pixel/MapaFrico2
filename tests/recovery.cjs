@@ -324,7 +324,7 @@ test('cadastro de ajudantes e tripulação de Frotas: edição manual, sincroniz
   assert.ok(tripWrap.innerHTML.includes('data-trip="ajudante"') && tripWrap.innerHTML.includes('value="CARLOS"') && tripWrap.innerHTML.includes('value="LUCAS"'));
 });
 test('regressões: resumo por quinzena e impressão isolada permanecem',()=>{
-  for(const x of ['id="fh-resumo"','function fechRefOptions','function renderFechHist','A4 portrait','2026-10-28a','id="kp-f-sit"','function kpGroupRows','function kpKmJump','function kpSituation','@page{size:A4 landscape;margin:10mm}','tbody class="grp"','function printResumoRowsHtml','td{white-space:nowrap}','id="btn-rotas-window"','function rotasWinHtml','function rotasAbertasCollectRows','id="sec-frota-trip"','function renderFrotaTripulacao','function syncFrotaTripulacaoToMap']) assert.ok(html.includes(x),x);
+  for(const x of ['id="fh-resumo"','function fechRefOptions','function renderFechHist','A4 portrait','2026-10-28b','id="kp-f-sit"','function kpGroupRows','function kpKmJump','function kpSituation','@page{size:A4 landscape;margin:10mm}','tbody class="grp"','function printResumoRowsHtml','td{white-space:nowrap}','id="btn-rotas-window"','function rotasWinHtml','function rotasAbertasCollectRows','id="sec-frota-trip"','function renderFrotaTripulacao','function syncFrotaTripulacaoToMap']) assert.ok(html.includes(x),x);
   assert.ok(!html.includes("const APP_V = '2026-09-29d'"));
   assert.ok(!html.includes('tryAutoMigrarLote'));
 });
@@ -821,6 +821,7 @@ test('Fechamento quinzenal: Entregou NF e Boleto ficam salvos ao alterar, fechar
 
 /* ---- 2026-10-27: Pré-escala Capital (status visual) + lupa 🔍 da linha da ordem ---- */
 const CAP_PLACAS = ['CZC2919','TGK4D11','PRO0D73','REK7D83','PQO8358','JKL0G11','KFB8419','HEB4H69','OND0B48','NKU2C52','ONQ5D83','FFW4J99','OMJ3C34','NKH7C02','NGD9A75','RBY2D00'];
+escalaCtx.seq = 0;
 function escalaCtx(extra={}) {
   const c = context({
     normPlaca: p=>String(p==null?'':p).toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().replace(/[^A-Z0-9]/g,''),
@@ -830,7 +831,9 @@ function escalaCtx(extra={}) {
     rowTemCarga: r=>String(r && r.carga != null ? r.carga : '').trim() !== '',
     esc: s=>String(s==null?'':s).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch])),
     SECTIONS:['frotas','capital','interior'], DATA:{frotas:[],capital:[],interior:[]}, REGISTRY:{}, AVAILABILITY:{},
-    FIXED_FROTAS:[], DEFAULT_FIXED_FROTAS:['MFM8075'], requireOperational:()=>true, toast(){}, audit(){}, renderAll(){}, ...extra});
+    FIXED_FROTAS:[], DEFAULT_FIXED_FROTAS:['MFM8075'], requireOperational:()=>true, requireEdit:()=>true, canEditOperational:()=>true,
+    emptyRow:()=>({id:'n'+(++escalaCtx.seq), placa:'', motorista:'', transportadora:'', carga:'', destino:'', ajudantes:'', valorKg:'', neg:'Não'}),
+    toast(){}, audit(){}, renderAll(){}, ...extra});
   vm.runInContext(block('const CAPITAL_SEED_V','/* Faixas de peso'), c);                       // constantes (planilha)
   vm.runInContext(block('function applyRegistry(','/* preenche o campo "dias"'), c);            // applyRegistry + seedEscalaPlanilha
   vm.runInContext(block('function fixedSet(){','function isFixedPlate('), c);
@@ -975,4 +978,58 @@ test('Pré-escala INTERIOR: 22 veículos, versão própria e borda vermelha comp
   const cs = c.lupaCandidates('i2', 'interior');
   assert.equal(cs[0].tipo, 'interior');
   assert.ok(block('function lupaRenderList(', 'function lupaPick(').includes("' ind'"));
+});
+test('Pré-escala: marcar vários / duplo clique adiciona linhas ao mapa (ignora indisponível e quem já está no mapa)', ()=>{
+  const els = {}; const el = id=> els[id] || (els[id] = {id, hidden:true, innerHTML:''});
+  const toasts = [];
+  const SEL = ctx=> vm.runInContext('PE_SEL', ctx);        // let de topo não vira propriedade do contexto vm
+  const c = escalaCtx({document:{getElementById:el, querySelector:()=>null}, toast:(m,tp)=>toasts.push([m,tp]), canEditOperational:()=>true});
+  c.seedEscalaPlanilha();
+  c.AVAILABILITY = {PQO8358:false};
+  c.DATA.capital = [{id:'x1', placa:'CZC2919', carga:'', destino:''}];                     // já tem linha (sem ordem)
+  c.DATA.interior = [{id:'x2', placa:'TGK4D11', carga:'555', destino:'RIO VERDE'}];         // já escalado em outra seção
+  // painel: quem já está no mapa fica travado e ganha NO MAPA; indisponível trava
+  c.renderPreEscala();
+  const h = el('pre-escala-capital').innerHTML;
+  assert.ok(/pe-chip pe-pre pe-lock[^>]*data-pe-chip="CZC2919"/.test(h) && h.includes('NO MAPA'));
+  assert.ok(/pe-chip pe-indisp pe-lock[^>]*data-pe-chip="PQO8358"/.test(h));
+  assert.ok(h.includes('data-pe-all="capital"') && h.includes('data-pe-add="capital"') && h.includes('disabled'));   // nada marcado → botão desabilitado
+  assert.equal(Array.from(c.peLivres('capital')).length, 13);                             // 16 − CZC2919 (no mapa) − PQO8358 (indisp) − TGK4D11 (escalado no Interior)
+  // marcar todos / desmarcar
+  c.peToggleAll('capital'); assert.equal(SEL(c).capital.size, 13);
+  c.peToggleAll('capital'); assert.equal(SEL(c).capital.size, 0);
+  // clique em travado não marca e avisa
+  c.peClickChip('capital', 'PQO8358'); c.peClickChip('capital', 'CZC2919');
+  assert.equal(SEL(c).capital.size, 0); assert.ok(toasts.some(([m])=> m.includes('INDISPONÍVEL')) && toasts.some(([m])=> m.includes('já está no mapa')));
+  // marca 3 (um deles fora de ordem) e adiciona: linhas criadas com motorista/transportadora do cadastro, sem Nº Carga
+  c.peClickChip('capital', 'REK7D83'); c.peClickChip('capital', 'HEB4H69'); c.peClickChip('capital', 'KFB8419');
+  c.peClickChip('capital', 'HEB4H69');                                                     // desmarca
+  assert.deepStrictEqual(Array.from(SEL(c).capital).sort(), ['KFB8419','REK7D83']);
+  const antes = c.DATA.capital.length;
+  c.peAddSelected('capital');
+  assert.equal(c.DATA.capital.length, antes + 2);
+  const novas = c.DATA.capital.slice(antes);
+  assert.deepStrictEqual(Array.from(novas.map(r=>r.placa)), ['REK7D83','KFB8419']);        // ordem do painel
+  assert.equal(novas[0].motorista, 'ILDEMIR AUGUSTO GONÇALVES'); assert.equal(novas[0].transportadora, 'TRANSP. ILDEMIR');
+  assert.ok(novas.every(r=> r.carga === '' && r.destino === '' && r.id));
+  assert.equal(SEL(c).capital.size, 0);                                                  // seleção limpa
+  assert.ok(toasts.some(([m])=> m.includes('2 veículo(s) adicionado(s) em CAPITAL')));
+  // não duplica: de novo o mesmo veículo + indisponível + o que está noutra seção
+  const r2 = c.peAddToMap('capital', ['REK7D83','PQO8358','TGK4D11','NGD9A75']);
+  assert.deepStrictEqual(Array.from(r2.added.map(a=>a.placa)), ['NGD9A75']);
+  assert.deepStrictEqual(Array.from(r2.mapa).sort(), ['REK7D83','TGK4D11']); assert.deepStrictEqual(Array.from(r2.indisp), ['PQO8358']);
+  // duplo clique = adiciona só aquele
+  const n3 = c.DATA.capital.length;
+  c.peAddAndRender('capital', ['HEB4H69']);
+  assert.equal(c.DATA.capital.length, n3 + 1); assert.equal(c.DATA.capital[n3].placa, 'HEB4H69');
+  // adicionar nada (só travados) avisa e não cria linha
+  const n4 = c.DATA.capital.length; c.peAddAndRender('capital', ['PQO8358']);
+  assert.equal(c.DATA.capital.length, n4);
+  // só leitura: sem botões/marcação no painel
+  const ro = escalaCtx({document:{getElementById:el, querySelector:()=>null}, canEditOperational:()=>false});
+  ro.seedEscalaPlanilha(); ro.renderPreEscala();
+  assert.ok(!el('pre-escala-capital').innerHTML.includes('data-pe-add'));
+  ro.peClickChip('capital', 'CZC2919'); assert.equal(SEL(ro).capital.size, 0);
+  // fiação no HTML: duplo clique e botões
+  assert.ok(html.includes("pe.addEventListener('dblclick'") && html.includes('body.readonly .pe-btn'));
 });
