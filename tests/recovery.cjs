@@ -324,7 +324,7 @@ test('cadastro de ajudantes e tripulação de Frotas: edição manual, sincroniz
   assert.ok(tripWrap.innerHTML.includes('data-trip="ajudante"') && tripWrap.innerHTML.includes('value="CARLOS"') && tripWrap.innerHTML.includes('value="LUCAS"'));
 });
 test('regressões: resumo por quinzena e impressão isolada permanecem',()=>{
-  for(const x of ['id="fh-resumo"','function fechRefOptions','function renderFechHist','A4 portrait','2026-10-28a','id="kp-f-sit"','function kpGroupRows','function kpKmJump','function kpSituation','@page{size:A4 landscape;margin:10mm}','tbody class="grp"','function printResumoRowsHtml','td{white-space:nowrap}','id="btn-rotas-window"','function rotasWinHtml','function rotasAbertasCollectRows','id="sec-frota-trip"','function renderFrotaTripulacao','function syncFrotaTripulacaoToMap']) assert.ok(html.includes(x),x);
+  for(const x of ['id="fh-resumo"','function fechRefOptions','function renderFechHist','A4 portrait','2026-10-27a','id="kp-f-sit"','function kpGroupRows','function kpKmJump','function kpSituation','@page{size:A4 landscape;margin:10mm}','tbody class="grp"','function printResumoRowsHtml','td{white-space:nowrap}','id="btn-rotas-window"','function rotasWinHtml','function rotasAbertasCollectRows','id="sec-frota-trip"','function renderFrotaTripulacao','function syncFrotaTripulacaoToMap']) assert.ok(html.includes(x),x);
   assert.ok(!html.includes("const APP_V = '2026-09-29d'"));
   assert.ok(!html.includes('tryAutoMigrarLote'));
 });
@@ -819,278 +819,127 @@ test('Fechamento quinzenal: Entregou NF e Boleto ficam salvos ao alterar, fechar
   assert.equal(c.fechSelOf('trans frete').boleto,'Não');
 });
 
-/* ---- filtro por quinzena (cabeçalhos do Painel de Indicadores e do Mapa Gerencial) ---- */
-const qzBlock = block('/* ---- filtro por quinzena', '/* ---- fim do filtro por quinzena ----');
-test('filtro por quinzena: Tudo/1ª/2ª em período contínuo, cascata ano→mês→quinzena e Aplicar/Limpar',()=>{
-  let recomputes=0, heads=0, maps=0;
-  const c=context({
-    MESES_NOME:['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'],
-    qp2:n=>String(n).padStart(2,'0'),
-    monthEnd:(y,m)=> y+'-'+String(m).padStart(2,'0')+'-'+String(new Date(y,m,0).getDate()).padStart(2,'0'),
-    fmtBR:iso=>{ const p=String(iso).split('-'); return p.length===3? p[2]+'/'+p[1]+'/'+p[0] : iso; },
-    esc:s=>String(s==null?'':s),
-    currentMapDate:'2026-09-20',
-    FECHAMENTOS:[{ref:{ano:2025,mes:12,quinzena:1}}],
-    fechRefOf:f=>(f&&f.ref)||{},
-    DASH:{raw:[{date:'2024-03-02'},{date:'2026-09-01'}], period:{start:'2026-09-01',end:'2026-09-30'}, preset:'month'},
-    GERENCIAL_PAGE:true,
-    dashRecompute:()=>{ recomputes++; },
-    updateGerencialHead:()=>{ heads++; },
-    renderGerencialMap:()=>{ maps++; },
-    $:()=>null, toast:()=>{}, document:{addEventListener(){}}
-  });
-  vm.runInContext(qzBlock,c);
-  // Tudo = mês inteiro; 1ª = 01–15; 2ª = 16 ao fim (um período só, sem dia repetido)
-  assert.deepEqual(j(c.qzPeriodo(2026,9,'all')),{start:'2026-09-01',end:'2026-09-30'});
-  assert.deepEqual(j(c.qzPeriodo(2026,9,'1')),{start:'2026-09-01',end:'2026-09-15'});
-  assert.deepEqual(j(c.qzPeriodo(2026,9,'2')),{start:'2026-09-16',end:'2026-09-30'});
-  // fim do mês por mês (30/31) e fevereiro bissexto
-  assert.deepEqual(j(c.qzPeriodo(2026,4,'all')),{start:'2026-04-01',end:'2026-04-30'});
-  assert.deepEqual(j(c.qzPeriodo(2026,2,'2')),{start:'2026-02-16',end:'2026-02-28'});
-  assert.deepEqual(j(c.qzPeriodo(2028,2,'2')),{start:'2028-02-16',end:'2028-02-29'});
-  assert.deepEqual(j(c.qzPeriodo(2028,2,'all')),{start:'2028-02-01',end:'2028-02-29'});
-  assert.equal(c.qzPeriodo(2026,13,'all'),null);
-  assert.equal(c.qzPeriodo(2026,9,'3'),null);
-  // resumo do botão e faixa exibida no popover
-  assert.equal(c.qzLabel(2026,9,'all'),'Set/2026 · Tudo');
-  assert.equal(c.qzLabel(2026,8,'2'),'Ago/2026 · 2ª');
-  assert.equal(c.qzLabel(2028,2,'1'),'Fev/2028 · 1ª');
-  assert.equal(c.qzPeriodoTxt(2026,9,'1'),'01/09/2026 a 15/09/2026');
-  // anos: histórico + referências dos fechamentos + ano atual, em ordem decrescente
-  const anos=c.qzYears();
-  for(const a of [2024,2025,2026]) assert.ok(anos.includes(a),'ano '+a);
-  assert.deepEqual(j(anos),j(anos.slice().sort((a,b)=>b-a)));
-  // cascata: trocar o ANO zera mês + quinzena; trocar o MÊS zera a quinzena
-  const d0={ano:'2026',mes:'9',q:'2'};
-  assert.deepEqual(j(c.qzDraftNext(d0,'ano','2025')),{ano:'2025',mes:'',q:''});
-  assert.deepEqual(j(c.qzDraftNext(d0,'mes','3')),{ano:'2026',mes:'3',q:''});
-  assert.deepEqual(j(c.qzDraftNext(d0,'q','1')),{ano:'2026',mes:'9',q:'1'});
-  // 3 opções de quinzena: Tudo · 1ª · 2ª
-  assert.deepEqual(j(c.qzQuinzenas().map(o=>o.q)),['all','1','2']);
-  assert.deepEqual(j(c.qzQuinzenas().map(o=>o.curto)),['Tudo','1ª','2ª']);
-  assert.equal(c.qzMeses().length,12);
-  // Aplicar grava DASH.period (preset 'quinzena') e refaz os dois painéis
-  assert.equal(c.qzSet(2026,9,'1'),true);
-  assert.deepEqual(j(c.DASH.period),{start:'2026-09-01',end:'2026-09-15'});
-  assert.equal(c.DASH.preset,'quinzena');
-  assert.deepEqual(j(c.qzState()),{ano:2026,mes:9,q:'1'});
-  assert.ok(recomputes>=1 && heads>=1 && maps>=1,'recalcula painel + mapa gerencial');
-  // Limpar volta ao período livre (presets/De-Até) sem perder o intervalo atual
-  const antes=c.DASH.period;
-  c.qzClear();
-  assert.equal(c.DASH.preset,'custom');
-  assert.deepEqual(j(c.DASH.period),j(antes));
-  assert.deepEqual(j(c.qzState()),{ano:null,mes:null,q:''});
-  // controle presente nos DOIS cabeçalhos, com as 3 listas em cascata sem pré-seleção
-  const headPainel=html.slice(html.indexOf('<div class="painel-head">'), html.indexOf('<div id="tab-diaria"'));
-  const headGer=html.slice(html.indexOf('id="gerencial-head"'), html.indexOf('id="gerencial-access-note"'));
-  for(const x of ['id="qz-box"','id="qz-toggle"','id="qz-label"','id="qz-pop"','id="qz-ano"','id="qz-mes"','id="qz-q"','id="qz-apply"','id="qz-clear"','id="qz-faixa"']) assert.ok(headPainel.includes(x),x);
-  for(const x of ['id="gm-qz-box"','id="gm-qz-toggle"','id="gm-qz-label"','id="gm-qz-pop"','id="gm-qz-ano"','id="gm-qz-mes"','id="gm-qz-q"','id="gm-qz-apply"','id="gm-qz-clear"','id="gm-qz-faixa"']) assert.ok(headGer.includes(x),x);
-  assert.ok(headPainel.includes('id="qz-mes" disabled') && headPainel.includes('id="qz-q" disabled'));
-  assert.ok(headGer.includes('id="gm-qz-mes" disabled') && headGer.includes('id="gm-qz-q" disabled'));
-  // rótulo do período (e título da aba) mostram a quinzena aplicada
-  assert.ok(html.includes("if(DASH.preset === 'quinzena' && QZ.ano)"));
-  assert.ok(html.includes('function renderQuinzenaControls()') && html.includes('renderQuinzenaControls(); // resumo do filtro de quinzena'));
+/* ---- 2026-10-27: Pré-escala Capital (status visual) + lupa 🔍 da linha da ordem ---- */
+const CAP_PLACAS = ['CZC2919','TGK4D11','PRO0D73','REK7D83','PQO8358','JKL0G11','KFB8419','HEB4H69','OND0B48','NKU2C52','ONQ5D83','FFW4J99','OMJ3C34','NKH7C02','NGD9A75','RBY2D00'];
+function escalaCtx(extra={}) {
+  const c = context({
+    normPlaca: p=>String(p==null?'':p).toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().replace(/[^A-Z0-9]/g,''),
+    norm: s=>String(s==null?'':s).toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim(),
+    clampMotorista: v=>String(v==null?'':v).slice(0,32),
+    plateSegs: p=>String(p||'').split('/').map(x=>x.toUpperCase().replace(/[^A-Z0-9]/g,'')).filter(Boolean),
+    rowTemCarga: r=>String(r && r.carga != null ? r.carga : '').trim() !== '',
+    esc: s=>String(s==null?'':s).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch])),
+    SECTIONS:['frotas','capital','interior'], DATA:{frotas:[],capital:[],interior:[]}, REGISTRY:{}, AVAILABILITY:{},
+    FIXED_FROTAS:[], DEFAULT_FIXED_FROTAS:['MFM8075'], requireOperational:()=>true, toast(){}, audit(){}, renderAll(){}, ...extra});
+  vm.runInContext(block('const CAPITAL_SEED_V','/* Faixas de peso'), c);                       // constantes (planilha)
+  vm.runInContext(block('function applyRegistry(','/* preenche o campo "dias"'), c);            // applyRegistry + seedCapitalEscala
+  vm.runInContext(block('function fixedSet(){','function isFixedPlate('), c);
+  vm.runInContext(block('/* ================= Pré-escala CAPITAL (status visual)','/* ===== fim Lupa da linha da ordem ===== */'), c);
+  return c;
+}
+test('Pré-escala Capital: 16 veículos da planilha, atualização única por placa e edição do usuário preservada', ()=>{
+  const c = escalaCtx();
+  const raw = Array.from(vm.runInContext('DEFAULT_CAPITAL_ESCALA_RAW', c));       // const de topo não vira propriedade do contexto vm
+  const seedV = vm.runInContext('CAPITAL_SEED_V', c);
+  assert.equal(raw.length, 16);
+  assert.deepStrictEqual(raw.map(r=>r[0]), CAP_PLACAS);
+  assert.ok(raw.every(r=> r[1] && r[1].length <= 32 && r[2]));                 // motorista no limite de 32 e transportadora presente
+  // cadastro salvo ANTIGO (substitui o padrão do código): PRO0D73 ainda em TRANSP. NERCY, com Vlr/kg que deve ser mantido
+  c.REGISTRY = {PRO0D73:{transportadora:'TRANSP. NERCY', valorKg:'1.5', neg:'Sim'}, OGR6D47:{transportadora:'TRANSP. NERCY'}};
+  assert.equal(c.seedCapitalEscala(), 16);
+  assert.equal(c.REGISTRY.PRO0D73.transportadora, 'TRANSP. GLEISON');           // atualizada pela planilha
+  assert.equal(c.REGISTRY.PRO0D73.motorista, 'GLEISON ALVES DE LIM');
+  assert.equal(c.REGISTRY.PRO0D73.valorKg, '1.5');                               // demais campos do cadastro preservados
+  assert.equal(c.REGISTRY.NKH7C02.transportadora, 'TRANSP. SEBASTIAO ROSA');    // placa nova
+  assert.ok(CAP_PLACAS.every(p=> c.REGISTRY[p].tipo === 'capital' && c.REGISTRY[p]._seed === seedV));
+  assert.equal(c.REGISTRY.OGR6D47.tipo, undefined);                              // INTERIOR não entra na pré-escala
+  // idempotente + edição do usuário depois da atualização vale
+  c.REGISTRY.CZC2919.motorista = 'OUTRO MOTORISTA'; c.REGISTRY.CZC2919.transportadora = 'TRANSP. NOVA';
+  assert.equal(c.seedCapitalEscala(), 0);
+  assert.equal(c.REGISTRY.CZC2919.motorista, 'OUTRO MOTORISTA');
+  assert.equal(c.REGISTRY.CZC2919.transportadora, 'TRANSP. NOVA');
 });
-
-/* ---- filtro por mês (vários meses: ano + mês + ➕ Add mês) ---- */
-const mmBlock = block('/* ---- filtro por MÊS (cabeçalhos', '/* ---- fim do filtro por mês ----');
-test('filtro por mês: 1/3 meses contínuos, Add/✕, atalhos, Aplicar/Limpar e controle nos dois cabeçalhos',()=>{
-  let recomputes=0, heads=0, maps=0;
-  const c=context({
-    MESES_NOME:['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'],
-    qp2:n=>String(n).padStart(2,'0'),
-    qzShort:(ano,mes)=>(['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][mes-1])+'/'+ano,
-    qzMeses:()=>[],
-    qzYears:()=>[2026],
-    qzLabel:()=>'',
-    qzClearLabel:()=>'',
-    monthEnd:(y,m)=> y+'-'+String(m).padStart(2,'0')+'-'+String(new Date(y,m,0).getDate()).padStart(2,'0'),
-    fmtBR:iso=>{ const p=String(iso).split('-'); return p.length===3? p[2]+'/'+p[1]+'/'+p[0] : iso; },
-    fmtBRL:v=>'R$ '+v,
-    esc:s=>String(s==null?'':s),
-    isoToDate:iso=>{ const p=String(iso).split('-'); return new Date(+p[0], (+p[1]||1)-1, +p[2]||1); },
-    currentMapDate:'2026-10-28',
-    FECHAMENTOS:[],
-    fechRefOf:()=>({}),
-    DASH:{raw:[], period:{start:'2026-10-01',end:'2026-10-31'}, preset:'7d'},
-    QZ:{ano:2026, mes:9, q:'1'},
-    GERENCIAL_PAGE:false,
-    dashRecompute:()=>{ recomputes++; },
-    updateGerencialHead:()=>{ heads++; },
-    renderGerencialMap:()=>{ maps++; },
-    renderQuinzenaControls:()=>{},
-    $:()=>null, $$:()=>[], toast:()=>{}, document:{addEventListener(){}}
-  });
-  vm.runInContext(mmBlock,c);
-  // 1 mês = o mês inteiro; 3 meses = o trimestre; meses não vizinhos incluem os do meio
-  assert.deepEqual(j(c.mmPeriodo(['2026-09'])),{start:'2026-09-01',end:'2026-09-30'});
-  assert.deepEqual(j(c.mmPeriodo(['2026-07','2026-08','2026-09'])),{start:'2026-07-01',end:'2026-09-30'});
-  assert.deepEqual(j(c.mmPeriodo(['2026-03','2026-01'])),{start:'2026-01-01',end:'2026-03-31'});
-  assert.deepEqual(j(c.mmPeriodo(['2025-12','2026-01'])),{start:'2025-12-01',end:'2026-01-31'});
-  // fevereiro bissexto e meses de 30/31 dias
-  assert.deepEqual(j(c.mmPeriodo(['2028-02'])),{start:'2028-02-01',end:'2028-02-29'});
-  assert.deepEqual(j(c.mmPeriodo(['2026-02'])),{start:'2026-02-01',end:'2026-02-28'});
-  assert.deepEqual(j(c.mmPeriodo(['2026-04'])),{start:'2026-04-01',end:'2026-04-30'});
-  assert.equal(c.mmPeriodo([]),null);
-  assert.equal(c.mmPeriodo(['x']),null);
-  // rótulo: 1 mês · faixa no mesmo ano · virada de ano
-  assert.equal(c.mmLabel(['2026-09']),'Set/2026');
-  assert.equal(c.mmLabel(['2026-07','2026-08','2026-09']),'Jul–Set/2026');
-  assert.equal(c.mmLabel(['2025-11','2026-01']),'Nov/2025–Jan/2026');
-  assert.equal(c.mmPeriodoTxt(['2026-09']),'01/09/2026 a 30/09/2026');
-  // lista: sem repetição e em ordem cronológica
-  assert.deepEqual(j(c.mmSort(['2026-09','2026-07','2026-09','x','2026-08'])),['2026-07','2026-08','2026-09']);
-  // atalhos: mês passado (vira o ano em janeiro) · trimestre (T1 e T4)
-  assert.deepEqual(j(c.mmAtalho('lastmonth',new Date(2026,9,28))),['2026-09']);
-  assert.deepEqual(j(c.mmAtalho('lastmonth',new Date(2027,0,10))),['2026-12']);
-  assert.deepEqual(j(c.mmAtalho('quarter',new Date(2026,0,15))),['2026-01','2026-02','2026-03']);
-  assert.deepEqual(j(c.mmAtalho('quarter',new Date(2026,11,31))),['2026-10','2026-11','2026-12']);
-  // rascunho: trocar o ano zera o mês mas preserva a lista de meses; Add ignora repetido; ✕ remove
-  const d0={ano:'2026',mes:'9',meses:['2026-08']};
-  assert.deepEqual(j(c.mmDraftNext(d0,'ano','2025')),{ano:'2025',mes:'',meses:['2026-08']});
-  assert.deepEqual(j(c.mmDraftNext(d0,'mes','3')),{ano:'2026',mes:'3',meses:['2026-08']});
-  assert.deepEqual(j(c.mmDraftAdd({ano:'2026',mes:'9',meses:['2026-08']})),{ano:'2026',mes:'9',meses:['2026-08','2026-09']});
-  assert.deepEqual(j(c.mmDraftAdd({ano:'2026',mes:'9',meses:['2026-09']})),{ano:'2026',mes:'9',meses:['2026-09']});
-  assert.deepEqual(j(c.mmDraftAdd({ano:'',mes:'9',meses:[]})).meses,[]);
-  assert.deepEqual(j(c.mmDraftDel({ano:'',mes:'',meses:['2026-08','2026-09']},'2026-08')),{ano:'',mes:'',meses:['2026-09']});
-  assert.deepEqual(j(c.mmDraftShortcut({ano:'',mes:'',meses:[]},'lastmonth')),{ano:'',mes:'',meses:['2026-09']});
-  assert.deepEqual(j(c.mmDraftShortcut({ano:'',mes:'',meses:[]},'quarter')),{ano:'',mes:'',meses:['2026-10','2026-11','2026-12']});
-  // Aplicar grava DASH.period (preset 'meses') e cancela o filtro de quinzena
-  assert.equal(c.mmSet(['2026-07','2026-08','2026-09']),true);
-  assert.deepEqual(j(c.DASH.period),{start:'2026-07-01',end:'2026-09-30'});
-  assert.equal(c.DASH.preset,'meses');
-  assert.deepEqual(j(c.mmState()),{meses:['2026-07','2026-08','2026-09']});
-  assert.deepEqual(j(c.QZ),{ano:null,mes:null,q:''});
-  assert.ok(recomputes>=1,'recalcula o painel');
-  // Limpar volta ao período livre mantendo o intervalo atual
-  const antes=c.DASH.period;
-  c.mmClear();
-  assert.equal(c.DASH.preset,'custom');
-  assert.deepEqual(j(c.DASH.period),j(antes));
-  assert.deepEqual(j(c.mmState()),{meses:[]});
-  // chips "Este mês / Mês passado / Este trimestre" saíram; só "Últimos 7 dias" ficou
-  for(const p of ['month','lastmonth','quarter']) assert.ok(!html.includes('data-preset="'+p+'"'), 'preset '+p);
-  assert.ok(html.includes('data-preset="7d"'));
-  // controle nos DOIS cabeçalhos (Painel de Indicadores + Mapa Gerencial)
-  const headPainel=html.slice(html.indexOf('<div class="painel-head">'), html.indexOf('<div id="tab-diaria"'));
-  const headGer=html.slice(html.indexOf('id="gerencial-head"'), html.indexOf('id="gerencial-access-note"'));
-  for(const x of ['id="mm-box"','id="mm-toggle"','id="mm-label"','id="mm-pop"','id="mm-ano"','id="mm-mes"','id="mm-add"','id="mm-chips"','id="mm-apply"','id="mm-clear"','id="mm-faixa"','data-mm-short="lastmonth"','data-mm-short="quarter"']) assert.ok(headPainel.includes(x),x);
-  for(const x of ['id="gm-mm-box"','id="gm-mm-toggle"','id="gm-mm-label"','id="gm-mm-pop"','id="gm-mm-ano"','id="gm-mm-mes"','id="gm-mm-add"','id="gm-mm-chips"','id="gm-mm-apply"','id="gm-mm-clear"','id="gm-mm-faixa"','data-mm-short="lastmonth"','data-mm-short="quarter"']) assert.ok(headGer.includes(x),x);
-  // listas abrem sem seleção e sem "Aplicar" enquanto não houver mês na lista
-  assert.ok(headPainel.includes('id="mm-mes" disabled') && headPainel.includes('id="mm-add" disabled') && headPainel.includes('id="mm-apply" title="Aplicar os meses escolhidos como período dos dois painéis" disabled'));
-  assert.ok(headGer.includes('id="gm-mm-mes" disabled') && headGer.includes('id="gm-mm-add" disabled'));
-  assert.ok(headPainel.includes('nenhum mês adicionado') && headGer.includes('nenhum mês adicionado'));
-  // rótulo do período (e título da aba) refletem os meses aplicados
-  assert.ok(html.includes("if(DASH.preset === 'meses' && MM.meses.length)"));
-  assert.ok(html.includes('function renderMesesControls()') && html.includes('renderMesesControls();    // resumo do filtro de meses'));
-  // período restaurado quando DASH.period ainda não existe (meses/quinzena/preset)
-  assert.ok(html.includes('function dashPeriodoAtual(ref)') && html.includes('DASH.period = dashPeriodoAtual(currentMapDate)'));
-  // quinzena e meses são mutuamente exclusivos nos dois sentidos
-  assert.ok(html.includes('MM = {meses: []};                 // quinzena e meses são mutuamente exclusivos'));
-  assert.ok(html.includes('QZ = {ano: null, mes: null, q: \'\'};      // quinzena e meses são mutuamente exclusivos'));
+test('applyRegistry: motorista do cadastro só entra quando a linha está sem motorista', ()=>{
+  const c = escalaCtx();
+  c.seedCapitalEscala();
+  const vazia = {placa:'czc-2919', motorista:'', transportadora:''};
+  c.applyRegistry(vazia);
+  assert.equal(vazia.motorista, 'RODRIGO PEREIRA DE JESUS'); assert.equal(vazia.transportadora, 'TRANSP. DANILO');
+  const comMot = {placa:'CZC2919', motorista:'FULANO DO DIA', transportadora:''};
+  c.applyRegistry(comMot);
+  assert.equal(comMot.motorista, 'FULANO DO DIA');                                // não sobrescreve motorista já informado
 });
-
-/* ---- padrão do filtro por mês: MÊS ATUAL ---- */
-test('filtro por mês: padrão é o MÊS ATUAL (painel abre no mês de hoje e o popover já vem posicionado)',()=>{
-  const base = {
-    MESES_NOME:['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'],
-    qp2:n=>String(n).padStart(2,'0'),
-    qzShort:(ano,mes)=>(['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][mes-1])+'/'+ano,
-    qzMeses:()=>[], qzYears:()=>[2026], qzLabel:()=>'', 
-    monthEnd:(y,m)=> y+'-'+String(m).padStart(2,'0')+'-'+String(new Date(y,m,0).getDate()).padStart(2,'0'),
-    fmtBR:iso=>{ const p=String(iso).split('-'); return p.length===3? p[2]+'/'+p[1]+'/'+p[0] : iso; },
-    esc:s=>String(s==null?'':s), isoToDate:iso=>{ const p=String(iso).split('-'); return new Date(+p[0], (+p[1]||1)-1, +p[2]||1); },
-    currentMapDate:'2026-10-28', FECHAMENTOS:[], fechRefOf:()=>({}),
-    DASH:{raw:[], period:null, preset:'7d'},
-    QZ:{ano:null, mes:null, q:''},
-    GERENCIAL_PAGE:false, dashRecompute:()=>{}, updateGerencialHead:()=>{}, renderGerencialMap:()=>{}, renderQuinzenaControls:()=>{},
-    $:()=>null, $$:()=>[], toast:()=>{}, document:{addEventListener(){}}
-  };
-  // mês de referência = dia de faturamento (currentMapDate), não o relógio da máquina
-  const c=context({...base}); vm.runInContext(mmBlock,c);
-  assert.equal(c.mmMesAtual(),'2026-10');
-  assert.equal(c.mmMesAtual(new Date(2027,0,5)),'2027-01');
-  // sem filtro aplicado: ano/mês já vêm no mês atual e o mês atual já está na lista
-  assert.deepEqual(j(c.mmDraftReset()),{ano:'2026',mes:'10',meses:['2026-10']});
-  // com meses aplicados: a lista continua sendo a aplicada (ano/mês seguem no mês atual)
-  // (MM é 'let' do script → escreve/lê pelo próprio contexto, não como propriedade global)
-  vm.runInContext('MM = {meses:["2026-08","2026-09"]}; DASH.preset = "meses";', c);
-  assert.deepEqual(j(c.mmDraftReset()),{ano:'2026',mes:'10',meses:['2026-08','2026-09']});
-  // padrão do painel: preset 'meses' com o mês atual, aplicado uma única vez
-  vm.runInContext('MM = {meses:[]}; DASH.preset = "7d"; DASH.period = null;', c);
-  assert.equal(c.mmPadraoInicial(),true);
-  assert.equal(c.DASH.preset,'meses');
-  assert.deepEqual(j(c.DASH.period),{start:'2026-10-01',end:'2026-10-31'});
-  assert.deepEqual(JSON.parse(vm.runInContext('JSON.stringify(MM)',c)),{meses:['2026-10']});
-  assert.equal(c.mmPadraoInicial(),false);                       // não reaplica
-  assert.deepEqual(j(c.DASH.period),{start:'2026-10-01',end:'2026-10-31'});
-  // respeita um filtro já escolhido (não sobrescreve)
-  const c2=context({...base, DASH:{raw:[], period:{start:'2026-07-01',end:'2026-09-30'}, preset:'meses'}});
-  vm.runInContext(mmBlock,c2);
-  vm.runInContext('MM = {meses:["2026-07","2026-08","2026-09"]};', c2);
-  assert.equal(c2.mmPadraoInicial(),false);
-  assert.deepEqual(j(c2.DASH.period),{start:'2026-07-01',end:'2026-09-30'});
-  assert.deepEqual(JSON.parse(vm.runInContext('JSON.stringify(MM)',c2)),{meses:['2026-07','2026-08','2026-09']});
-  // o padrão entra no carregamento do painel (loadDashboard), antes de calcular o período
-  assert.ok(html.includes('function mmMesAtual(ref)'));
-  assert.ok(html.includes('mmPadraoInicial();   // padrão do painel: MÊS ATUAL (filtro 📅 Meses já posicionado nele)'));
-  assert.ok(html.includes('function mmPadraoInicial()'));
+test('Pré-escala Capital é só status visual: lista, estados e NENHUMA mudança em DATA', ()=>{
+  const els = {}; const el = id=> els[id] || (els[id] = {id, hidden:true, innerHTML:''});
+  const c = escalaCtx({document:{getElementById:el}});
+  c.seedCapitalEscala();
+  c.DATA.capital = [{id:'r1', placa:'CZC2919', carga:'12345', peso:100}];
+  c.DATA.interior = [{id:'r2', placa:'TGK4D11', carga:'', peso:''}];            // sem ordem → continua pré-escala
+  c.AVAILABILITY = {PQO8358:false};
+  const antes = JSON.stringify(c.DATA);
+  assert.equal(c.capitalEscalaList().length, 16);
+  assert.deepStrictEqual(Array.from(c.capitalEscalaList().slice(0,2).map(v=>v.transportadora)), ['TRANSP. DANILO','TRANSP. EVERTON']);   // ordenado por transportadora
+  assert.equal(c.preEscalaStatus('CZC2919').st, 'escalado');
+  assert.equal(c.preEscalaStatus('TGK4D11').st, 'pre');
+  assert.equal(c.preEscalaStatus('PQO8358').st, 'indisp');
+  c.renderPreEscala();
+  const h = el('pre-escala-capital');
+  assert.equal(h.hidden, false);
+  assert.ok(h.innerHTML.includes('PRÉ-ESCALA · CAPITAL') && h.innerHTML.includes('ESCALADO · 12345') && h.innerHTML.includes('INDISPONÍVEL'));
+  assert.ok(h.innerHTML.includes('14 em pré-escala · 1 escalado(s) · 1 indisponível(is)'));   // 16 − 1 escalado − 1 indisponível
+  assert.equal(JSON.stringify(c.DATA), antes);                                    // painel não cria/altera linhas
+  c.REGISTRY = {}; c.renderPreEscala();
+  assert.equal(h.hidden, true);                                                   // sem veículo Capital → painel some
 });
-
-/* ---- 2026-10-28: filtro por quinzena contabiliza o fechamento quinzenal ---- */
-const dashQzBlock = block('function fechDateOfRow(r){', '/* Métricas de um dia');
-const metricsAggBlock = block('/* Métricas de um dia', 'function kpiCard(');
-const gerencialBlock = block('function gerencialDiasPeriodo(){', 'function gerencialPeriodoLabel(){');
-test('filtro por quinzena: cargas FECHADAS do fechamento dessa quinzena entram (mesmo lançadas em outro dia)',()=>{
-  const FECHAMENTOS=[
-    {id:'f1', ref:{ano:2026,mes:10,quinzena:1}, dataFech:'2026-10-15', start:'2026-10-01', end:'2026-10-15', grupos:[]},
-    {id:'f2', ref:{ano:2026,mes:10,quinzena:2}, dataFech:'2026-10-25', start:'2026-10-16', end:'2026-10-31', grupos:[]}
-  ];
-  const raw=[
-    {date:'2026-09-28', data:{frotas:[], capital:[{id:'r1', peso:100, stFech:'fechado', fechId:'f1'}], interior:[]}},
-    {date:'2026-10-10', data:{frotas:[], capital:[{id:'r2', peso:50, stFech:'fechado', fechId:'f1'},{id:'r3', peso:20, stFech:'concluida'}], interior:[]}},
-    {date:'2026-09-20', data:{frotas:[], capital:[{id:'r4', peso:30, stFech:'fechado', fechId:'f2'}], interior:[]}}
-  ];
-  const c=context({
-    relIsFech:r=>r.stFech==='fechado',
-    numVal:x=>Number(x)||0,
-    margemMult:()=>1,
-    tableForecast:(sec,r)=>({total:(Number(r.peso)||0)*5}),
-    calcularFrete:(sec,r)=>({total:(Number(r.peso)||0)*10}),
-    isNegSim:()=>false,
-    rowTemCarga:r=>!!(r.carga||r.destino),
-    FECHAMENTOS,
-    DASH:{raw, period:{start:'2026-10-01',end:'2026-10-15'}, preset:'quinzena', statusFilter:'todas', days:[], fechDates:[]},
-    QZ:{ano:2026,mes:10,q:'1'},
-    currentMapDate:'2026-10-01',
-    DATA:{frotas:[], capital:[], interior:[]}
-  });
-  vm.runInContext(dashQzBlock,c);
-  vm.runInContext(metricsAggBlock,c);
-  vm.runInContext(gerencialBlock,c);
-  // só a r1: fechada, ref Outubro Q1, lançada em setembro (fora do período)
-  const ex=c.dashQzExtras(c.DASH.period);
-  assert.deepEqual(j(ex.map(e=>e.row.id)),['r1']);
-  // sem o filtro de quinzena: nada entra
-  c.DASH.preset='custom';
-  assert.deepEqual(j(c.dashQzExtras(c.DASH.period)),[]);
-  // com status Em Aberto: cargas fechadas saem
-  c.DASH.preset='quinzena'; c.DASH.statusFilter='abertas';
-  assert.deepEqual(j(c.dashQzExtras(c.DASH.period)),[]);
-  c.DASH.statusFilter='todas';
-  // o agregado do período inclui a extra (sem o dia dela dentro do período)
-  const agg=c.aggregateRange('2026-10-01','2026-10-15', ex);
-  assert.equal(agg.cargas,1);
-  assert.equal(agg.peso,100);
-  assert.equal(agg.capCom,1000);                 // 100 kg × R$10/kg
-  // sem as extras, o agregado do período fica vazio
-  assert.equal(c.aggregateRange('2026-10-01','2026-10-15').cargas,0);
-  // Mapa Gerencial: a entrada da r1 entra na seção Capital (DASH.qzExtras, como no app)
-  c.DASH.qzExtras = c.dashQzExtras(c.DASH.period);
-  const ent=c.gerencialEntradas('capital');
-  assert.ok(ent.some(e=>e.r.id==='r1'),'r1 (extra) no Mapa Gerencial');
-  assert.ok(ent.some(e=>e.r.id==='r2'),'r2 (dentro do período) no Mapa Gerencial');
-  // HTML: helpers + aviso do período
-  for(const x of ['function dashQzExtras','function dashFechRefOfRow','function dashQzExtraData','id="dash-period-note"','DASH.qzExtras = dashQzExtras(DASH.period)','aggregateRange(p.start, p.end, DASH.qzExtras)']) assert.ok(html.includes(x),x);
+test('Lupa da ordem: busca por placa/motorista/transportadora, avisos e alteração dos 3 campos', ()=>{
+  const c = escalaCtx();
+  c.seedCapitalEscala();
+  c.REGISTRY.MFM8075 = {transportadora:'FROTA PROPRIA'};                          // placa fixa de Frotas não é candidata
+  c.DATA.capital = [
+    {id:'a', placa:'CZC2919', carga:'111', destino:'GOIANIA', motorista:'RODRIGO PEREIRA DE JESUS', transportadora:'TRANSP. DANILO'},
+    {id:'b', placa:'TGK4D11', carga:'222', destino:'TRINDADE', motorista:'EVERTON FLORENTINO', transportadora:'TRANSP. EVERTON'}];
+  c.DATA.interior = [{id:'i', placa:'OGR6D47', carga:'333', destino:'RIO VERDE', motorista:'NERCY LUIZ DA SILVA', transportadora:'TRANSP. NERCY'}];
+  const cands = c.lupaCandidates('a');
+  assert.ok(!cands.some(x=>x.placa==='MFM8075'));
+  assert.equal(cands[0].capital, true);                                           // pré-escala Capital livre vem primeiro
+  assert.ok(cands.some(x=>x.placa==='OGR6D47' && x.motorista==='NERCY LUIZ DA SILVA'));   // veículo só do mapa do dia também aparece
+  const ids = q=>Array.from(c.lupaFilter(cands,q).map(x=>x.placa));
+  assert.deepStrictEqual(ids('kfb-8419'), ['KFB8419']);                           // placa com hífen
+  assert.deepStrictEqual(ids('gleison'), ['PRO0D73']);                            // motorista (sem acento/caixa)
+  assert.deepStrictEqual(ids('jaderson').sort(), ['JKL0G11','PQO8358']);          // transportadora
+  assert.deepStrictEqual(ids('ricardo gon'), ['ONQ5D83']);                        // várias palavras (AND)
+  assert.equal(ids('').length, cands.length);
+  // avisos: mescla (mesma seção), outra seção e indisponível
+  const rowA = c.DATA.capital[0];
+  assert.equal(c.lupaWarnings(rowA, 'TGK4D11', 'capital').merge, '222');
+  assert.deepStrictEqual(Array.from(c.lupaWarnings(rowA, 'OGR6D47', 'capital').other), ['333 (Interior)']);
+  assert.equal(c.lupaWarnings(rowA, 'OGR6D47', 'capital').merge, '');
+  assert.equal(c.lupaWarnings(rowA, 'MFM8075', 'capital').fixed, true);
+  c.AVAILABILITY = {HEB4H69:false}; assert.equal(c.lupaWarnings(rowA, 'HEB4H69', 'capital').indisp, true);
+  // aplica: troca veículo + motorista + transportador da ordem; ordem/destino/peso intactos
+  rowA.peso = 500; rowA.valorKg = ''; rowA.neg = 'Não';
+  const prev = c.lupaApplyToRow(rowA, {placa:' hEB4h69 ', motorista:'MARCIO ROSA DE SOUSA', transportadora:'TRANSP. MARCIO'});
+  assert.equal(prev.placa, 'CZC2919');
+  assert.equal(rowA.placa, 'HEB4H69'); assert.equal(rowA.motorista, 'MARCIO ROSA DE SOUSA'); assert.equal(rowA.transportadora, 'TRANSP. MARCIO');
+  assert.equal(rowA.carga, '111'); assert.equal(rowA.destino, 'GOIANIA'); assert.equal(rowA.peso, 500);
+  // motorista/transportador digitados no formulário valem sobre o cadastro da placa
+  c.lupaApplyToRow(rowA, {placa:'HEB4H69', motorista:'MOTORISTA RESERVA', transportadora:'TRANSP. OUTRA'});
+  assert.equal(rowA.motorista, 'MOTORISTA RESERVA'); assert.equal(rowA.transportadora, 'TRANSP. OUTRA');
+  // limites de tamanho
+  c.lupaApplyToRow(rowA, {placa:'HEB4H69', motorista:'X'.repeat(50), transportadora:'T'.repeat(60)});
+  assert.equal(rowA.motorista.length, 32); assert.equal(rowA.transportadora.length, 40);
+});
+test('Lupa/pré-escala: botão só em Capital/Interior, fechada bloqueada, fora de prints e sem tocar totais', ()=>{
+  const move = block("case 'move':", "case 'placa':");
+  assert.ok(move.includes("sec !== 'frotas'") && move.includes('data-act="lupa"'));         // Frotas não tem lupa
+  assert.ok(block('function openLupa(', 'function closeLupa(').includes("row.stFech === 'fechado'"));
+  assert.ok(block('function lupaApply(', '/* ===== fim Lupa da linha da ordem ===== */').includes("row.stFech === 'fechado'"));
+  assert.ok(html.includes('@media print{.lupa-btn,.pre-escala{display:none !important}}'));
+  assert.ok(html.includes('body.readonly .lupa-btn{display:none}'));
+  assert.ok(html.includes('id="pre-escala-capital"') && html.includes('id="lupa-mask"') && html.includes('id="ce-rows"'));
+  // renderAll chama o painel; o painel/lupa nunca escrevem em DATA nem entram nos cálculos de totais/frete
+  assert.ok(block('function renderAll(opts){', '/* ================= Persistência').includes('renderPreEscala();'));
+  const visual = block('/* ================= Pré-escala CAPITAL (status visual)', '/* ===== fim Pré-escala CAPITAL ===== */');
+  assert.ok(!/DATA\.\w+\s*(=|\.push)/.test(visual) && !visual.includes('DATA[sec] ='));
+  assert.ok(html.includes("loadSettings") && block('async function loadSettings(){', 'function saveSettings(){').includes('seedCapitalEscala();'));
 });
