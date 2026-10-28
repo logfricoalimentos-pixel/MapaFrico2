@@ -818,3 +818,77 @@ test('Fechamento quinzenal: Entregou NF e Boleto ficam salvos ao alterar, fechar
   assert.equal(c.fechSelOf('trans frete').nf,'Sim');
   assert.equal(c.fechSelOf('trans frete').boleto,'Não');
 });
+
+/* ---- filtro por quinzena (cabeçalhos do Painel de Indicadores e do Mapa Gerencial) ---- */
+const qzBlock = block('/* ---- filtro por quinzena', '/* ---- fim do filtro por quinzena ----');
+test('filtro por quinzena: Tudo/1ª/2ª em período contínuo, cascata ano→mês→quinzena e Aplicar/Limpar',()=>{
+  let recomputes=0, heads=0, maps=0;
+  const c=context({
+    MESES_NOME:['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'],
+    qp2:n=>String(n).padStart(2,'0'),
+    monthEnd:(y,m)=> y+'-'+String(m).padStart(2,'0')+'-'+String(new Date(y,m,0).getDate()).padStart(2,'0'),
+    fmtBR:iso=>{ const p=String(iso).split('-'); return p.length===3? p[2]+'/'+p[1]+'/'+p[0] : iso; },
+    esc:s=>String(s==null?'':s),
+    currentMapDate:'2026-09-20',
+    FECHAMENTOS:[{ref:{ano:2025,mes:12,quinzena:1}}],
+    fechRefOf:f=>(f&&f.ref)||{},
+    DASH:{raw:[{date:'2024-03-02'},{date:'2026-09-01'}], period:{start:'2026-09-01',end:'2026-09-30'}, preset:'month'},
+    GERENCIAL_PAGE:true,
+    dashRecompute:()=>{ recomputes++; },
+    updateGerencialHead:()=>{ heads++; },
+    renderGerencialMap:()=>{ maps++; },
+    $:()=>null, toast:()=>{}, document:{addEventListener(){}}
+  });
+  vm.runInContext(qzBlock,c);
+  // Tudo = mês inteiro; 1ª = 01–15; 2ª = 16 ao fim (um período só, sem dia repetido)
+  assert.deepEqual(j(c.qzPeriodo(2026,9,'all')),{start:'2026-09-01',end:'2026-09-30'});
+  assert.deepEqual(j(c.qzPeriodo(2026,9,'1')),{start:'2026-09-01',end:'2026-09-15'});
+  assert.deepEqual(j(c.qzPeriodo(2026,9,'2')),{start:'2026-09-16',end:'2026-09-30'});
+  // fim do mês por mês (30/31) e fevereiro bissexto
+  assert.deepEqual(j(c.qzPeriodo(2026,4,'all')),{start:'2026-04-01',end:'2026-04-30'});
+  assert.deepEqual(j(c.qzPeriodo(2026,2,'2')),{start:'2026-02-16',end:'2026-02-28'});
+  assert.deepEqual(j(c.qzPeriodo(2028,2,'2')),{start:'2028-02-16',end:'2028-02-29'});
+  assert.deepEqual(j(c.qzPeriodo(2028,2,'all')),{start:'2028-02-01',end:'2028-02-29'});
+  assert.equal(c.qzPeriodo(2026,13,'all'),null);
+  assert.equal(c.qzPeriodo(2026,9,'3'),null);
+  // resumo do botão e faixa exibida no popover
+  assert.equal(c.qzLabel(2026,9,'all'),'Set/2026 · Tudo');
+  assert.equal(c.qzLabel(2026,8,'2'),'Ago/2026 · 2ª');
+  assert.equal(c.qzLabel(2028,2,'1'),'Fev/2028 · 1ª');
+  assert.equal(c.qzPeriodoTxt(2026,9,'1'),'01/09/2026 a 15/09/2026');
+  // anos: histórico + referências dos fechamentos + ano atual, em ordem decrescente
+  const anos=c.qzYears();
+  for(const a of [2024,2025,2026]) assert.ok(anos.includes(a),'ano '+a);
+  assert.deepEqual(j(anos),j(anos.slice().sort((a,b)=>b-a)));
+  // cascata: trocar o ANO zera mês + quinzena; trocar o MÊS zera a quinzena
+  const d0={ano:'2026',mes:'9',q:'2'};
+  assert.deepEqual(j(c.qzDraftNext(d0,'ano','2025')),{ano:'2025',mes:'',q:''});
+  assert.deepEqual(j(c.qzDraftNext(d0,'mes','3')),{ano:'2026',mes:'3',q:''});
+  assert.deepEqual(j(c.qzDraftNext(d0,'q','1')),{ano:'2026',mes:'9',q:'1'});
+  // 3 opções de quinzena: Tudo · 1ª · 2ª
+  assert.deepEqual(j(c.qzQuinzenas().map(o=>o.q)),['all','1','2']);
+  assert.deepEqual(j(c.qzQuinzenas().map(o=>o.curto)),['Tudo','1ª','2ª']);
+  assert.equal(c.qzMeses().length,12);
+  // Aplicar grava DASH.period (preset 'quinzena') e refaz os dois painéis
+  assert.equal(c.qzSet(2026,9,'1'),true);
+  assert.deepEqual(j(c.DASH.period),{start:'2026-09-01',end:'2026-09-15'});
+  assert.equal(c.DASH.preset,'quinzena');
+  assert.deepEqual(j(c.qzState()),{ano:2026,mes:9,q:'1'});
+  assert.ok(recomputes>=1 && heads>=1 && maps>=1,'recalcula painel + mapa gerencial');
+  // Limpar volta ao período livre (presets/De-Até) sem perder o intervalo atual
+  const antes=c.DASH.period;
+  c.qzClear();
+  assert.equal(c.DASH.preset,'custom');
+  assert.deepEqual(j(c.DASH.period),j(antes));
+  assert.deepEqual(j(c.qzState()),{ano:null,mes:null,q:''});
+  // controle presente nos DOIS cabeçalhos, com as 3 listas em cascata sem pré-seleção
+  const headPainel=html.slice(html.indexOf('<div class="painel-head">'), html.indexOf('<div id="tab-diaria"'));
+  const headGer=html.slice(html.indexOf('id="gerencial-head"'), html.indexOf('id="gerencial-access-note"'));
+  for(const x of ['id="qz-box"','id="qz-toggle"','id="qz-label"','id="qz-pop"','id="qz-ano"','id="qz-mes"','id="qz-q"','id="qz-apply"','id="qz-clear"','id="qz-faixa"']) assert.ok(headPainel.includes(x),x);
+  for(const x of ['id="gm-qz-box"','id="gm-qz-toggle"','id="gm-qz-label"','id="gm-qz-pop"','id="gm-qz-ano"','id="gm-qz-mes"','id="gm-qz-q"','id="gm-qz-apply"','id="gm-qz-clear"','id="gm-qz-faixa"']) assert.ok(headGer.includes(x),x);
+  assert.ok(headPainel.includes('id="qz-mes" disabled') && headPainel.includes('id="qz-q" disabled'));
+  assert.ok(headGer.includes('id="gm-qz-mes" disabled') && headGer.includes('id="gm-qz-q" disabled'));
+  // rótulo do período (e título da aba) mostram a quinzena aplicada
+  assert.ok(html.includes("if(DASH.preset === 'quinzena' && QZ.ano)"));
+  assert.ok(html.includes('function renderQuinzenaControls()') && html.includes('renderQuinzenaControls(); // resumo do filtro de quinzena'));
+});
