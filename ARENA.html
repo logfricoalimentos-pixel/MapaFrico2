@@ -8147,12 +8147,20 @@ function qzWire(prefix){
    meses escolhidos, ou seja, um período CONTÍNUO (1 mês = o mês inteiro; 3 meses = o
    trimestre; meses não vizinhos incluem os do meio). Os atalhos "↩ Mês passado" e
    "📆 Este trimestre" só PRÉ-PREENCHem a lista (não aplicam sozinhos). Aplicar grava
-   DASH.period com o preset 'meses'; Limpar devolve o período ao modo livre. */
+   DASH.period com o preset 'meses'; Limpar devolve o período ao modo livre.
+   PADRÃO: o MÊS ATUAL — o painel abre já no mês de hoje e o popover já vem com
+   ano/mês escolhidos e o mês atual na lista (pronto para ➕ Add mês ou Aplicar). */
 const MM_PREFIXOS = ['mm', 'gm-mm'];          // os dois cabeçalhos (Indicadores · Mapa Gerencial)
 let MM = {meses: []};                          // meses APLICADOS ('YYYY-MM') — DASH.preset === 'meses'
 let MM_DRAFT = {ano: '', mes: '', meses: []};  // escolhas em andamento (compartilhadas pelos 2 cabeçalhos)
 
 function mmKey(ano, mes){ return (+ano) + '-' + qp2(+mes); }
+/* data de referência do app (dia de faturamento; hoje quando ainda não carregou) */
+function mmRefDate(){
+  return /^\d{4}-\d{2}-\d{2}$/.test(String(currentMapDate || '')) ? isoToDate(currentMapDate) : new Date();
+}
+/* mês ATUAL ('YYYY-MM') — é o padrão do filtro ao abrir o app e do popover */
+function mmMesAtual(ref){ const d = ref || mmRefDate(); return mmKey(d.getFullYear(), d.getMonth() + 1); }
 function mmParse(key){ const m = String(key == null ? '' : key).match(/^(\d{4})-(\d{2})$/); return m ? {ano: +m[1], mes: +m[2]} : null; }
 /* 'YYYY-MM' → Set/2026 (mesmo rótulo curto do filtro de quinzena) */
 function mmShort(key){ const k = mmParse(key); return k ? qzShort(k.ano, k.mes) : ''; }
@@ -8216,18 +8224,32 @@ function mmDraftDel(draft, key){
 /* atalhos: substituem a lista pelos meses do atalho (base = dia de faturamento) */
 function mmDraftShortcut(draft, preset){
   const d = mmDraftNext(draft, '', '');
-  const ref = /^\d{4}-\d{2}-\d{2}$/.test(String(currentMapDate || '')) ? isoToDate(currentMapDate) : new Date();
-  d.meses = mmAtalho(preset, ref);
+  d.meses = mmAtalho(preset, mmRefDate());
   return d;
 }
-/* rascunho ao abrir: parte dos meses aplicados (ou lista vazia, sem pré-seleção) */
+/* rascunho ao abrir: ANO/MÊS já vêm no MÊS ATUAL (padrão) e a lista parte do que
+   estiver aplicado — sem filtro aplicado, o padrão é o próprio mês atual */
 function mmDraftReset(){
-  return (DASH.preset === 'meses' && MM.meses.length)
-    ? {ano: '', mes: '', meses: MM.meses.slice()}
-    : {ano: '', mes: '', meses: []};
+  const k = mmParse(mmMesAtual()) || {ano: new Date().getFullYear(), mes: new Date().getMonth() + 1};
+  const aplicados = (DASH.preset === 'meses' && MM.meses.length) ? MM.meses.slice() : [mmKey(k.ano, k.mes)];
+  return {ano: String(k.ano), mes: String(k.mes), meses: mmSort(aplicados)};
+}
+/* padrão do painel: MÊS ATUAL (o filtro 📅 Meses já abre com o mês de hoje).
+   Roda uma vez, no carregamento, e respeita qualquer filtro escolhido antes. */
+let MM_DEFAULT_DONE = false;
+function mmPadraoInicial(){
+  if(MM_DEFAULT_DONE) return false;
+  MM_DEFAULT_DONE = true;
+  if(DASH.period || (DASH.preset && DASH.preset !== '7d')) return false;
+  const k = mmMesAtual();
+  MM = {meses: [k]};
+  DASH.preset = 'meses';
+  DASH.period = mmPeriodo(MM.meses);
+  return true;
 }
 function mmState(){ return {meses: (MM.meses || []).slice()}; }
-/* desenha as listas + os chips de um cabeçalho (nada pré-selecionado em ano/mês) */
+/* desenha as listas + os chips de um cabeçalho (ano/mês vêm posicionados no mês atual;
+   trocar o ano zera o mês até escolher outro) */
 function mmFill(prefix){
   const sel = campo=> $('#' + prefix + '-' + campo);
   const selAno = sel('ano'), selMes = sel('mes'), chips = sel('chips'), faixa = sel('faixa'), ap = sel('apply'), add = sel('add');
@@ -8798,6 +8820,7 @@ async function loadDashboard(){
   }
   raw.sort((a,b)=> a.date.localeCompare(b.date));
   DASH.raw = raw;
+  mmPadraoInicial();   // padrão do painel: MÊS ATUAL (filtro 📅 Meses já posicionado nele)
   if(!DASH.period) DASH.period = dashPeriodoAtual(currentMapDate) || {start: dateAddDays(currentMapDate,-6), end: currentMapDate};
   dashRecompute(); // aplica filtros de status/datas SEM recarregar do banco
   // dados do período atualizados → o Mapa Gerencial (mesma fonte) redesenha junto
