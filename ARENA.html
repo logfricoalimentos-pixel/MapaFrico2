@@ -394,6 +394,28 @@ body.print-big-font .custo-cell{font-size:15px}
 .dfd-opt:hover{background:#f1f5f9}
 .dfd-opt small{color:#64748b;margin-left:auto}
 .dfd-empty{font-size:12px;color:#64748b;padding:4px 6px}
+/* Filtro por QUINZENA (cabeçalho do Painel de Indicadores e do Mapa Gerencial):
+   botão + popover com três listas em cascata — ano → mês → quinzena. O período
+   do painel passa a ser a quinzena escolhida (Tudo = mês inteiro). */
+.qz-toggle{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:#fff;border-radius:8px;padding:4px 10px;font:inherit;font-size:12.5px;cursor:pointer;color:#334155}
+.qz-toggle:hover{border-color:#94a3b8}
+.qz-toggle .dfd-caret{font-size:9px;color:#64748b}
+.qz-toggle.active{background:#eff6ff;border-color:#93c5fd;color:#1d4ed8}
+.gerencial-head-actions .qz-toggle{background:rgba(255,255,255,.14);color:#f8fafc;border-color:rgba(255,255,255,.4);padding:4px 9px;font-size:12px}
+.gerencial-head-actions .qz-toggle:hover{background:rgba(255,255,255,.3)}
+.gerencial-head-actions .qz-toggle.active{background:#fff;color:#0f172a;border-color:#fff}
+.qz-pop{min-width:240px;max-height:none;gap:6px;padding:9px}
+.qz-ctl{display:flex;flex-direction:column;gap:3px;font-size:10.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.3px}
+.qz-ctl select{border:1px solid var(--line);border-radius:7px;padding:5px 8px;font:inherit;font-size:12.5px;background:#fff;color:var(--ink);text-transform:none;letter-spacing:0;cursor:pointer}
+.qz-ctl select:focus{border-color:var(--blue);outline:none;box-shadow:0 0 0 3px rgba(37,99,235,.12)}
+.qz-ctl select:disabled{background:#f8fafc;color:#94a3b8;cursor:not-allowed}
+.qz-faixa{font-size:11.5px;color:#64748b;min-height:14px}
+.qz-actions{display:flex;gap:6px;justify-content:flex-end;border-top:1px solid var(--line);padding-top:7px;margin-top:2px}
+.dfd-pop .qz-actions .btn{background:#fff;color:#334155;border:1px solid var(--line);border-radius:7px;font-size:12px;padding:4px 10px;cursor:pointer;font-family:inherit;box-shadow:none}
+.dfd-pop .qz-actions .btn.primary{background:#2563eb;border-color:#1d4ed8;color:#fff}
+.dfd-pop .qz-actions .btn:hover{border-color:#94a3b8}
+.dfd-pop .qz-actions .btn.primary:hover{background:#1d4ed8}
+.dfd-pop .qz-actions .btn:disabled{background:#f1f5f9;color:#94a3b8;border-color:var(--line);cursor:not-allowed}
 .painel-head h2{font-size:15px}
 .painel-tabs{display:flex;gap:6px;margin-left:auto}
 .tab{border:1px solid var(--line);background:#fff;border-radius:8px;padding:6px 12px;font:inherit;font-size:13px;cursor:pointer;color:#334155}
@@ -1121,6 +1143,23 @@ html.gerencial-request #settings{display:none!important}
       <button class="btn gm-chip chip-preset no-print" type="button" data-preset="month">Este mês</button>
       <button class="btn gm-chip chip-preset no-print" type="button" data-preset="lastmonth">Mês passado</button>
       <button class="btn gm-chip chip-preset no-print" type="button" data-preset="quarter">Este trimestre</button>
+      <!-- Filtro por QUINZENA (compartilhado com o Painel de Indicadores): grava o mesmo
+           DASH.period/preset e mantém os dois painéis no período escolhido. -->
+      <div class="dfd-box qz-box" id="gm-qz-box">
+        <button class="qz-toggle no-print" type="button" id="gm-qz-toggle" aria-haspopup="true" aria-expanded="false" title="Filtrar por quinzena: escolha ano, mês e quinzena (Tudo = mês inteiro) — substitui os presets e o De/Até">
+          <span id="gm-qz-label">🗓 Quinzenas</span><span class="dfd-caret">▼</span>
+        </button>
+        <div class="dfd-pop qz-pop no-print" id="gm-qz-pop" hidden>
+          <label class="qz-ctl" title="Ano da quinzena (anos do histórico/fechamentos + ano atual)">Ano<select id="gm-qz-ano"></select></label>
+          <label class="qz-ctl" title="Mês da quinzena (os 12 meses do ano escolhido)">Mês<select id="gm-qz-mes" disabled></select></label>
+          <label class="qz-ctl" title="Tudo = mês inteiro · Só a 1ª = dias 1 a 15 · Só a 2ª = dia 16 ao fim do mês">Quinzena<select id="gm-qz-q" disabled></select></label>
+          <div class="qz-faixa" id="gm-qz-faixa"></div>
+          <div class="qz-actions">
+            <button class="btn" type="button" id="gm-qz-clear" title="Limpar o filtro e voltar ao período livre (presets / De-Até)">Limpar</button>
+            <button class="btn primary" type="button" id="gm-qz-apply" title="Aplicar a quinzena como período dos dois painéis">Aplicar</button>
+          </div>
+        </div>
+      </div>
       <label class="gerencial-date-control">De <input type="date" id="gm-period-start"></label>
       <label class="gerencial-date-control">Até <input type="date" id="gm-period-end"></label>
       <label class="gerencial-date-control" title="Dia de referência: âncora dos presets de período"><span title="Dia de referência: âncora dos presets de período">Faturamento</span><input type="date" id="gerencial-date"></label>
@@ -1150,6 +1189,23 @@ html.gerencial-request #settings{display:none!important}
       <label class="chk" title="Somente cargas FECHADAS p/ pagamento"><input type="radio" name="dash-stf" value="fechadas"> Fechadas</label>
       <label class="chk" title="Pendentes + Concluídas (não fechadas)"><input type="radio" name="dash-stf" value="abertas"> Em Aberto</label>
       <label class="chk" title="Todas as cargas, independente do status"><input type="radio" name="dash-stf" value="todas" checked> Todas</label>
+    </div>
+    <!-- Filtro por QUINZENA: o mesmo do cabeçalho do Mapa Gerencial (DASH.period/preset);
+         períodos contínuos, sem sobrepor dias — Tudo = mês inteiro. -->
+    <div class="dfd-box qz-box" id="qz-box">
+      <button class="qz-toggle" type="button" id="qz-toggle" aria-haspopup="true" aria-expanded="false" title="Filtrar por quinzena: escolha ano, mês e quinzena (Tudo = mês inteiro) — substitui os presets e o De/Até">
+        <span id="qz-label">🗓 Quinzenas</span><span class="dfd-caret">▼</span>
+      </button>
+      <div class="dfd-pop qz-pop" id="qz-pop" hidden>
+        <label class="qz-ctl" title="Ano da quinzena (anos do histórico/fechamentos + ano atual)">Ano<select id="qz-ano"></select></label>
+        <label class="qz-ctl" title="Mês da quinzena (os 12 meses do ano escolhido)">Mês<select id="qz-mes" disabled></select></label>
+        <label class="qz-ctl" title="Tudo = mês inteiro · Só a 1ª = dias 1 a 15 · Só a 2ª = dia 16 ao fim do mês">Quinzena<select id="qz-q" disabled></select></label>
+        <div class="qz-faixa" id="qz-faixa"></div>
+        <div class="qz-actions">
+          <button class="btn" type="button" id="qz-clear" title="Limpar o filtro e voltar ao período livre (presets / De-Até)">Limpar</button>
+          <button class="btn primary" type="button" id="qz-apply" title="Aplicar a quinzena como período dos dois painéis">Aplicar</button>
+        </div>
+      </div>
     </div>
     <div class="dash-fech-dates" id="dash-fech-dates" hidden>
       <span class="dash-stf-k">Fechadas em:</span>
@@ -7847,6 +7903,182 @@ function periodFromPreset(preset, ref){
   if(preset === 'quarter'){ const q = Math.floor((m-1)/3); return {start: y+'-'+String(q*3+1).padStart(2,'0')+'-01', end: monthEnd(y, q*3+3)}; }
   return null;
 }
+/* ---- filtro por quinzena (cabeçalhos do Painel de Indicadores e do Mapa Gerencial) ----
+   O período do painel pode virar uma QUINZENA escolhida em três listas em cascata:
+   ANO (anos do histórico/fechamentos + ano atual) → MÊS (os 12 do ano) → QUINZENA
+   (Tudo = mês inteiro · 1ª = dias 1–15 · 2ª = dia 16 ao fim do mês). As listas abrem
+   SEM seleção e as de baixo zeram quando a de cima muda. Aplicar grava DASH.period
+   com o preset 'quinzena' (um período contínuo — as quinzenas nunca se sobrepõem);
+   Limpar devolve o período ao modo livre (presets / De-Até). */
+const QZ_OPCOES = [
+  {q: 'all', curto: 'Tudo', label: 'Tudo (mês inteiro)'},
+  {q: '1',   curto: '1ª',   label: 'Só a 1ª (01–15)'},
+  {q: '2',   curto: '2ª',   label: 'Só a 2ª (16–fim)'}
+];
+const QZ_PREFIXOS = ['qz', 'gm-qz'];   // os dois cabeçalhos (Indicadores · Mapa Gerencial)
+let QZ = {ano: null, mes: null, q: ''};          // quinzena APLICADA (DASH.preset === 'quinzena')
+let QZ_DRAFT = {ano: '', mes: '', q: ''};        // escolhas em andamento (compartilhadas pelos 2 cabeçalhos)
+
+function qzQuinzenas(){ return QZ_OPCOES.map(o=> ({q: o.q, curto: o.curto, label: o.label})); }
+function qzMeses(){ return MESES_NOME.map((nome, i)=> ({mes: i + 1, label: nome})); }
+/* rótulo curto do mês: Setembro/2026 → Set/2026 (usado no botão e no título) */
+function qzShort(ano, mes){
+  const n = +mes;
+  return (MESES_NOME[n - 1] || 'Mês' + n).slice(0, 3) + '/' + (+ano);
+}
+/* período CONTÍNUO da quinzena: Tudo = mês inteiro; 1 = 01–15; 2 = 16–fim.
+   monthEnd() resolve o fim do mês (fevereiro bissexto incluso). */
+function qzPeriodo(ano, mes, q){
+  const a = +ano, m = +mes;
+  if(!(a >= 1900 && a <= 2999) || !(m >= 1 && m <= 12)) return null;
+  const mm = qp2(m), fim = monthEnd(a, m);
+  const k = String(q == null ? '' : q);
+  if(k === '' || k === 'all') return {start: a + '-' + mm + '-01', end: fim};
+  if(k !== '1' && k !== '2') return null;
+  return k === '1' ? {start: a + '-' + mm + '-01', end: a + '-' + mm + '-15'}
+                   : {start: a + '-' + mm + '-16', end: fim};
+}
+function qzPeriodoTxt(ano, mes, q){
+  const p = qzPeriodo(ano, mes, q);
+  return p ? fmtBR(p.start) + ' a ' + fmtBR(p.end) : '';
+}
+/* resumo do botão: Set/2026 · Tudo · Ago/2026 · 2ª */
+function qzLabel(ano, mes, q){
+  if(!qzPeriodo(ano, mes, q)) return '';
+  const o = QZ_OPCOES.find(x=> x.q === String(q == null ? '' : q));
+  return qzShort(ano, mes) + ' · ' + (o ? o.curto : '');
+}
+/* anos oferecidos: histórico carregado (DASH.raw) + referências/fechamentos + ano atual */
+function qzYears(){
+  const ys = new Set([new Date().getFullYear()]);
+  if(/^\d{4}-/.test(String(currentMapDate || ''))) ys.add(+String(currentMapDate).slice(0, 4));
+  for(const d of (DASH.raw || [])) if(d && /^\d{4}-/.test(String(d.date || ''))) ys.add(+String(d.date).slice(0, 4));
+  for(const f of (FECHAMENTOS || [])){
+    const r = fechRefOf(f) || {};
+    if(r.ano) ys.add(+r.ano);
+    for(const d of [f && f.start, f && f.end, f && f.dataFech]){
+      if(/^\d{4}-/.test(String(d || ''))) ys.add(+String(d).slice(0, 4));
+    }
+  }
+  return Array.from(ys).filter(y=> y >= 1900 && y <= 2999).sort((a, b)=> b - a);
+}
+/* cascata: trocar o ANO zera mês + quinzena; trocar o MÊS zera a quinzena */
+function qzDraftNext(draft, campo, valor){
+  const d = {ano: String((draft && draft.ano) || ''), mes: String((draft && draft.mes) || ''), q: String((draft && draft.q) || '')};
+  const v = String(valor == null ? '' : valor);
+  if(campo === 'ano'){ d.ano = v; d.mes = ''; d.q = ''; }
+  else if(campo === 'mes'){ d.mes = v; d.q = ''; }
+  else if(campo === 'q'){ d.q = v; }
+  return d;
+}
+/* rascunho ao abrir o popover: parte da quinzena aplicada (ou vazio, sem pré-seleção) */
+function qzDraftReset(){
+  if(DASH.preset === 'quinzena' && QZ.ano) return {ano: String(QZ.ano), mes: String(QZ.mes), q: String(QZ.q)};
+  return {ano: '', mes: '', q: ''};
+}
+function qzState(){ return {ano: QZ.ano, mes: QZ.mes, q: QZ.q}; }
+/* desenha as 3 listas de um cabeçalho respeitando a cascata (nada pré-selecionado) */
+function qzFill(prefix){
+  const sel = campo=> $('#' + prefix + '-' + campo);
+  const selAno = sel('ano'), selMes = sel('mes'), selQ = sel('q'), faixa = sel('faixa'), ap = sel('apply');
+  if(!selAno || !selMes || !selQ) return;
+  const anos = qzYears();
+  selAno.innerHTML = '<option value="">— Selecione o ano —</option>' +
+    anos.map(a=> '<option value="' + a + '">' + a + '</option>').join('');
+  const temAno = anos.map(String).indexOf(String(QZ_DRAFT.ano || '')) > -1;
+  QZ_DRAFT.ano = temAno ? String(QZ_DRAFT.ano) : '';
+  selAno.value = QZ_DRAFT.ano;
+  // MÊS: os 12 meses do ano escolhido; recriado (sem seleção) a cada troca de ano
+  const temMes = temAno && /^([1-9]|1[0-2])$/.test(String(QZ_DRAFT.mes || ''));
+  if(!temMes) QZ_DRAFT.mes = '';
+  selMes.innerHTML = '<option value="">— Selecione o mês —</option>' +
+    (temAno ? qzMeses().map(m=> '<option value="' + m.mes + '">' + esc(m.label) + '</option>').join('') : '');
+  selMes.value = QZ_DRAFT.mes;
+  selMes.disabled = !temAno;
+  // QUINZENA: Tudo / 1ª / 2ª — só depois do mês e sempre sem seleção
+  const temQ = temMes && QZ_OPCOES.some(o=> o.q === String(QZ_DRAFT.q || ''));
+  if(!temQ) QZ_DRAFT.q = '';
+  selQ.innerHTML = '<option value="">— Selecione a quinzena —</option>' +
+    (temMes ? qzQuinzenas().map(o=> '<option value="' + o.q + '">' + esc(o.label) + '</option>').join('') : '');
+  selQ.value = QZ_DRAFT.q;
+  selQ.disabled = !temMes;
+  const ok = temAno && temMes && temQ;
+  if(ap) ap.disabled = !ok;
+  if(faixa) faixa.textContent = ok ? '📅 ' + qzPeriodoTxt(QZ_DRAFT.ano, QZ_DRAFT.mes, QZ_DRAFT.q)
+    : (temMes ? 'Escolha a quinzena.' : 'Escolha o ano e o mês.');
+}
+/* resumo nos dois botões: \"🗓 Quinzenas\" ou \"🗓 Set/2026 · Tudo\""" */
+function renderQuinzenaControls(){
+  const aplicada = (DASH.preset === 'quinzena' && QZ.ano) ? qzLabel(QZ.ano, QZ.mes, QZ.q) : '';
+  for(const p of QZ_PREFIXOS){
+    const lab = $('#' + p + '-label'), tgl = $('#' + p + '-toggle');
+    if(lab) lab.textContent = '🗓 ' + (aplicada || 'Quinzenas');
+    if(tgl){
+      tgl.classList.toggle('active', !!aplicada);
+      tgl.title = aplicada
+        ? 'Quinzena aplicada: ' + aplicada + ' (' + qzPeriodoTxt(QZ.ano, QZ.mes, QZ.q) + ') — clique para trocar ou limpar'
+        : 'Filtrar por quinzena: escolha ano, mês e quinzena (Tudo = mês inteiro) — substitui os presets e o De/Até';
+    }
+  }
+}
+/* Aplicar: o período passa a ser a quinzena (preset 'quinzena') nos DOIS painéis */
+function qzSet(ano, mes, q){
+  const p = qzPeriodo(ano, mes, q);
+  if(!p) return false;
+  QZ = {ano: +ano, mes: +mes, q: String(q)};
+  DASH.period = p;
+  DASH.preset = 'quinzena';
+  dashRecompute();                  // KPIs, dia a dia, período e datas de fechamento do período
+  if(GERENCIAL_PAGE){ updateGerencialHead(); renderGerencialMap(); }
+  renderQuinzenaControls();
+  return true;
+}
+/* Limpar: volta ao período livre — presets e De/Até voltam a mandar (intervalo atual mantido) */
+function qzClear(){
+  QZ = {ano: null, mes: null, q: ''};
+  QZ_DRAFT = {ano: '', mes: '', q: ''};
+  DASH.preset = 'custom';
+  dashRecompute();
+  if(GERENCIAL_PAGE){ updateGerencialHead(); renderGerencialMap(); }
+  renderQuinzenaControls();
+  return true;
+}
+/* liga as 2 cópias do controle (Painel de Indicadores e Mapa Gerencial) */
+function qzWire(prefix){
+  const tgl = $('#' + prefix + '-toggle'), pop = $('#' + prefix + '-pop'), box = $('#' + prefix + '-box');
+  if(!tgl || !pop || !box) return false;
+  const close = ()=>{ pop.hidden = true; tgl.setAttribute('aria-expanded', 'false'); };
+  const open = ()=>{
+    QZ_DRAFT = qzDraftReset();      // rascunho único: os dois cabeçalhos mostram o mesmo
+    qzFill(prefix);
+    pop.hidden = false;
+    tgl.setAttribute('aria-expanded', 'true');
+  };
+  tgl.addEventListener('click', ()=>{ if(pop.hidden) open(); else close(); });
+  document.addEventListener('click', e=>{ if(!pop.hidden && !box.contains(e.target)) close(); });
+  document.addEventListener('keydown', e=>{ if(e.key === 'Escape' && !pop.hidden) close(); });
+  for(const campo of ['ano', 'mes', 'q']){
+    const el = $('#' + prefix + '-' + campo);
+    if(el) el.addEventListener('change', ()=>{ QZ_DRAFT = qzDraftNext(QZ_DRAFT, campo, el.value); qzFill(prefix); });
+  }
+  const apply = $('#' + prefix + '-apply');
+  if(apply) apply.addEventListener('click', ()=>{
+    if(!QZ_DRAFT.ano || !QZ_DRAFT.mes || !QZ_DRAFT.q){ toast('Escolha ano, mês e quinzena', 'err'); return; }
+    const txt = qzLabel(QZ_DRAFT.ano, QZ_DRAFT.mes, QZ_DRAFT.q);
+    const faixa = qzPeriodoTxt(QZ_DRAFT.ano, QZ_DRAFT.mes, QZ_DRAFT.q);
+    qzSet(QZ_DRAFT.ano, QZ_DRAFT.mes, QZ_DRAFT.q);
+    close();
+    toast('🗓 Período: ' + txt + ' (' + faixa + ')', 'ok');
+  });
+  const clear = $('#' + prefix + '-clear');
+  if(clear) clear.addEventListener('click', ()=>{
+    qzClear();
+    close();
+    toast('Período livre: presets e De/Até', 'ok');
+  });
+  return true;
+}
+/* ---- fim do filtro por quinzena ---- */
 function fmtMoney(v){ return 'R$ ' + numVal(v).toLocaleString('pt-BR',{minimumFractionDigits:2, maximumFractionDigits:2}); }
 function fmtNum2(v){ return numVal(v).toLocaleString('pt-BR',{maximumFractionDigits:2}); }
 function fmtInt(v){ return Math.round(numVal(v)).toLocaleString('pt-BR'); }
@@ -7962,7 +8194,13 @@ function gerencialEntradas(sec){
 function gerencialPeriodoLabel(){
   const p = DASH.period;
   if(!p) return '—';
-  return p.start === p.end ? fmtBR(p.start) : fmtBR(p.start) + ' a ' + fmtBR(p.end);
+  const faixa = p.start === p.end ? fmtBR(p.start) : fmtBR(p.start) + ' a ' + fmtBR(p.end);
+  // filtro por quinzena: o rótulo (e o título da aba) mostram a quinzena escolhida
+  if(DASH.preset === 'quinzena' && QZ.ano){
+    const l = qzLabel(QZ.ano, QZ.mes, QZ.q);
+    if(l) return l + ' (' + faixa + ')';
+  }
+  return faixa;
 }
 function gerencialResumoSec(sec, entries){
   const rows = (entries || []).map(e=> e.r);
@@ -8483,6 +8721,7 @@ function kpiCard(label, value, sub, tip, tone, delta){
     '</div>';
 }
 function renderDash(){
+  renderQuinzenaControls(); // resumo do filtro de quinzena nos 2 cabeçalhos (reflete DASH.preset)
   renderFechDatesBox(); // listbox de datas de fechamento (reflete período + seleção)
   renderDashDaily();
   renderDashPeriodo();
@@ -10101,10 +10340,15 @@ function bindStatic(){
      Gerencial gravam no mesmo DASH.period/preset e atualizam os dois painéis. */
   const onPresetPeriod = preset=>{
     DASH.preset = preset;
+    QZ = {ano: null, mes: null, q: ''};   // preset escolhido: o filtro de quinzena sai de cena
     const p = periodFromPreset(DASH.preset, currentMapDate);
     if(p){ DASH.period = p; dashRecompute(); if(GERENCIAL_PAGE){ updateGerencialHead(); renderGerencialMap(); } } // refaz métricas + lista de datas do período + mapa
   };
   $$('.chip-preset').forEach(c=> c.addEventListener('click', ()=> onPresetPeriod(c.dataset.preset)));
+  /* filtro por quinzena: um controle em cada cabeçalho (Indicadores + Mapa Gerencial),
+     ambos gravando no mesmo DASH.period/preset */
+  qzWire('qz');
+  qzWire('gm-qz');
   $$('.gran-btn').forEach(b=> b.addEventListener('click', ()=>{
     DASH.granularity = b.dataset.gran;
     $$('.gran-btn').forEach(x=> x.classList.toggle('active', x===b));
@@ -10116,6 +10360,7 @@ function bindStatic(){
     const si = $(idStart), ei = $(idEnd);
     if(!si || !ei) return;
     DASH.preset = 'custom';
+    QZ = {ano: null, mes: null, q: ''};   // intervalo livre (De/Até): o filtro de quinzena sai de cena
     const s = si.value, e = ei.value;
     if(s && e && s <= e){ DASH.period = {start:s, end:e}; dashRecompute(); if(GERENCIAL_PAGE){ updateGerencialHead(); renderGerencialMap(); } } // refaz métricas + lista de datas do período + mapa
   };
