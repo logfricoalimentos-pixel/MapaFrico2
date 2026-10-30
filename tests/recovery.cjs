@@ -324,7 +324,7 @@ test('cadastro de ajudantes e tripulação de Frotas: edição manual, sincroniz
   assert.ok(tripWrap.innerHTML.includes('data-trip="ajudante"') && tripWrap.innerHTML.includes('value="CARLOS"') && tripWrap.innerHTML.includes('value="LUCAS"'));
 });
 test('regressões: resumo por quinzena e impressão isolada permanecem',()=>{
-  for(const x of ['id="fh-resumo"','function fechRefOptions','function renderFechHist','A4 portrait','2026-10-28b','id="kp-f-sit"','function kpGroupRows','function kpKmJump','function kpSituation','@page{size:A4 landscape;margin:10mm}','tbody class="grp"','function printResumoRowsHtml','td{white-space:nowrap}','id="btn-rotas-window"','function rotasWinHtml','function rotasAbertasCollectRows','id="sec-frota-trip"','function renderFrotaTripulacao','function syncFrotaTripulacaoToMap']) assert.ok(html.includes(x),x);
+  for(const x of ['id="fh-resumo"','function fechRefOptions','function renderFechHist','A4 portrait','2026-10-30a','id="kp-f-sit"','function kpGroupRows','function kpKmJump','function kpSituation','@page{size:A4 landscape;margin:10mm}','tbody class="grp"','function printResumoRowsHtml','td{white-space:nowrap}','id="btn-rotas-window"','function rotasWinHtml','function rotasAbertasCollectRows','id="sec-frota-trip"','function renderFrotaTripulacao','function syncFrotaTripulacaoToMap']) assert.ok(html.includes(x),x);
   assert.ok(!html.includes("const APP_V = '2026-09-29d'"));
   assert.ok(!html.includes('tryAutoMigrarLote'));
 });
@@ -1032,4 +1032,280 @@ test('Pré-escala: marcar vários / duplo clique adiciona linhas ao mapa (ignora
   ro.peClickChip('capital', 'CZC2919'); assert.equal(SEL(ro).capital.size, 0);
   // fiação no HTML: duplo clique e botões
   assert.ok(html.includes("pe.addEventListener('dblclick'") && html.includes('body.readonly .pe-btn'));
+});
+
+/* ---- filtro por quinzena (cabeçalhos do Painel de Indicadores e do Mapa Gerencial) ---- */
+const qzBlock = block('/* ---- filtro por quinzena', '/* ---- fim do filtro por quinzena ----');
+test('filtro por quinzena: Tudo/1ª/2ª em período contínuo, cascata ano→mês→quinzena e Aplicar/Limpar',()=>{
+  let recomputes=0, heads=0, maps=0;
+  const c=context({
+    MESES_NOME:['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'],
+    qp2:n=>String(n).padStart(2,'0'),
+    monthEnd:(y,m)=> y+'-'+String(m).padStart(2,'0')+'-'+String(new Date(y,m,0).getDate()).padStart(2,'0'),
+    fmtBR:iso=>{ const p=String(iso).split('-'); return p.length===3? p[2]+'/'+p[1]+'/'+p[0] : iso; },
+    esc:s=>String(s==null?'':s),
+    currentMapDate:'2026-09-20',
+    FECHAMENTOS:[{ref:{ano:2025,mes:12,quinzena:1}}],
+    fechRefOf:f=>(f&&f.ref)||{},
+    DASH:{raw:[{date:'2024-03-02'},{date:'2026-09-01'}], period:{start:'2026-09-01',end:'2026-09-30'}, preset:'month'},
+    GERENCIAL_PAGE:true,
+    dashRecompute:()=>{ recomputes++; },
+    updateGerencialHead:()=>{ heads++; },
+    renderGerencialMap:()=>{ maps++; },
+    $:()=>null, toast:()=>{}, document:{addEventListener(){}}
+  });
+  vm.runInContext(qzBlock,c);
+  // Tudo = mês inteiro; 1ª = 01–15; 2ª = 16 ao fim (um período só, sem dia repetido)
+  assert.deepEqual(j(c.qzPeriodo(2026,9,'all')),{start:'2026-09-01',end:'2026-09-30'});
+  assert.deepEqual(j(c.qzPeriodo(2026,9,'1')),{start:'2026-09-01',end:'2026-09-15'});
+  assert.deepEqual(j(c.qzPeriodo(2026,9,'2')),{start:'2026-09-16',end:'2026-09-30'});
+  // fim do mês por mês (30/31) e fevereiro bissexto
+  assert.deepEqual(j(c.qzPeriodo(2026,4,'all')),{start:'2026-04-01',end:'2026-04-30'});
+  assert.deepEqual(j(c.qzPeriodo(2026,2,'2')),{start:'2026-02-16',end:'2026-02-28'});
+  assert.deepEqual(j(c.qzPeriodo(2028,2,'2')),{start:'2028-02-16',end:'2028-02-29'});
+  assert.deepEqual(j(c.qzPeriodo(2028,2,'all')),{start:'2028-02-01',end:'2028-02-29'});
+  assert.equal(c.qzPeriodo(2026,13,'all'),null);
+  assert.equal(c.qzPeriodo(2026,9,'3'),null);
+  // resumo do botão e faixa exibida no popover
+  assert.equal(c.qzLabel(2026,9,'all'),'Set/2026 · Tudo');
+  assert.equal(c.qzLabel(2026,8,'2'),'Ago/2026 · 2ª');
+  assert.equal(c.qzLabel(2028,2,'1'),'Fev/2028 · 1ª');
+  assert.equal(c.qzPeriodoTxt(2026,9,'1'),'01/09/2026 a 15/09/2026');
+  // anos: histórico + referências dos fechamentos + ano atual, em ordem decrescente
+  const anos=c.qzYears();
+  for(const a of [2024,2025,2026]) assert.ok(anos.includes(a),'ano '+a);
+  assert.deepEqual(j(anos),j(anos.slice().sort((a,b)=>b-a)));
+  // cascata: trocar o ANO zera mês + quinzena; trocar o MÊS zera a quinzena
+  const d0={ano:'2026',mes:'9',q:'2'};
+  assert.deepEqual(j(c.qzDraftNext(d0,'ano','2025')),{ano:'2025',mes:'',q:''});
+  assert.deepEqual(j(c.qzDraftNext(d0,'mes','3')),{ano:'2026',mes:'3',q:''});
+  assert.deepEqual(j(c.qzDraftNext(d0,'q','1')),{ano:'2026',mes:'9',q:'1'});
+  // 3 opções de quinzena: Tudo · 1ª · 2ª
+  assert.deepEqual(j(c.qzQuinzenas().map(o=>o.q)),['all','1','2']);
+  assert.deepEqual(j(c.qzQuinzenas().map(o=>o.curto)),['Tudo','1ª','2ª']);
+  assert.equal(c.qzMeses().length,12);
+  // Aplicar grava DASH.period (preset 'quinzena') e refaz os dois painéis
+  assert.equal(c.qzSet(2026,9,'1'),true);
+  assert.deepEqual(j(c.DASH.period),{start:'2026-09-01',end:'2026-09-15'});
+  assert.equal(c.DASH.preset,'quinzena');
+  assert.deepEqual(j(c.qzState()),{ano:2026,mes:9,q:'1'});
+  assert.ok(recomputes>=1 && heads>=1 && maps>=1,'recalcula painel + mapa gerencial');
+  // Limpar volta ao período livre (presets/De-Até) sem perder o intervalo atual
+  const antes=c.DASH.period;
+  c.qzClear();
+  assert.equal(c.DASH.preset,'custom');
+  assert.deepEqual(j(c.DASH.period),j(antes));
+  assert.deepEqual(j(c.qzState()),{ano:null,mes:null,q:''});
+  // controle presente nos DOIS cabeçalhos, com as 3 listas em cascata sem pré-seleção
+  const headPainel=html.slice(html.indexOf('<div class="painel-head">'), html.indexOf('<div id="tab-diaria"'));
+  const headGer=html.slice(html.indexOf('id="gerencial-head"'), html.indexOf('id="gerencial-access-note"'));
+  for(const x of ['id="qz-box"','id="qz-toggle"','id="qz-label"','id="qz-pop"','id="qz-ano"','id="qz-mes"','id="qz-q"','id="qz-apply"','id="qz-clear"','id="qz-faixa"']) assert.ok(headPainel.includes(x),x);
+  for(const x of ['id="gm-qz-box"','id="gm-qz-toggle"','id="gm-qz-label"','id="gm-qz-pop"','id="gm-qz-ano"','id="gm-qz-mes"','id="gm-qz-q"','id="gm-qz-apply"','id="gm-qz-clear"','id="gm-qz-faixa"']) assert.ok(headGer.includes(x),x);
+  assert.ok(headPainel.includes('id="qz-mes" disabled') && headPainel.includes('id="qz-q" disabled'));
+  assert.ok(headGer.includes('id="gm-qz-mes" disabled') && headGer.includes('id="gm-qz-q" disabled'));
+  // rótulo do período (e título da aba) mostram a quinzena aplicada
+  assert.ok(html.includes("if(DASH.preset === 'quinzena' && QZ.ano)"));
+  assert.ok(html.includes('function renderQuinzenaControls()') && html.includes('renderQuinzenaControls(); // resumo do filtro de quinzena'));
+});
+
+/* ---- filtro por mês (vários meses: ano + mês + ➕ Add mês) ---- */
+const mmBlock = block('/* ---- filtro por MÊS (cabeçalhos', '/* ---- fim do filtro por mês ----');
+test('filtro por mês: 1/3 meses contínuos, Add/✕, atalhos, Aplicar/Limpar e controle nos dois cabeçalhos',()=>{
+  let recomputes=0, heads=0, maps=0;
+  const c=context({
+    MESES_NOME:['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'],
+    qp2:n=>String(n).padStart(2,'0'),
+    qzShort:(ano,mes)=>(['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][mes-1])+'/'+ano,
+    qzMeses:()=>[],
+    qzYears:()=>[2026],
+    qzLabel:()=>'',
+    qzClearLabel:()=>'',
+    monthEnd:(y,m)=> y+'-'+String(m).padStart(2,'0')+'-'+String(new Date(y,m,0).getDate()).padStart(2,'0'),
+    fmtBR:iso=>{ const p=String(iso).split('-'); return p.length===3? p[2]+'/'+p[1]+'/'+p[0] : iso; },
+    fmtBRL:v=>'R$ '+v,
+    esc:s=>String(s==null?'':s),
+    isoToDate:iso=>{ const p=String(iso).split('-'); return new Date(+p[0], (+p[1]||1)-1, +p[2]||1); },
+    currentMapDate:'2026-10-28',
+    FECHAMENTOS:[],
+    fechRefOf:()=>({}),
+    DASH:{raw:[], period:{start:'2026-10-01',end:'2026-10-31'}, preset:'7d'},
+    QZ:{ano:2026, mes:9, q:'1'},
+    GERENCIAL_PAGE:false,
+    dashRecompute:()=>{ recomputes++; },
+    updateGerencialHead:()=>{ heads++; },
+    renderGerencialMap:()=>{ maps++; },
+    renderQuinzenaControls:()=>{},
+    $:()=>null, $$:()=>[], toast:()=>{}, document:{addEventListener(){}}
+  });
+  vm.runInContext(mmBlock,c);
+  // 1 mês = o mês inteiro; 3 meses = o trimestre; meses não vizinhos incluem os do meio
+  assert.deepEqual(j(c.mmPeriodo(['2026-09'])),{start:'2026-09-01',end:'2026-09-30'});
+  assert.deepEqual(j(c.mmPeriodo(['2026-07','2026-08','2026-09'])),{start:'2026-07-01',end:'2026-09-30'});
+  assert.deepEqual(j(c.mmPeriodo(['2026-03','2026-01'])),{start:'2026-01-01',end:'2026-03-31'});
+  assert.deepEqual(j(c.mmPeriodo(['2025-12','2026-01'])),{start:'2025-12-01',end:'2026-01-31'});
+  // fevereiro bissexto e meses de 30/31 dias
+  assert.deepEqual(j(c.mmPeriodo(['2028-02'])),{start:'2028-02-01',end:'2028-02-29'});
+  assert.deepEqual(j(c.mmPeriodo(['2026-02'])),{start:'2026-02-01',end:'2026-02-28'});
+  assert.deepEqual(j(c.mmPeriodo(['2026-04'])),{start:'2026-04-01',end:'2026-04-30'});
+  assert.equal(c.mmPeriodo([]),null);
+  assert.equal(c.mmPeriodo(['x']),null);
+  // rótulo: 1 mês · faixa no mesmo ano · virada de ano
+  assert.equal(c.mmLabel(['2026-09']),'Set/2026');
+  assert.equal(c.mmLabel(['2026-07','2026-08','2026-09']),'Jul–Set/2026');
+  assert.equal(c.mmLabel(['2025-11','2026-01']),'Nov/2025–Jan/2026');
+  assert.equal(c.mmPeriodoTxt(['2026-09']),'01/09/2026 a 30/09/2026');
+  // lista: sem repetição e em ordem cronológica
+  assert.deepEqual(j(c.mmSort(['2026-09','2026-07','2026-09','x','2026-08'])),['2026-07','2026-08','2026-09']);
+  // atalhos: mês passado (vira o ano em janeiro) · trimestre (T1 e T4)
+  assert.deepEqual(j(c.mmAtalho('lastmonth',new Date(2026,9,28))),['2026-09']);
+  assert.deepEqual(j(c.mmAtalho('lastmonth',new Date(2027,0,10))),['2026-12']);
+  assert.deepEqual(j(c.mmAtalho('quarter',new Date(2026,0,15))),['2026-01','2026-02','2026-03']);
+  assert.deepEqual(j(c.mmAtalho('quarter',new Date(2026,11,31))),['2026-10','2026-11','2026-12']);
+  // rascunho: trocar o ano zera o mês mas preserva a lista de meses; Add ignora repetido; ✕ remove
+  const d0={ano:'2026',mes:'9',meses:['2026-08']};
+  assert.deepEqual(j(c.mmDraftNext(d0,'ano','2025')),{ano:'2025',mes:'',meses:['2026-08']});
+  assert.deepEqual(j(c.mmDraftNext(d0,'mes','3')),{ano:'2026',mes:'3',meses:['2026-08']});
+  assert.deepEqual(j(c.mmDraftAdd({ano:'2026',mes:'9',meses:['2026-08']})),{ano:'2026',mes:'9',meses:['2026-08','2026-09']});
+  assert.deepEqual(j(c.mmDraftAdd({ano:'2026',mes:'9',meses:['2026-09']})),{ano:'2026',mes:'9',meses:['2026-09']});
+  assert.deepEqual(j(c.mmDraftAdd({ano:'',mes:'9',meses:[]})).meses,[]);
+  assert.deepEqual(j(c.mmDraftDel({ano:'',mes:'',meses:['2026-08','2026-09']},'2026-08')),{ano:'',mes:'',meses:['2026-09']});
+  assert.deepEqual(j(c.mmDraftShortcut({ano:'',mes:'',meses:[]},'lastmonth')),{ano:'',mes:'',meses:['2026-09']});
+  assert.deepEqual(j(c.mmDraftShortcut({ano:'',mes:'',meses:[]},'quarter')),{ano:'',mes:'',meses:['2026-10','2026-11','2026-12']});
+  // Aplicar grava DASH.period (preset 'meses') e cancela o filtro de quinzena
+  assert.equal(c.mmSet(['2026-07','2026-08','2026-09']),true);
+  assert.deepEqual(j(c.DASH.period),{start:'2026-07-01',end:'2026-09-30'});
+  assert.equal(c.DASH.preset,'meses');
+  assert.deepEqual(j(c.mmState()),{meses:['2026-07','2026-08','2026-09']});
+  assert.deepEqual(j(c.QZ),{ano:null,mes:null,q:''});
+  assert.ok(recomputes>=1,'recalcula o painel');
+  // Limpar volta ao período livre mantendo o intervalo atual
+  const antes=c.DASH.period;
+  c.mmClear();
+  assert.equal(c.DASH.preset,'custom');
+  assert.deepEqual(j(c.DASH.period),j(antes));
+  assert.deepEqual(j(c.mmState()),{meses:[]});
+  // chips "Este mês / Mês passado / Este trimestre" saíram; só "Últimos 7 dias" ficou
+  for(const p of ['month','lastmonth','quarter']) assert.ok(!html.includes('data-preset="'+p+'"'), 'preset '+p);
+  assert.ok(html.includes('data-preset="7d"'));
+  // controle nos DOIS cabeçalhos (Painel de Indicadores + Mapa Gerencial)
+  const headPainel=html.slice(html.indexOf('<div class="painel-head">'), html.indexOf('<div id="tab-diaria"'));
+  const headGer=html.slice(html.indexOf('id="gerencial-head"'), html.indexOf('id="gerencial-access-note"'));
+  for(const x of ['id="mm-box"','id="mm-toggle"','id="mm-label"','id="mm-pop"','id="mm-ano"','id="mm-mes"','id="mm-add"','id="mm-chips"','id="mm-apply"','id="mm-clear"','id="mm-faixa"','data-mm-short="lastmonth"','data-mm-short="quarter"']) assert.ok(headPainel.includes(x),x);
+  for(const x of ['id="gm-mm-box"','id="gm-mm-toggle"','id="gm-mm-label"','id="gm-mm-pop"','id="gm-mm-ano"','id="gm-mm-mes"','id="gm-mm-add"','id="gm-mm-chips"','id="gm-mm-apply"','id="gm-mm-clear"','id="gm-mm-faixa"','data-mm-short="lastmonth"','data-mm-short="quarter"']) assert.ok(headGer.includes(x),x);
+  // listas abrem sem seleção e sem "Aplicar" enquanto não houver mês na lista
+  assert.ok(headPainel.includes('id="mm-mes" disabled') && headPainel.includes('id="mm-add" disabled') && headPainel.includes('id="mm-apply" title="Aplicar os meses escolhidos como período dos dois painéis" disabled'));
+  assert.ok(headGer.includes('id="gm-mm-mes" disabled') && headGer.includes('id="gm-mm-add" disabled'));
+  assert.ok(headPainel.includes('nenhum mês adicionado') && headGer.includes('nenhum mês adicionado'));
+  // rótulo do período (e título da aba) refletem os meses aplicados
+  assert.ok(html.includes("if(DASH.preset === 'meses' && MM.meses.length)"));
+  assert.ok(html.includes('function renderMesesControls()') && html.includes('renderMesesControls();    // resumo do filtro de meses'));
+  // período restaurado quando DASH.period ainda não existe (meses/quinzena/preset)
+  assert.ok(html.includes('function dashPeriodoAtual(ref)') && html.includes('DASH.period = dashPeriodoAtual(currentMapDate)'));
+  // quinzena e meses são mutuamente exclusivos nos dois sentidos
+  assert.ok(html.includes('MM = {meses: []};                 // quinzena e meses são mutuamente exclusivos'));
+  assert.ok(html.includes('QZ = {ano: null, mes: null, q: \'\'};      // quinzena e meses são mutuamente exclusivos'));
+});
+
+/* ---- padrão do filtro por mês: MÊS ATUAL ---- */
+test('filtro por mês: padrão é o MÊS ATUAL (painel abre no mês de hoje e o popover já vem posicionado)',()=>{
+  const base = {
+    MESES_NOME:['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'],
+    qp2:n=>String(n).padStart(2,'0'),
+    qzShort:(ano,mes)=>(['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][mes-1])+'/'+ano,
+    qzMeses:()=>[], qzYears:()=>[2026], qzLabel:()=>'', 
+    monthEnd:(y,m)=> y+'-'+String(m).padStart(2,'0')+'-'+String(new Date(y,m,0).getDate()).padStart(2,'0'),
+    fmtBR:iso=>{ const p=String(iso).split('-'); return p.length===3? p[2]+'/'+p[1]+'/'+p[0] : iso; },
+    esc:s=>String(s==null?'':s), isoToDate:iso=>{ const p=String(iso).split('-'); return new Date(+p[0], (+p[1]||1)-1, +p[2]||1); },
+    currentMapDate:'2026-10-28', FECHAMENTOS:[], fechRefOf:()=>({}),
+    DASH:{raw:[], period:null, preset:'7d'},
+    QZ:{ano:null, mes:null, q:''},
+    GERENCIAL_PAGE:false, dashRecompute:()=>{}, updateGerencialHead:()=>{}, renderGerencialMap:()=>{}, renderQuinzenaControls:()=>{},
+    $:()=>null, $$:()=>[], toast:()=>{}, document:{addEventListener(){}}
+  };
+  // mês de referência = dia de faturamento (currentMapDate), não o relógio da máquina
+  const c=context({...base}); vm.runInContext(mmBlock,c);
+  assert.equal(c.mmMesAtual(),'2026-10');
+  assert.equal(c.mmMesAtual(new Date(2027,0,5)),'2027-01');
+  // sem filtro aplicado: ano/mês já vêm no mês atual e o mês atual já está na lista
+  assert.deepEqual(j(c.mmDraftReset()),{ano:'2026',mes:'10',meses:['2026-10']});
+  // com meses aplicados: a lista continua sendo a aplicada (ano/mês seguem no mês atual)
+  // (MM é 'let' do script → escreve/lê pelo próprio contexto, não como propriedade global)
+  vm.runInContext('MM = {meses:["2026-08","2026-09"]}; DASH.preset = "meses";', c);
+  assert.deepEqual(j(c.mmDraftReset()),{ano:'2026',mes:'10',meses:['2026-08','2026-09']});
+  // padrão do painel: preset 'meses' com o mês atual, aplicado uma única vez
+  vm.runInContext('MM = {meses:[]}; DASH.preset = "7d"; DASH.period = null;', c);
+  assert.equal(c.mmPadraoInicial(),true);
+  assert.equal(c.DASH.preset,'meses');
+  assert.deepEqual(j(c.DASH.period),{start:'2026-10-01',end:'2026-10-31'});
+  assert.deepEqual(JSON.parse(vm.runInContext('JSON.stringify(MM)',c)),{meses:['2026-10']});
+  assert.equal(c.mmPadraoInicial(),false);                       // não reaplica
+  assert.deepEqual(j(c.DASH.period),{start:'2026-10-01',end:'2026-10-31'});
+  // respeita um filtro já escolhido (não sobrescreve)
+  const c2=context({...base, DASH:{raw:[], period:{start:'2026-07-01',end:'2026-09-30'}, preset:'meses'}});
+  vm.runInContext(mmBlock,c2);
+  vm.runInContext('MM = {meses:["2026-07","2026-08","2026-09"]};', c2);
+  assert.equal(c2.mmPadraoInicial(),false);
+  assert.deepEqual(j(c2.DASH.period),{start:'2026-07-01',end:'2026-09-30'});
+  assert.deepEqual(JSON.parse(vm.runInContext('JSON.stringify(MM)',c2)),{meses:['2026-07','2026-08','2026-09']});
+  // o padrão entra no carregamento do painel (loadDashboard), antes de calcular o período
+  assert.ok(html.includes('function mmMesAtual(ref)'));
+  assert.ok(html.includes('mmPadraoInicial();   // padrão do painel: MÊS ATUAL (filtro 📅 Meses já posicionado nele)'));
+  assert.ok(html.includes('function mmPadraoInicial()'));
+});
+
+/* ---- 2026-10-28: filtro por quinzena contabiliza o fechamento quinzenal ---- */
+const dashQzBlock = block('function fechDateOfRow(r){', '/* Métricas de um dia');
+const metricsAggBlock = block('/* Métricas de um dia', 'function kpiCard(');
+const gerencialBlock = block('function gerencialDiasPeriodo(){', 'function gerencialPeriodoLabel(){');
+test('filtro por quinzena: cargas FECHADAS do fechamento dessa quinzena entram (mesmo lançadas em outro dia)',()=>{
+  const FECHAMENTOS=[
+    {id:'f1', ref:{ano:2026,mes:10,quinzena:1}, dataFech:'2026-10-15', start:'2026-10-01', end:'2026-10-15', grupos:[]},
+    {id:'f2', ref:{ano:2026,mes:10,quinzena:2}, dataFech:'2026-10-25', start:'2026-10-16', end:'2026-10-31', grupos:[]}
+  ];
+  const raw=[
+    {date:'2026-09-28', data:{frotas:[], capital:[{id:'r1', peso:100, stFech:'fechado', fechId:'f1'}], interior:[]}},
+    {date:'2026-10-10', data:{frotas:[], capital:[{id:'r2', peso:50, stFech:'fechado', fechId:'f1'},{id:'r3', peso:20, stFech:'concluida'}], interior:[]}},
+    {date:'2026-09-20', data:{frotas:[], capital:[{id:'r4', peso:30, stFech:'fechado', fechId:'f2'}], interior:[]}}
+  ];
+  const c=context({
+    relIsFech:r=>r.stFech==='fechado',
+    numVal:x=>Number(x)||0,
+    margemMult:()=>1,
+    tableForecast:(sec,r)=>({total:(Number(r.peso)||0)*5}),
+    calcularFrete:(sec,r)=>({total:(Number(r.peso)||0)*10}),
+    isNegSim:()=>false,
+    rowTemCarga:r=>!!(r.carga||r.destino),
+    FECHAMENTOS,
+    DASH:{raw, period:{start:'2026-10-01',end:'2026-10-15'}, preset:'quinzena', statusFilter:'todas', days:[], fechDates:[]},
+    QZ:{ano:2026,mes:10,q:'1'},
+    currentMapDate:'2026-10-01',
+    DATA:{frotas:[], capital:[], interior:[]}
+  });
+  vm.runInContext(dashQzBlock,c);
+  vm.runInContext(metricsAggBlock,c);
+  vm.runInContext(gerencialBlock,c);
+  // só a r1: fechada, ref Outubro Q1, lançada em setembro (fora do período)
+  const ex=c.dashQzExtras(c.DASH.period);
+  assert.deepEqual(j(ex.map(e=>e.row.id)),['r1']);
+  // sem o filtro de quinzena: nada entra
+  c.DASH.preset='custom';
+  assert.deepEqual(j(c.dashQzExtras(c.DASH.period)),[]);
+  // com status Em Aberto: cargas fechadas saem
+  c.DASH.preset='quinzena'; c.DASH.statusFilter='abertas';
+  assert.deepEqual(j(c.dashQzExtras(c.DASH.period)),[]);
+  c.DASH.statusFilter='todas';
+  // o agregado do período inclui a extra (sem o dia dela dentro do período)
+  const agg=c.aggregateRange('2026-10-01','2026-10-15', ex);
+  assert.equal(agg.cargas,1);
+  assert.equal(agg.peso,100);
+  assert.equal(agg.capCom,1000);                 // 100 kg × R$10/kg
+  // sem as extras, o agregado do período fica vazio
+  assert.equal(c.aggregateRange('2026-10-01','2026-10-15').cargas,0);
+  // Mapa Gerencial: a entrada da r1 entra na seção Capital (DASH.qzExtras, como no app)
+  c.DASH.qzExtras = c.dashQzExtras(c.DASH.period);
+  const ent=c.gerencialEntradas('capital');
+  assert.ok(ent.some(e=>e.r.id==='r1'),'r1 (extra) no Mapa Gerencial');
+  assert.ok(ent.some(e=>e.r.id==='r2'),'r2 (dentro do período) no Mapa Gerencial');
+  // HTML: helpers + aviso do período
+  for(const x of ['function dashQzExtras','function dashFechRefOfRow','function dashQzExtraData','id="dash-period-note"','DASH.qzExtras = dashQzExtras(DASH.period)','aggregateRange(p.start, p.end, DASH.qzExtras)']) assert.ok(html.includes(x),x);
 });
