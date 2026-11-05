@@ -852,8 +852,8 @@ body.readonly .pe-btn,body.readonly .pe-hint{display:none}
 body.readonly .lupa-btn{display:none}
 #capture-root.capturing .lupa-btn,#capture-root.capturing .pre-escala{display:none !important}
 @media print{.lupa-btn,.pre-escala{display:none !important}}
-#lupa-mask{position:fixed;inset:0;z-index:470;background:rgba(15,23,42,.6);display:flex;align-items:center;justify-content:center;padding:16px}
-#lupa-mask[hidden]{display:none}
+#lupa-mask,#frota-rota-mask,#esc-mask{position:fixed;inset:0;z-index:470;background:rgba(15,23,42,.6);display:flex;align-items:center;justify-content:center;padding:16px}
+#lupa-mask[hidden],#frota-rota-mask[hidden],#esc-mask[hidden]{display:none}
 .modal-lupa{width:min(680px,94vw);max-height:92vh;overflow:auto}
 .lupa-search{width:100%;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font:inherit;font-size:14px;background:#fff}
 .lupa-search:focus{border-color:var(--blue);outline:none}
@@ -868,6 +868,18 @@ body.readonly .lupa-btn{display:none}
 .lupa-item .lupa-b{margin-left:0;justify-self:end;max-width:132px;overflow:hidden;text-overflow:ellipsis}
 .lupa-warn{border:1px solid #fde68a;background:#fffbeb;color:#92400e;border-radius:8px;padding:6px 10px;font-size:12px;line-height:1.5;margin:4px 0}
 .lupa-warn[hidden]{display:none}
+.frete-mini select.ft-pend{border-color:#f59e0b;background:#fffbeb;color:#92400e;font-weight:700}
+.ft-banner{display:inline-flex;align-items:center;gap:6px}
+.ft-banner[hidden]{display:none}
+.modal-esc{width:480px}
+.esc-list{display:flex;flex-direction:column;gap:6px;margin:8px 0}
+.esc-item{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:13px;background:#f8fafc;flex-wrap:wrap}
+.esc-item.cur{border-color:#60a5fa;background:#eff6ff}
+.esc-item b{min-width:76px}
+.esc-item .esc-info{flex:1;min-width:140px;color:var(--muted);font-size:12px}
+.fr-choice{display:flex;gap:18px;margin:10px 0;font-size:14px;font-weight:600}
+.fr-choice label{display:flex;align-items:center;gap:6px;cursor:pointer}
+.plate-conflict{border-color:#dc2626 !important;background:#fee2e2 !important;color:#991b1b}
 @media (max-width:560px){.lupa-item{grid-template-columns:78px 1fr 110px}.lupa-item .l-t{grid-column:1/-1}}
 .cmp-ctrl{display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin:8px 0 4px}
 .cmp-ctrl label{display:flex;flex-direction:column;gap:3px;font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.3px}
@@ -1156,6 +1168,8 @@ html.gerencial-request #settings{display:none!important}
     <label>Faturamento<input type="date" id="faturamento"></label>
     <label>Entrega<input type="date" id="dtEntrega"></label>
     <label>Histórico salvo<select id="hist"><option value="">—</option></select></label>
+    <label id="esc-wrap" hidden title="Este dia do histórico tem 2 escalas (faturamentos) com entregas em dias diferentes — escolha qual abrir">Escala do dia<select id="esc-sel"></select></label>
+    <button class="btn" id="btn-esc" type="button" title="Adiciona uma 2ª escala neste mesmo dia de faturamento, com outra data de entrega (ex.: sexta → sábado e segunda/terça)">➕ 2ª escala</button>
     <span class="save-state" id="save-state">…</span>
     <span class="user-chip" id="user-chip" hidden>👤 <b id="user-chip-name"></b><span class="user-lvl" id="user-chip-lvl"></span></span>
     <button class="btn" id="btn-logout" type="button" title="Encerrar sessão">Sair</button>
@@ -1166,8 +1180,13 @@ html.gerencial-request #settings{display:none!important}
     <button class="btn" id="btn-kmport" title="Importa o KM REAL (coluna KM Rodado) da planilha da portaria: mostra a prévia com ✓ por linha (aplica o KM real SÓ nas ordens marcadas), filtros de Status e Tipo (Capital/Interior/Frotas), ignora KM vazio/0/negativo e trava (🔒, sem ✓) as linhas cujo KM já é igual ao da planilha; cada ordem ajustada ganha a sigla KM em verde metálico">📥 KM Portaria</button>
     <button class="btn" id="btn-ftrack" title="Envia os veículos selecionados do faturamento do dia aberto direto p/ o FricoTrack (lista de veículos esperados da portaria)">📤 FricoTrack</button>
     <span class="sep"></span>
-    <button class="btn" id="btn-backup">💾 Backup</button>
-    <button class="btn" id="btn-restore">📂 Restaurar</button>
+    <div class="btn-dd" id="dd-backup">
+      <button class="btn" id="btn-backup-toggle" type="button" aria-haspopup="true" aria-expanded="false" title="Backup do mapa do dia e restauração a partir de um arquivo">💾 Backup ▾</button>
+      <div class="btn-dd-menu" id="dd-backup-menu" hidden>
+        <button class="btn-dd-item" id="btn-backup" type="button" title="Baixa um arquivo .json com o mapa do dia (as duas escalas, se houver) e os cadastros">💾 Fazer backup</button>
+        <button class="btn-dd-item" id="btn-restore" type="button" title="Restaura o mapa do dia a partir de um arquivo de backup (substitui o dia atual) — só administrador">📂 Restaurar backup</button>
+      </div>
+    </div>
     <span class="sep"></span>
     <div class="btn-dd" id="dd-mapa">
       <button class="btn" id="btn-mapa-toggle" type="button" aria-haspopup="true" aria-expanded="false" title="Gerar o MAPA DE CARREGAMENTO p/ impressão A4 (Sem Peso / Com Peso · Paisagem ou Retrato)">🖨 Mapa/Print ▾</button>
@@ -1176,7 +1195,6 @@ html.gerencial-request #settings{display:none!important}
         <button class="btn-dd-item" id="btn-shot-com" type="button" title="MAPA DE CARREGAMENTO · colunas: Placa, Destino, Nº Carga, Peso (kg), T.Entrega, Motorista, Transportador · Imprimir/Abrir/Copiar/Baixar">🖨 Mapa Com Peso</button>
       </div>
     </div>
-    <button class="btn" id="btn-pdf">🖨 PDF</button>
     <button class="btn" id="btn-etiq" title="Imprimir etiquetas A4 RETRATO (9×5,5cm, 10 por página: 2 colunas × 5 linhas) — uma por carga">🏷 Etiquetas</button>
     <button class="btn" id="btn-plan" title="Gerar relatório Planejamento de Transporte (Capital × Interior × Total)">📊 Planejamento</button>
     <button class="btn btn-ff" id="btn-ff" title="Fechamento de Fretes: abre a tela interativa (filtros por Ordem, Destino, Placa, Motorista, Transportadora, Total e Média), edição com recálculo na hora — gravando no mapa do dia —, fechamento quinzenal e download em Excel (tudo ou só o filtrado)">📋 Fechamento de Fretes</button>
@@ -1404,6 +1422,9 @@ html.gerencial-request #settings{display:none!important}
         <li><b>Capturas 📷 em layout dedicado A4 paisagem</b> (colunas medidas pelo conteúdo, <b>larguras iguais nas 3 tabelas</b> — <b>nada de texto cortado ou oculto</b>): os dois prints mostram Placa, Destino, Nº Carga, Peso, T.Entrega, Motorista e Ajud./Transportador, mais os cards Cargas/Peso total/Entregas, no <b>modelo visual novo</b> (banner azul, faixas de seção, zebrado e cards com ícone). As colunas Vlr Kg, Neg?, Previsão, Custo Médio e Valor Frete nunca aparecem nas imagens.</li>
         <li><b>📊 Planejamento de Transporte</b>: relatório Capital × Interior × Total com Veículos (cargas), Entregas e Peso em TON (kg ÷ 1000, 2 casas, sem zeros finais) — Frotas não entra.</li>
         <li><b>🏷 Etiquetas SEMPRE em A4 RETRATO</b>: uma etiqueta por carga (9×5,5cm, 10 por página — 2 colunas × 5 linhas), impressa por um documento próprio e isolado, então a orientação não depende do CSS da tela nem de outro relatório (nada de página saindo deitada).</li>
+        <li><b>📅 2 escalas no mesmo dia (sexta-feira)</b>: no dia aberto, <b>➕ 2ª escala</b> (topo) cria um segundo faturamento <b>no mesmo histórico</b>, vazio e com <b>entrega própria</b> (ex.: Histórico 06/11 → Entrega 07/11 e Entrega 09/11). A 1ª escala não é alterada. Quando o dia tem 2 escalas aparece o seletor <b>Escala do dia</b> para alternar, o Histórico salvo mostra “· 2 escalas” e relatórios, fechamento e painéis somam as duas (cada carga com a entrega da sua escala). <b>📅 Escalas</b> lista as duas e permite excluir uma (só administrador, com senha; escala com carga fechada não pode ser excluída).</li>
+        <li><b>🚛 Frotas — Custo estimado da rota</b>: a rota é <b>Capital</b> (valor fixo da tabela) ou <b>Interior</b> (diárias + km + pernoite). O app identifica pelas palavras-chave do destino; se a rota não estiver cadastrada, <b>pergunta Capital ou Interior</b> (e pode lembrar a palavra-chave). O select <b>Rota?</b> na célula do custo permite corrigir a qualquer momento.</li>
+        <li><b>⛔ Capital × Interior</b>: veículo <b>escalado</b> (com Nº Carga) na Capital não pode ser escalado no Interior, e vice-versa — o app bloqueia na digitação, na 🔍, no POOL e ao mover a linha.</li>
         <li><b>🖨 Mapa/Print (Mapa Sem Peso / Mapa Com Peso) / 📊 Planejamento</b>: geram a imagem A4 e perguntam a orientação (Paisagem/Retrato) e se você quer imprimir, abrir em nova guia, copiar (Ctrl+V no WhatsApp/e-mail) ou baixar o .png.</li>
         <li><b>🚀 Envio automático</b>: guia passo a passo que encadeia os 5 envios (todos os grupos) — o app copia cada imagem e avança (botão ou Enter), você só cola (Ctrl+V) e envia (Enter) na conversa indicada.</li>
         <li><b>Motorista limitado a 32 caracteres</b> em Frotas, Capital e Interior (campo, digitação, importação e dados já salvos).</li>
@@ -1443,6 +1464,7 @@ html.gerencial-request #settings{display:none!important}
     <div class="sec-head">
       <h2><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18H9"/><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.62l-3.48-4.35A1 1 0 0 0 17.52 8H14"/><circle cx="17" cy="18" r="2"/><circle cx="7" cy="18" r="2"/></svg> FROTAS</h2><span class="sec-count" id="count-frotas"></span>
       <div class="sec-actions">
+        <button class="btn mini ft-banner" id="btn-frota-rota" type="button" hidden title="Há rotas de Frotas sem Capital/Interior definido — clique para responder">⚠ <span id="frota-rota-n">0</span> rota(s) sem Capital/Interior</button>
         <button class="btn mini" data-add="frotas">＋ Linha</button>
         <button class="btn mini" data-merge="frotas" title="Mescla as linhas marcadas com ✓ (placas podem ser diferentes)">⇄ Mesclar</button>
         <button class="btn mini" data-conclui="frotas" title="Marca as linhas ✓ como CONCLUÍDA (entrega finalizada) — a linha fica verde claro. Se todas as marcadas já estiverem Concluída, volta tudo p/ Pendente">✔ Concluir</button>
@@ -1839,6 +1861,42 @@ html.gerencial-request #settings{display:none!important}
     <div class="modal-actions">
       <button class="btn" type="button" id="edc-cancel">Cancelar</button>
       <button class="btn primary" type="button" id="edc-save">💾 Salvar no mapa</button>
+    </div>
+  </div>
+</div>
+<div id="esc-mask" class="no-print" hidden>
+  <div class="modal modal-esc" role="dialog" aria-modal="true" aria-labelledby="esc-title">
+    <div class="fech-head"><h3 id="esc-title">📅 Escalas do dia</h3><button class="x" type="button" id="esc-x" title="Fechar">✕</button></div>
+    <p class="hint" id="esc-sub"></p>
+    <div id="esc-new">
+      <p class="modal-text" style="margin:6px 0">A <b>2ª escala</b> fica no <b>mesmo histórico</b> deste dia de faturamento, começa <b>vazia</b> e tem a <b>sua própria data de entrega</b>. A escala atual continua salva e intacta — você alterna entre as duas pelo seletor <b>Escala do dia</b>.</p>
+      <div class="edc-grid"><label>Entrega da 2ª escala<input type="date" id="esc-dt2"></label></div>
+      <div class="lupa-warn" id="esc-err" hidden></div>
+    </div>
+    <div id="esc-manage" hidden>
+      <div id="esc-list" class="esc-list"></div>
+      <p class="hint">Para trocar a data de entrega de uma escala, abra-a pelo seletor e altere o campo <b>Entrega</b> no topo. Excluir uma escala apaga todas as cargas dela e é irreversível (só administrador; escalas com carga fechada não podem ser excluídas).</p>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" type="button" id="esc-cancel">Fechar</button>
+      <button class="btn primary" type="button" id="esc-create">➕ Criar 2ª escala</button>
+    </div>
+  </div>
+</div>
+<div id="frota-rota-mask" class="no-print" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="fr-title">
+    <div class="fech-head"><h3 id="fr-title">🚛 Rota de Frotas sem cadastro</h3><button class="x" type="button" id="fr-x" title="Fechar (pergunto de novo pelo aviso em FROTAS)">✕</button></div>
+    <p class="hint" id="fr-sub"></p>
+    <p class="modal-text" style="margin:6px 0">Essa rota vai para a <b>Capital</b> ou para o <b>Interior</b>? A resposta define o <b>Custo estimado da rota</b>: Capital = valor fixo da tabela · Interior = diárias + km + pernoite.</p>
+    <div class="fr-choice">
+      <label><input type="radio" name="fr-tipo" value="capital"> Capital</label>
+      <label><input type="radio" name="fr-tipo" value="interior"> Interior</label>
+    </div>
+    <div class="edc-grid"><label>Palavra-chave do destino<input id="fr-kw" maxlength="40" autocomplete="off" placeholder="ex.: TRINDADE"></label></div>
+    <label class="chk" style="font-size:12.5px"><input type="checkbox" id="fr-remember" checked> lembrar esta palavra-chave nas próximas vezes (vale também p/ classificar Capital/Interior na importação)</label>
+    <div class="modal-actions">
+      <button class="btn" type="button" id="fr-skip">Pular esta</button>
+      <button class="btn primary" type="button" id="fr-ok">✓ Aplicar</button>
     </div>
   </div>
 </div>
@@ -2307,6 +2365,15 @@ const GERENCIAL_PAGE = APP_PARAMS.get('painel') === 'gerencial';
 const GERENCIAL_INITIAL_DATE = /^\d{4}-\d{2}-\d{2}$/.test(APP_PARAMS.get('data') || '') ? APP_PARAMS.get('data') : '';
 let currentMapDate = '';
 let dtEntrega = '';
+/* Dia com 2 escalas (ex.: sexta-feira → uma p/ sábado e outra p/ segunda/terça). Tudo fica no MESMO registro `map:AAAA-MM-DD`:
+   cada linha leva esc (1|2) e dtEnt (entrega da sua escala); a 2ª escala guarda entrega/POOL em rec.esc2. DATA/POOL/dtEntrega
+   mostram só a escala ABERTA; a outra fica em ESC_HIDDEN* e é regravada junto, sem perder nada. */
+let ESC_HAS2 = false;
+let ESC_ACTIVE = 1;
+let ESC_OTHER_DT = '';
+let ESC_HIDDEN = {frotas:[], capital:[], interior:[]};
+let ESC_HIDDEN_POOL = [];
+let ESC_INDEX = null;   // data de faturamento -> entrega da 2ª escala (só p/ rotular o Histórico salvo)
 let dirty = false;
 let saveTimer = null;
 
@@ -2552,6 +2619,20 @@ function selecionarFrota(peso){
   return null; // acima de 17.000 kg -> N/A (peso acima do suportado)
 }
 function isNegSim(row){ return String(row.neg||'').trim().toLowerCase() === 'sim'; }
+/* FROTAS: o custo estimado depende de a rota ir p/ CAPITAL (valor fixo da tabela) ou p/ INTERIOR (diárias + km + pernoite).
+   Ordem: escolha explícita da linha (row.frotaTipo) → palavra-chave do destino (Interior vence se houver as duas) → '' = rota não cadastrada. */
+function frotaTipoAuto(row){
+  const d = row && row.destino;
+  if(!d) return '';
+  if(matchKeyword(d, INTERIOR_KEYWORDS)) return 'interior';
+  if(matchKeyword(d, CAPITAL_KEYWORDS)) return 'capital';
+  return '';
+}
+function frotaTipoOf(row){
+  const t = String((row && row.frotaTipo) || '').toLowerCase();
+  if(t === 'capital' || t === 'interior') return t;
+  return frotaTipoAuto(row);
+}
 /* Previsão 100% pela tabela de preços (sem nenhuma negociação) — base do comparativo e da auditoria.
    Capital = valor fixo (diária) · Interior/Frotas = (dias × diária) + (km × vlr/km) + ((dias−1) × pernoite) × 1.1
    Atenção: valor BRUTO da tabela — a margem % configurada (MARGEM_FRETE) é aplicada só por calcularFrete()
@@ -2562,14 +2643,15 @@ function tableForecast(section, row){
   // Sem peso não há previsão de rota; valores negociados continuam prioritários.
   if(numVal(row.peso) <= 0) return {frota, total:0};
   const tabelaTipo = normalizarTipo(row.tabela);
-  const grupo = section === 'capital' ? 'capital' : 'interior';
+  // Frotas: Capital ou Interior conforme a rota; rota ainda não definida mantém o cálculo antigo (Interior) e a linha fica sinalizada
+  const grupo = section === 'capital' ? 'capital' : (section === 'frotas' ? (frotaTipoOf(row) || 'interior') : 'interior');
   const preco = (PRICE_TABLE[tabelaTipo] && PRICE_TABLE[tabelaTipo][grupo] && PRICE_TABLE[tabelaTipo][grupo][frota]) || null;
-  if(!preco) return {frota, total:0};
-  if(grupo === 'capital') return {frota, total: preco.diaria};
+  if(!preco) return {frota, total:0, grupo};
+  if(grupo === 'capital') return {frota, total: preco.diaria, grupo};
   const dias = Math.max(1, Number(row.dias) || 1);
   const km = Number(row.km) || 0;
   const total = dias*preco.diaria + preco.km*km + (dias-1)*preco.pernoite;   // BRUTO: a margem % é aplicada só por calcularFrete()
-  return {frota, total};
+  return {frota, total, grupo};
 }
 /* Previsão COM negociação: Valor Frete manual > Neg?=Sim (VlrKg×Peso) > tabela (+10% margem no valor previsto).
    Cargas negociadas (Valor Frete manual ou Neg? = Sim) NÃO recebem a margem. */
@@ -2596,13 +2678,16 @@ function calcularFrete(section, row){
   const tabelaTipo = normalizarTipo(row.tabela);
   const total = tf.total * margemMult();
   const badge = margemBadge();
-  const base = section === 'capital'
+  const grp = tf.grupo || (section === 'capital' ? 'capital' : 'interior');
+  const base = grp === 'capital'
     ? (tabelaTipo === 'agregado' ? 'TB_NOVA (valor fixo)' : 'DIARIA (valor fixo)')
     : 'Tabela';
   const modo = base + margemTxt();
   // na célula: "Tabela +10%" vira só "+10%"; Capital mantém a base + percentual
-  const modoCell = section === 'capital' ? modo : badge;
-  return {frota, total, modo, modoCell};
+  const modoCell = grp === 'capital' ? modo : badge;
+  const out = {frota, total, modo, modoCell};
+  if(section === 'frotas'){ out.frotaTipo = grp; out.tipoPend = !frotaTipoOf(row); }
+  return out;
 }
 
 /* ================= Linhas: build / registry / merge / enforce ================= */
@@ -2869,6 +2954,18 @@ function tabelaSelHtml(r){
   const t = normalizarTipo(r.tabela);
   return '<select data-field="tabela" title="tipo de tabela"><option value="agregado"'+(t==='agregado'?' selected':'')+'>Agregado</option><option value="freelancer"'+(t==='freelancer'?' selected':'')+'>Freelancer</option></select>';
 }
+/* Frotas: Capital / Interior da rota (só quando a linha tem Nº Carga e o destino não é status EM ROTA/OFICINA…) */
+function frotaPrecisaTipo(r){ return rowTemCarga(r) && !destStatusClass(r.destino); }
+function frotaTipoSelHtml(r){
+  if(!frotaPrecisaTipo(r)) return '';
+  const t = frotaTipoOf(r), pend = !t;
+  return '<select data-field="frotaTipo" class="ft-tipo' + (pend ? ' ft-pend' : '') + '" title="' + (pend
+      ? 'Rota sem cadastro: informe se vai p/ Capital ou Interior (define o cálculo do custo estimado)'
+      : 'Rota ' + (t === 'capital' ? 'da Capital: valor fixo da tabela' : 'do Interior: diárias + km + pernoite') + ' — altere se estiver errado') + '">' +
+    '<option value=""' + (pend ? ' selected' : '') + '>Rota?</option>' +
+    '<option value="capital"' + (t === 'capital' ? ' selected' : '') + '>Capital</option>' +
+    '<option value="interior"' + (t === 'interior' ? ' selected' : '') + '>Interior</option></select>';
+}
 function cellHtml(sec, r, c, x){
   const dc = c.dataCol ? ' data-col="' + c.dataCol + '"' : '';
   switch(c.key){
@@ -2882,7 +2979,9 @@ function cellHtml(sec, r, c, x){
         '</select> ' +
         '<button class="btn mini" data-act="del" title="Remover linha">' + MIC.trash + '</button></td>';
     case 'placa':
-      return '<td class="td-placa"><input type="text" class="mono" data-field="placa" value="'+esc(r.placa)+'" placeholder="placa"></td>';
+      { const cfP = (sec !== 'frotas' && rowTemCarga(r)) ? tipoConflito(r.placa, sec, r.id) : null;
+        return '<td class="td-placa"><input type="text" class="mono' + (cfP ? ' plate-conflict' : '') + '" data-field="placa" value="'+esc(r.placa)+'" placeholder="placa"' +
+          (cfP ? ' title="' + esc(tipoConflitoMsg(cfP, sec)) + '"' : '') + '></td>'; }
     case 'destino': {
       // FROTAS: cor do texto por status do destino (EM ROTA/COLETA/EM VIAGEM = cinza negrito-itálico · OFICINA = vermelho negrito)
       const dcls = (sec === 'frotas') ? destStatusClass(r.destino) : '';
@@ -2949,8 +3048,9 @@ function cellHtml(sec, r, c, x){
       }
       // o select Agregado/Freelancer fica na coluna Neg? (Capital/Interior);
       // Frotas não tem Neg? — mantém o select aqui na célula de custo estimado
-      const selTabela = (sec === 'frotas') ? tabelaSelHtml(r) : '';
-      const diasKm = (sec === 'interior' || sec === 'frotas')
+      const selTabela = (sec === 'frotas') ? tabelaSelHtml(r) + frotaTipoSelHtml(r) : '';
+      const frotaCap = (sec === 'frotas' && frotaTipoOf(r) === 'capital' && frotaPrecisaTipo(r));   // Capital = valor fixo: sem dias/km
+      const diasKm = (sec === 'interior' || (sec === 'frotas' && !frotaCap))
         ? '<input type="text" inputmode="numeric" class="numin" data-field="dias" title="dias" value="'+esc(r.dias===''?1:r.dias)+'">' +
           '<input type="text" inputmode="decimal" class="numin" data-field="km" title="km da rota (Km Rota já vem +12%)" value="'+esc(r.km)+'" placeholder="km">' + ((r.kmPortaria && sec!=='capital') ? kmPortBadge(r) : '')
         : '';
@@ -3087,6 +3187,186 @@ function renderFooter(){
     '<div class="sum-card" data-col="custoMedio">' + MIC.weight + '<div><span class="sum-k">Custo médio Cap.+Int.</span><span class="sum-v">'+(fp>0? 'R$ '+(ft/fp).toLocaleString('pt-BR',{minimumFractionDigits:2, maximumFractionDigits:2})+'/kg' : '—')+'</span></div></div>';
 }
 
+/* ================= 2 escalas (faturamentos) no mesmo dia do histórico ================= */
+const ESC_ORD = {1:'1ª', 2:'2ª'};
+function escLabel(n){ return ESC_ORD[n] + ' escala · Entrega ' + (fmtBR(escDt(n)) || 'sem data'); }
+/* sugestão de entrega p/ a 2ª escala: sábado → segunda; senão o dia seguinte à 1ª */
+function escSugereDt2(dt1){
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(dt1 || '')) return '';
+  const wd = isoToDate(dt1).getDay();
+  return addDaysIso(dt1, wd === 6 ? 2 : 1);
+}
+function escRenderUI(){
+  const wrap = document.getElementById('esc-wrap'), sel = document.getElementById('esc-sel'), btn = document.getElementById('btn-esc');
+  if(wrap && sel){
+    wrap.hidden = !ESC_HAS2;
+    if(ESC_HAS2){
+      sel.innerHTML = [1, 2].map(n=> '<option value="' + n + '"' + (n === ESC_ACTIVE ? ' selected' : '') + '>' + esc(escLabel(n)) + ' (' + escCount(n) + ' carga(s))</option>').join('');
+    }
+  }
+  if(btn) btn.textContent = ESC_HAS2 ? '📅 Escalas' : '➕ 2ª escala';
+  const dtInp = document.getElementById('dtEntrega');
+  if(dtInp){ dtInp.classList.toggle('esc-dt', ESC_HAS2); dtInp.title = ESC_HAS2 ? 'Entrega da ' + ESC_ORD[ESC_ACTIVE] + ' escala deste dia' : ''; }
+}
+async function escSwitch(n){
+  n = Number(n) === 2 ? 2 : 1;
+  if(!ESC_HAS2 || n === ESC_ACTIVE){ escRenderUI(); return; }
+  clearTimeout(saveTimer);
+  const cur = {rows: DATA, pool: POOL, dt: dtEntrega};
+  DATA = ESC_HIDDEN; POOL = ESC_HIDDEN_POOL; dtEntrega = ESC_OTHER_DT;
+  ESC_HIDDEN = cur.rows; ESC_HIDDEN_POOL = cur.pool; ESC_OTHER_DT = cur.dt;
+  ESC_ACTIVE = n;
+  const d = document.getElementById('dtEntrega'); if(d) d.value = dtEntrega;
+  if(!GERENCIAL_PAGE && canEditOperational()){ try{ await saveMapForDate(currentMapDate); }catch(e){ console.error(e); setSaveState('error'); } }
+  renderAll();
+  toast('📅 ' + escLabel(n) + ' aberta', 'ok');
+}
+function escOpenModal(){
+  const mask = document.getElementById('esc-mask'); if(!mask) return;
+  const err = document.getElementById('esc-err'); if(err){ err.hidden = true; err.textContent = ''; }
+  const sub = document.getElementById('esc-sub');
+  if(sub) sub.textContent = 'Faturamento de ' + fmtBR(currentMapDate) + (ESC_HAS2 ? ' · 2 escalas' : ' · ' + escLabel(1));
+  document.getElementById('esc-new').hidden = ESC_HAS2;
+  document.getElementById('esc-manage').hidden = !ESC_HAS2;
+  document.getElementById('esc-create').hidden = ESC_HAS2;
+  if(ESC_HAS2) escRenderManage();
+  else { const i = document.getElementById('esc-dt2'); if(i){ i.value = escSugereDt2(dtEntrega); setTimeout(()=> i.focus(), 0); } }
+  mask.hidden = false;
+}
+function escCloseModal(){ const m = document.getElementById('esc-mask'); if(m) m.hidden = true; }
+function escRenderManage(){
+  const box = document.getElementById('esc-list'); if(!box) return;
+  box.innerHTML = [1, 2].map(n=>
+    '<div class="esc-item' + (n === ESC_ACTIVE ? ' cur' : '') + '"><b>' + ESC_ORD[n] + ' escala</b>' +
+    '<span class="esc-info">Entrega ' + esc(fmtBR(escDt(n)) || 'sem data') + ' · ' + escCount(n) + ' carga(s)' + (n === ESC_ACTIVE ? ' · aberta agora' : '') + '</span>' +
+    (n === ESC_ACTIVE ? '' : '<button class="btn mini" type="button" data-esc-open="' + n + '">Abrir</button>') +
+    '<button class="btn mini danger" type="button" data-esc-del="' + n + '" title="Excluir esta escala e todas as suas cargas">🗑 Excluir</button></div>').join('');
+}
+/* cria a 2ª escala (vazia) e passa a editá-la; a atual vira a 1ª (oculta). Devolve {ok,msg} */
+function escCreate(dt2){
+  if(ESC_HAS2) return {ok:false, msg:'Este dia já tem 2 escalas.'};
+  if(!dtEntrega) return {ok:false, msg:'Defina primeiro a Entrega da escala atual (campo Entrega, no topo) — é ela que distingue as duas escalas.'};
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(String(dt2 || ''))) return {ok:false, msg:'Informe a data de entrega da 2ª escala.'};
+  if(dt2 === dtEntrega) return {ok:false, msg:'A 2ª escala precisa ter uma data de entrega DIFERENTE da 1ª (' + fmtBR(dtEntrega) + ').'};
+  ESC_HIDDEN = DATA; ESC_HIDDEN_POOL = POOL; ESC_OTHER_DT = dtEntrega;
+  DATA = {frotas:[], capital:[], interior:[]}; POOL = []; dtEntrega = dt2;
+  ESC_HAS2 = true; ESC_ACTIVE = 2;
+  return {ok:true};
+}
+async function escCreateAndOpen(){
+  if(!requireOperational()) return;
+  const v = (document.getElementById('esc-dt2') || {}).value;
+  clearTimeout(saveTimer);
+  const before = {d: DATA, p: POOL, t: dtEntrega};
+  const r = escCreate(v);
+  const err = document.getElementById('esc-err');
+  if(!r.ok){ if(err){ err.textContent = r.msg; err.hidden = false; } return; }
+  try{ await saveMapForDate(currentMapDate); }
+  catch(e){
+    // não gravou: desfaz em memória p/ não ficar um estado que só existe na tela
+    ESC_HAS2 = false; ESC_ACTIVE = 1; DATA = before.d; POOL = before.p; dtEntrega = before.t;
+    ESC_HIDDEN = {frotas:[], capital:[], interior:[]}; ESC_HIDDEN_POOL = []; ESC_OTHER_DT = '';
+    console.error(e); setSaveState('error');
+    if(err){ err.textContent = 'Não foi possível gravar a 2ª escala. Nada foi alterado — tente de novo.'; err.hidden = false; }
+    return;
+  }
+  audit('escala-2-criada', fmtBR(currentMapDate) + ' · entregas ' + fmtBR(ESC_OTHER_DT) + ' e ' + fmtBR(dtEntrega));
+  const d = document.getElementById('dtEntrega'); if(d) d.value = dtEntrega;
+  escCloseModal();
+  renderAll();
+  toast('📅 2ª escala criada — faturamento ' + fmtBR(currentMapDate) + ' · entrega ' + fmtBR(dtEntrega) + ' (a 1ª escala está salva no seletor "Escala do dia")', 'ok');
+}
+async function escDelete(n){
+  if(!ESC_HAS2 || !requireDayDeletion()) return;
+  const rows = (n === ESC_ACTIVE) ? DATA : ESC_HIDDEN;
+  const fechadas = SECTIONS.reduce((a, sec)=> a + (rows[sec] || []).filter(r=> r.stFech === 'fechado').length, 0);
+  if(fechadas){ toast('🔒 A ' + ESC_ORD[n] + ' escala tem ' + fechadas + ' carga(s) FECHADA(S) — reabra o fechamento antes de excluir', 'err'); return; }
+  const r = await confirmModal({
+    title: '🗑 Excluir ' + ESC_ORD[n] + ' escala',
+    text: 'Excluir a <b>' + ESC_ORD[n] + ' escala</b> (entrega <b>' + esc(fmtBR(escDt(n)) || 'sem data') + '</b>) com <b>' + escCount(n) + ' carga(s)</b>?<br><br>A outra escala continua e passa a ser a única do dia. Ação <b>irreversível</b> e exige a senha de administrador.',
+    needPass: true, okLabel: 'Excluir escala'
+  });
+  if(!r || !r.ok) return;
+  const dtApagada = escDt(n);
+  if(n === ESC_ACTIVE){ DATA = ESC_HIDDEN; POOL = ESC_HIDDEN_POOL; dtEntrega = ESC_OTHER_DT; }
+  ESC_HIDDEN = {frotas:[], capital:[], interior:[]}; ESC_HIDDEN_POOL = []; ESC_OTHER_DT = '';
+  ESC_HAS2 = false; ESC_ACTIVE = 1;
+  clearTimeout(saveTimer);
+  try{ await saveMapForDate(currentMapDate); }catch(e){ console.error(e); setSaveState('error'); }
+  audit('escala-excluida', fmtBR(currentMapDate) + ' · ' + ESC_ORD[n] + ' escala (entrega ' + fmtBR(dtApagada) + ')');
+  const d = document.getElementById('dtEntrega'); if(d) d.value = dtEntrega;
+  escCloseModal();
+  renderAll();
+  renderHistory(await refreshDatesIndex());
+  toast('🗑 Escala excluída — o dia ' + fmtBR(currentMapDate) + ' voltou a ter 1 escala', 'ok');
+}
+
+/* ================= Frotas: perguntar Capital × Interior quando a rota não está cadastrada ================= */
+const FROTA_ASK = {skip: new Set(), timer: null};
+function frotaPendentes(){
+  return DATA.frotas.filter(r=> frotaPrecisaTipo(r) && r.stFech !== 'fechado' && !frotaTipoOf(r));
+}
+function frotaKwSugestao(r){
+  return String(r.destino || '').split(/\s*[+\/,;]\s*/)[0].trim().slice(0, 40);
+}
+function frotaAskNext(){
+  const mask = document.getElementById('frota-rota-mask');
+  if(!mask || !canEditOperational()) return;
+  const list = frotaPendentes().filter(r=> !FROTA_ASK.skip.has(r.id));
+  if(!list.length){ mask.hidden = true; FROTA_ASK.cur = null; return; }
+  const r = list[0];
+  FROTA_ASK.cur = r.id;
+  const sub = document.getElementById('fr-sub');
+  if(sub) sub.textContent = (r.placa || '—') + ' · Nº Carga ' + (String(r.carga).trim() || '—') + ' · Destino: ' + (r.destino || '—') + (list.length > 1 ? '  (' + list.length + ' rotas aguardando)' : '');
+  mask.querySelectorAll('input[name="fr-tipo"]').forEach(i=> { i.checked = false; });
+  const kw = document.getElementById('fr-kw'); if(kw) kw.value = frotaKwSugestao(r);
+  const rem = document.getElementById('fr-remember'); if(rem) rem.checked = !!(kw && kw.value);
+  mask.hidden = false;
+}
+function frotaAskSoon(){
+  clearTimeout(FROTA_ASK.timer);
+  FROTA_ASK.timer = setTimeout(()=>{
+    const m = document.getElementById('frota-rota-mask');
+    if(m && m.hidden) frotaAskNext();
+  }, 250);
+}
+function frotaAskApply(){
+  const r = DATA.frotas.find(x=> x.id === FROTA_ASK.cur);
+  const pick = document.querySelector('#frota-rota-mask input[name="fr-tipo"]:checked');
+  if(!r){ frotaAskNext(); return; }
+  if(!pick){ toast('Escolha Capital ou Interior', 'err'); return; }
+  const tipo = pick.value === 'capital' ? 'capital' : 'interior';
+  r.frotaTipo = tipo;
+  const kw = ((document.getElementById('fr-kw') || {}).value || '').trim();
+  const rem = document.getElementById('fr-remember');
+  if(rem && rem.checked && kw){
+    const lista = tipo === 'capital' ? CAPITAL_KEYWORDS : INTERIOR_KEYWORDS;
+    if(!matchKeyword(kw, lista)){
+      if(tipo === 'capital') CAPITAL_KEYWORDS = dedupeKw([...CAPITAL_KEYWORDS, kw]);
+      else INTERIOR_KEYWORDS = dedupeKw([...INTERIOR_KEYWORDS, kw]);
+      saveSettings();
+      toast('🔖 Palavra-chave "' + kw + '" salva como ' + TIPO_NOME[tipo], 'ok');
+    }
+  }
+  audit('frota-rota-tipo', (r.placa || '—') + ' · ' + (r.destino || '—') + ' → ' + TIPO_NOME[tipo]);
+  renderAll();
+  frotaAskNext();
+}
+function frotaAskSkip(){
+  if(FROTA_ASK.cur) FROTA_ASK.skip.add(FROTA_ASK.cur);
+  frotaAskNext();
+}
+function frotaAskClose(){
+  if(FROTA_ASK.cur) FROTA_ASK.skip.add(FROTA_ASK.cur);
+  const m = document.getElementById('frota-rota-mask'); if(m) m.hidden = true;
+}
+function renderFrotaPendBanner(){
+  const b = document.getElementById('btn-frota-rota'); if(!b) return;
+  const n = canEditOperational() ? frotaPendentes().length : 0;
+  b.hidden = !n;
+  const sp = document.getElementById('frota-rota-n'); if(sp) sp.textContent = String(n);
+}
+
 /* ================= Pré-escala CAPITAL (status visual) — vale também p/ INTERIOR =================
    Veículos cadastrados com tipo 'capital' ou 'interior' (Configurações → Pré-escala). É só um STATUS VISUAL
    derivado do cadastro + mapa do dia: NÃO cria linha nem carga e não entra em nenhum total/relatório. */
@@ -3111,6 +3391,43 @@ function plateOrdersToday(k, exceptId){
     if(plateSegs(r.placa).includes(k)) out.push({sec, carga: String(r.carga).trim()});
   }
   return out;
+}
+/* REGRA: veículo ESCALADO (com Nº Carga) na CAPITAL não pode ser escalado no INTERIOR, e vice-versa.
+   Devolve {k, sec, carga} da linha que já escala a placa na OUTRA seção, ou null. Frotas fica de fora. */
+const TIPO_NOME = {capital:'CAPITAL', interior:'INTERIOR', frotas:'FROTAS'};
+function tipoConflito(placaStr, sec, exceptId){
+  if(sec !== 'capital' && sec !== 'interior') return null;
+  const other = sec === 'capital' ? 'interior' : 'capital';
+  const segs = plateSegs(placaStr);
+  if(!segs.length) return null;
+  for(const r of (DATA[other] || [])){
+    if(r.id === exceptId || !rowTemCarga(r)) continue;
+    const rs = plateSegs(r.placa);
+    for(const k of segs) if(rs.includes(k)) return {k, sec: other, carga: String(r.carga).trim()};
+  }
+  return null;
+}
+function tipoConflitoMsg(cf, sec){
+  return '⛔ ' + cf.k + ' já está ESCALADA na ' + TIPO_NOME[cf.sec] + ' (ordem ' + cf.carga + ') — não pode ser escalada também no ' + TIPO_NOME[sec];
+}
+/* conflitos já existentes no mapa (importação/dados antigos): [{k, a:{sec,carga}, b:{sec,carga}}] */
+function tipoConflitosAll(){
+  const out = [];
+  for(const r of (DATA.capital || [])){
+    if(!rowTemCarga(r)) continue;
+    const cf = tipoConflito(r.placa, 'capital', r.id);
+    if(cf) out.push({k: cf.k, a: {sec:'capital', carga: String(r.carga).trim()}, b: {sec: cf.sec, carga: cf.carga}});
+  }
+  return out;
+}
+let TIPO_CONF_SIG = '';
+function avisarTipoConflitos(){
+  const list = tipoConflitosAll();
+  const sig = list.map(c=> c.k + c.a.carga + c.b.carga).join('|');
+  if(sig === TIPO_CONF_SIG) return;
+  TIPO_CONF_SIG = sig;
+  if(!list.length) return;
+  toast('⚠ ' + list.map(c=> c.k + ' (Capital ' + c.a.carga + ' × Interior ' + c.b.carga + ')').join(' · ') + ' — o veículo não pode estar escalado na Capital e no Interior; corrija uma das ordens (linha marcada em vermelho)', 'warn');
 }
 /* status visual do veículo. inMap = já tem linha na tabela da seção `sec` (com ou sem Nº Carga) */
 function preEscalaStatus(k, sec){
@@ -3172,6 +3489,8 @@ function peClickChip(tipo, k){
   if(!canEditOperational()) return;
   const s = preEscalaStatus(k, tipo);
   if(s.st === 'indisp'){ toast('⛔ ' + k + ' está INDISPONÍVEL', 'err'); return; }
+  const cruz = s.orders.find(o=> o.sec !== tipo && o.sec !== 'frotas');
+  if(cruz){ toast('⛔ ' + k + ' já está ESCALADA na ' + TIPO_NOME[cruz.sec] + ' (ordem ' + cruz.carga + ') — não pode ser escalada no ' + TIPO_NOME[tipo], 'err'); return; }
   if(s.st === 'escalado' || s.inMap){ toast('ℹ ' + k + ' já está no mapa' + (s.orders.length ? ' (ordem ' + s.orders.map(o=> o.carga).join(', ') + ')' : ''), 'ok'); return; }
   if(PE_SEL[tipo].has(k)) PE_SEL[tipo].delete(k); else PE_SEL[tipo].add(k);
   peSelUpdate(tipo);
@@ -3260,13 +3579,14 @@ function lupaFilter(list, q){
 /* avisos da placa escolhida p/ esta linha (puro: não mexe em DOM) */
 function lupaWarnings(row, placa, sec){
   const k = plateSegs(placa)[0] || '';
-  const out = {k, fixed:false, merge:'', other:[], indisp:false};
+  const out = {k, fixed:false, merge:'', other:[], indisp:false, cross:null};
   if(!k) return out;
   out.fixed = fixedSet().has(k);
   out.indisp = AVAILABILITY[k] === false;
   for(const s2 of SECTIONS) for(const r of DATA[s2]){
     if(r.id === row.id || !plateSegs(r.placa).includes(k)) continue;
     const ord = rowTemCarga(r) ? String(r.carga).trim() : '(sem nº)';
+    if(!out.cross && rowTemCarga(r) && s2 !== sec && s2 !== 'frotas' && sec !== 'frotas') out.cross = {sec: s2, carga: ord};   // Capital × Interior
     if(s2 === sec && normPlaca(r.placa) === normPlaca(placa)) out.merge = ord;   // mesma regra do autoMergeByPlate
     else out.other.push(ord + ' (' + (s2 === 'frotas' ? 'Frotas' : s2 === 'capital' ? 'Capital' : 'Interior') + ')');
   }
@@ -3294,6 +3614,7 @@ function lupaShowWarn(){
   const f = lupaReadFields();
   const w = lupaWarnings(row, f.placa, LUPA.sec);
   const msgs = [];
+  if(w.cross) msgs.push('⛔ <b>' + esc(w.k) + '</b> já está <b>ESCALADA na ' + TIPO_NOME[w.cross.sec] + '</b> (ordem ' + esc(w.cross.carga) + ') — não pode ser escalada também no ' + TIPO_NOME[LUPA.sec] + '. Escolha outro veículo.');
   if(w.fixed) msgs.push('⚠ <b>' + esc(w.k) + '</b> é veículo fixo de FROTAS — a linha será movida para FROTAS.');
   if(w.merge) msgs.push('⚠ <b>' + esc(w.k) + '</b> já está na ordem <b>' + esc(w.merge) + '</b> desta seção — ao aplicar, as duas cargas serão <b>mescladas</b> no mesmo veículo (regra do mapa).');
   if(w.other.length) msgs.push('ℹ <b>' + esc(w.k) + '</b> também está escalada em: ' + esc(w.other.join(', ')) + '.');
@@ -3357,6 +3678,7 @@ function lupaApply(){
   const f = lupaReadFields();
   if(!plateSegs(f.placa).length){ toast('Informe a placa do veículo escalado', 'err'); return; }
   const w = lupaWarnings(row, f.placa, LUPA.sec);
+  if(w.cross){ toast(tipoConflitoMsg({k: w.k, sec: w.cross.sec, carga: w.cross.carga}, LUPA.sec), 'err'); audit('escala-bloqueada', w.k + ' escalada na ' + TIPO_NOME[w.cross.sec] + ' · tentativa no ' + TIPO_NOME[LUPA.sec], false); return; }
   if(w.merge && !confirm('A placa ' + w.k + ' já está na ordem ' + w.merge + ' desta seção. Ao aplicar, as duas cargas serão mescladas no mesmo veículo (regra do mapa). Continuar?')) return;
   if(w.fixed && !confirm('A placa ' + w.k + ' é veículo fixo de FROTAS — a linha será movida para FROTAS. Continuar?')) return;
   const sec = LUPA.sec;
@@ -3594,6 +3916,9 @@ function renderAll(opts){
   renderSection('interior');
   renderFooter();
   renderChips();
+  avisarTipoConflitos();
+  renderFrotaPendBanner();
+  escRenderUI();
   applyHiddenCols();
   autosizeAllTables();
   updateDocHeader();
@@ -3610,13 +3935,87 @@ function setSaveState(s){
   else if(s === 'synced'){ el.textContent = 'Sincronizado ' + new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',second:'2-digit'}); el.className = 'save-state ok'; }
   else if(s === 'error'){ el.textContent = 'Erro ao salvar'; el.className = 'save-state err'; }
 }
-function snapshotMap(){
-  const clean = s => DATA[s].map(r=>{ const c = Object.assign({}, r); delete c._sel; return c; });
-  return {
-    data: {frotas:clean('frotas'), capital:clean('capital'), interior:clean('interior')},
-    pool: POOL.map(p=> Object.assign({}, p)),
-    dtEntrega, savedAt: new Date().toISOString()
+/* separa o registro salvo do dia em escalas (puro). wanted = escala a abrir (1|2). Linhas sem `esc` são da 1ª escala. */
+function escSplitRec(rec, wanted){
+  const has2 = !!(rec && rec.esc2 && typeof rec.esc2 === 'object');
+  const want = (has2 && Number(wanted) === 2) ? 2 : 1;
+  const out = {has2, active: want, rows:{frotas:[], capital:[], interior:[]}, hidden:{frotas:[], capital:[], interior:[]},
+               pool: [], hiddenPool: [], dt: '', otherDt: ''};
+  const src = (rec && rec.data) || {};
+  for(const sec of ['frotas','capital','interior']){
+    for(const r of (src[sec] || [])){
+      const n = (has2 && Number(r && r.esc) === 2) ? 2 : 1;
+      (n === want ? out.rows : out.hidden)[sec].push(r);
+    }
+  }
+  const p1 = (rec && Array.isArray(rec.pool)) ? rec.pool : [];
+  const p2 = (has2 && Array.isArray(rec.esc2.pool)) ? rec.esc2.pool : [];
+  const d1 = (rec && rec.dtEntrega) || '';
+  const d2 = has2 ? (rec.esc2.dtEntrega || '') : '';
+  out.pool = want === 1 ? p1 : p2;       out.hiddenPool = want === 1 ? p2 : p1;
+  out.dt   = want === 1 ? d1 : d2;       out.otherDt    = want === 1 ? d2 : d1;
+  return out;
+}
+/* junta a escala aberta + a oculta no formato salvo (puro): marca esc/dtEnt só quando o dia tem 2 escalas */
+function escBuildData(has2, active, rows, hidden, dt, otherDt){
+  const other = active === 1 ? 2 : 1;
+  const dtOf = n => (n === active ? dt : otherDt) || '';
+  const clean = (r, n)=>{
+    const c = Object.assign({}, r); delete c._sel;
+    if(has2){ c.esc = n; c.dtEnt = dtOf(n); } else { delete c.esc; delete c.dtEnt; }
+    return c;
   };
+  const out = {frotas:[], capital:[], interior:[]};
+  for(const sec of ['frotas','capital','interior']){
+    const a = (rows[sec] || []).map(r=> clean(r, active));
+    const b = has2 ? (hidden[sec] || []).map(r=> clean(r, other)) : [];
+    out[sec] = active === 1 ? a.concat(b) : b.concat(a);
+  }
+  return out;
+}
+function snapshotMap(){
+  const has2 = ESC_HAS2;
+  const dt1 = ESC_ACTIVE === 1 ? dtEntrega : ESC_OTHER_DT;
+  const dt2 = ESC_ACTIVE === 2 ? dtEntrega : ESC_OTHER_DT;
+  const pl = list => (list || []).map(p=> Object.assign({}, p));
+  const rec = {
+    data: escBuildData(has2, ESC_ACTIVE, DATA, ESC_HIDDEN, dtEntrega, ESC_OTHER_DT),
+    pool: pl(ESC_ACTIVE === 1 ? POOL : ESC_HIDDEN_POOL),
+    dtEntrega: has2 ? dt1 : dtEntrega,
+    savedAt: new Date().toISOString()
+  };
+  if(has2) rec.esc2 = {dtEntrega: dt2 || '', pool: pl(ESC_ACTIVE === 2 ? POOL : ESC_HIDDEN_POOL)};
+  return rec;
+}
+/* todas as linhas do dia ABERTO (escala exibida + a oculta), mesmos objetos: relatórios/painéis não podem perder a outra escala */
+function liveDayRows(){
+  if(!ESC_HAS2) return DATA;
+  const out = {};
+  for(const sec of ['frotas','capital','interior']){
+    for(const r of DATA[sec]) r.dtEnt = dtEntrega || '';
+    out[sec] = ESC_ACTIVE === 1 ? DATA[sec].concat(ESC_HIDDEN[sec]) : ESC_HIDDEN[sec].concat(DATA[sec]);
+  }
+  return out;
+}
+/* entrega efetiva da linha: a da sua escala; sem ela, a do dia */
+function rowEntrega(row, recDt){ return (row && row.dtEnt) || recDt || ''; }
+function escCount(n){
+  const rows = (n === ESC_ACTIVE) ? DATA : ESC_HIDDEN;
+  let c = 0;
+  for(const sec of ['frotas','capital','interior']) c += (rows[sec] || []).filter(rowTemCarga).length;
+  return c;
+}
+function escDt(n){ return n === ESC_ACTIVE ? dtEntrega : ESC_OTHER_DT; }
+function escNormRows(data){
+  for(const sec of SECTIONS) data[sec] = data[sec].map(r=>{ const o = Object.assign({dias:1, tabela:'agregado', ajudante2:'', _sel:false}, r); if(o.motorista) o.motorista = clampMotorista(o.motorista); applyFrotaTripulacao(o); return o; });
+}
+function escApplySplit(sp){
+  DATA = {frotas: sp.rows.frotas, capital: sp.rows.capital, interior: sp.rows.interior};
+  POOL = sp.pool; dtEntrega = sp.dt;
+  ESC_HAS2 = sp.has2; ESC_ACTIVE = sp.active;
+  ESC_HIDDEN = {frotas: sp.hidden.frotas, capital: sp.hidden.capital, interior: sp.hidden.interior};
+  ESC_HIDDEN_POOL = sp.hiddenPool; ESC_OTHER_DT = sp.otherDt;
+  escNormRows(DATA); escNormRows(ESC_HIDDEN);
 }
 function scheduleSave(){
   // O Painel Gerencial é uma guia de consulta: nunca agenda gravação da página de relatório.
@@ -3634,11 +4033,13 @@ async function saveMapForDate(dateStr){
   if(!dateStr) return;
   await Stor.set('map:' + dateStr, snapshotMap());
   dirty = false;
+  await escIndexSync(dateStr);
   const dates = await refreshDatesIndex();
   renderHistory(dates);
   setSaveState('synced');
 }
 async function refreshDatesIndex(){
+  if(ESC_INDEX === null){ try{ const v = await Stor.get('map-esc-index'); ESC_INDEX = (v && typeof v === 'object' && !Array.isArray(v)) ? v : {}; }catch(e){ ESC_INDEX = {}; } }
   const keys = await Stor.list();
   const dates = keys.filter(k=>k.startsWith('map:')).map(k=>k.slice(4)).filter(d=>/^\d{4}-\d{2}-\d{2}$/.test(d));
   const saved = await Stor.get('map-dates-index');
@@ -3647,28 +4048,28 @@ async function refreshDatesIndex(){
   await Stor.set('map-dates-index', arr);
   return arr;
 }
+/* índice só p/ rotular "2 escalas" no Histórico salvo (os dados ficam no próprio registro do dia) */
+async function escIndexSync(dateStr){
+  try{
+    if(ESC_INDEX === null){ const v = await Stor.get('map-esc-index'); ESC_INDEX = (v && typeof v === 'object' && !Array.isArray(v)) ? v : {}; }
+    const dt2 = ESC_HAS2 ? (ESC_ACTIVE === 2 ? dtEntrega : ESC_OTHER_DT) : null;
+    const cur = ESC_INDEX[dateStr];
+    if(ESC_HAS2){
+      const dt1 = ESC_ACTIVE === 1 ? dtEntrega : ESC_OTHER_DT;
+      const val = [dt1 || '', dt2 || ''];
+      if(!cur || cur[0] !== val[0] || cur[1] !== val[1]){ ESC_INDEX[dateStr] = val; await Stor.set('map-esc-index', ESC_INDEX); }
+    } else if(cur){ delete ESC_INDEX[dateStr]; await Stor.set('map-esc-index', ESC_INDEX); }
+  }catch(e){ console.error(e); }
+}
 function renderHistory(dates){
   const sel = $('#hist');
   const cur = sel.value;
-  sel.innerHTML = '<option value="">—</option>' + (dates||[]).map(d=>'<option value="'+d+'">'+fmtBR(d)+'</option>').join('');
+  sel.innerHTML = '<option value="">—</option>' + (dates||[]).map(d=>'<option value="'+d+'">'+fmtBR(d)+(ESC_INDEX && ESC_INDEX[d] ? ' · 2 escalas' : '')+'</option>').join('');
   if(cur) sel.value = cur;
 }
-async function loadMapForDate(dateStr){
+async function loadMapForDate(dateStr, wantedEsc){
   const rec = await Stor.get('map:' + dateStr);
-  if(rec && rec.data){
-    DATA = {
-      frotas:  rec.data.frotas  || [],
-      capital: rec.data.capital || [],
-      interior:rec.data.interior|| []
-    };
-    POOL = rec.pool || [];
-    dtEntrega = rec.dtEntrega || '';
-  } else {
-    DATA = {frotas:[], capital:[], interior:[]};
-    POOL = [];
-    dtEntrega = '';
-  }
-  for(const sec of SECTIONS) DATA[sec] = DATA[sec].map(r=>{ const o = Object.assign({dias:1, tabela:'agregado', ajudante2:'', _sel:false}, r); if(o.motorista) o.motorista = clampMotorista(o.motorista); applyFrotaTripulacao(o); return o; });
+  escApplySplit(escSplitRec(rec && rec.data ? rec : null, wantedEsc || 1));
   const f = $('#faturamento'); if(f) f.value = dateStr;
   const d = $('#dtEntrega'); if(d) d.value = dtEntrega;
 }
@@ -3834,6 +4235,7 @@ async function importPlanilha(file){
     toast('📥 Importação: ' + direct + ' carga(s) escalada(s) direto · ' + pool + ' no POOL aguardando classificação' +
       (skipped? ' · ' + skipped + ' linha(s) sem placa ignorada(s)' : ''), 'ok');
     if(dashVisible) loadDashboard();
+    frotaAskSoon();
   }catch(err){
     console.error(err);
     toast('❌ Falha ao importar: ' + err.message, 'err');
@@ -3922,15 +4324,8 @@ async function restoreBackup(file){
   saveSettings();
   fillSettingsUI();
   if(obj.map && obj.map.data && obj.mapDate && /^\d{4}-\d{2}-\d{2}$/.test(String(obj.mapDate))){ // AUDITORIA: data ISO válida
-    currentMapDate = String(obj.mapDate);
-      DATA = {
-        frotas:  obj.map.data.frotas  || [],
-        capital: obj.map.data.capital || [],
-        interior:obj.map.data.interior|| []
-      };
-      POOL = obj.map.pool || [];
-      dtEntrega = obj.map.dtEntrega || '';
-      for(const sec of SECTIONS) DATA[sec] = DATA[sec].map(r=>{ const o = Object.assign({dias:1, tabela:'agregado', ajudante2:'', _sel:false}, r); if(o.motorista) o.motorista = clampMotorista(o.motorista); applyFrotaTripulacao(o); return o; });
+currentMapDate = String(obj.mapDate);
+      escApplySplit(escSplitRec(obj.map, 1));   // backup com 2 escalas volta com as 2 (abre a 1ª)
       await saveMapForDate(currentMapDate);
     }
     $('#faturamento').value = currentMapDate;
@@ -4143,7 +4538,7 @@ async function planAgg(start, end){
   days.sort();
   const agg = {cap:{v:0,e:0,p:0}, int:{v:0,e:0,p:0}, tot:{cargas:0,ent:0,peso:0}, frotas:0, days:0, entMin:'', entMax:''};
   for(const d of days){
-    const rec = (d === currentMapDate) ? {data: DATA} : relNormalizeRec(await Stor.get('map:' + d));
+    const rec = (d === currentMapDate) ? {data: liveDayRows()} : relNormalizeRec(await Stor.get('map:' + d));
     if(!rec || !rec.data) continue;
     agg.days++;
     for(const sec of ['capital','interior']){
@@ -4153,8 +4548,9 @@ async function planAgg(start, end){
       a.p += rows.reduce((x,r)=> x + numVal(r.peso), 0);
     }
     agg.frotas += (rec.data.frotas || []).filter(rowTemCarga).length;
-    const entD = (d === currentMapDate) ? (dtEntrega || '') : (rec.dtEntrega || '');
-    if(entD){ if(!agg.entMin || entD < agg.entMin) agg.entMin = entD; if(!agg.entMax || entD > agg.entMax) agg.entMax = entD; }
+    const entDs = new Set([(d === currentMapDate) ? (dtEntrega || '') : (rec.dtEntrega || '')]);
+    if(d === currentMapDate ? ESC_HAS2 : !!rec.esc2){ for(const sec of SECTIONS) for(const r of (rec.data[sec] || [])) if(r && r.dtEnt) entDs.add(r.dtEnt); }
+    for(const entD of entDs){ if(entD){ if(!agg.entMin || entD < agg.entMin) agg.entMin = entD; if(!agg.entMax || entD > agg.entMax) agg.entMax = entD; } }
     const m = metricsFromData(rec.data);
     agg.tot.cargas += m.cargas; agg.tot.ent += m.ent; agg.tot.peso += m.peso;
   }
@@ -4930,7 +5326,7 @@ async function kpApply(){
     }
     await Stor.set('map:'+d, rec);
   }
-  if(currentMapDate){ await loadMapForDate(currentMapDate); }
+  if(currentMapDate){ await loadMapForDate(currentMapDate, ESC_ACTIVE); }
   renderAll();
   audit('km-portaria', st.fileName + ': ' + n + ' carga(s) selecionada(s) com KM real · ' + nSame + ' com KM já igual · ' + (nFechNow + st.scan.fechSkipped) + ' fechada(s) intocada(s) · ' + st.scan.notFound.length + ' ordem(ns) da planilha não encontrada(s)');
   kpClose();
@@ -5073,7 +5469,7 @@ async function relLoad(start, end){
       return false;
     }
     for(const d of dates){
-      const rec = (d === currentMapDate) ? {data: DATA, dtEntrega: dtEntrega, _live: true}
+      const rec = (d === currentMapDate) ? {data: liveDayRows(), dtEntrega: dtEntrega, _live: true}
                                          : relNormalizeRec(await Stor.get('map:' + d));
       recs[d] = rec || null;
       const data = (rec && rec.data) ? rec.data : null;
@@ -5083,7 +5479,7 @@ async function relLoad(start, end){
           const row = rows[i];
           if(!row || typeof row !== 'object') continue;
           if(!row.id) row.id = uid();   // garante identidade estável da linha
-          const entD = (rec && rec.dtEntrega) || '';
+          const entD = rowEntrega(row, rec && rec.dtEntrega);
           items.push({d:d, sec:sec, idx:i, row:row, key: d + '|' + sec + '|' + row.id,
                       live: !!(rec && rec._live), entrega: entD,
                       calc: relCalc(sec, row, d, entD)});
@@ -6962,10 +7358,10 @@ async function histCollectRows(){
   days.sort();
   for(const d of days){
     let rec = null;
-    try{ rec = (d === currentMapDate) ? {data: DATA, dtEntrega: dtEntrega} : await Stor.get('map:' + d); }catch(e){ continue; }
+    try{ rec = (d === currentMapDate) ? {data: liveDayRows(), dtEntrega: dtEntrega} : await Stor.get('map:' + d); }catch(e){ continue; }
     if(!rec || !rec.data) continue;
-    const entD = (d === currentMapDate ? dtEntrega : rec.dtEntrega) || '';
-    HIST_ENT[d] = entD;
+    const entDia = (d === currentMapDate ? dtEntrega : rec.dtEntrega) || '';
+    HIST_ENT[d] = entDia;
     for(const sec of SECTIONS){
       for(const row of (rec.data[sec] || [])){
         if(!row || !relIsFech(row)) continue;
@@ -6973,6 +7369,7 @@ async function histCollectRows(){
         if(seen.has(key)) continue;
         const fid = row.fechId || '';
         if(fid && fids.has(fid)) continue; // já entrou pelo histórico (sem duplicar)
+        const entD = rowEntrega(row, entDia);
         const fr = calcularFrete(sec, row) || {};
         const tot = numVal(fr.total), psi = numVal(row.peso);
         out.push({fid: fid, fechDt: row.fechDt || '', periodo: fid ? 'Lote/avulso' : '(sem registro)',
@@ -7004,7 +7401,7 @@ async function histReopenBatch(items){
   let nOrf = 0;
   for(const d of Array.from(byD.keys()).sort()){
     const loaded = REL.recs[d] || null;
-    const rec = loaded || ((d === currentMapDate) ? {data: DATA, _live: true} : relNormalizeRec(await Stor.get('map:' + d)));
+    const rec = loaded || ((d === currentMapDate) ? {data: liveDayRows(), _live: true} : relNormalizeRec(await Stor.get('map:' + d)));
     if(!rec || !rec.data) continue;
     for(const it of byD.get(d)){
       const row = (rec.data[it.sec] || []).find(r=> r.id === it.id);
@@ -7307,9 +7704,9 @@ async function rotasAbertasCollectRows(){
   days.sort();
   for(const d of days){
     let rec=null;
-    try{ rec=(d===currentMapDate)?{data:DATA, dtEntrega:dtEntrega}:relNormalizeRec(await Stor.get('map:'+d)); }catch(e){ continue; }
+    try{ rec=(d===currentMapDate)?{data:liveDayRows(), dtEntrega:dtEntrega}:relNormalizeRec(await Stor.get('map:'+d)); }catch(e){ continue; }
     if(!rec||!rec.data) continue;
-    const entD=(d===currentMapDate?dtEntrega:rec.dtEntrega)||'';
+    const entDia=(d===currentMapDate?dtEntrega:rec.dtEntrega)||'';
     for(const sec of SECTIONS){
       for(const row of (rec.data[sec]||[])){
         if(!row||relIsFech(row)) continue;
@@ -7317,7 +7714,7 @@ async function rotasAbertasCollectRows(){
         const fr=calcularFrete(sec,row)||{}; const tot=numVal(fr.total), psi=numVal(row.peso);
         out.push({status:st, d:d, sec:sec, id:row.id||'', ordem:String(row.carga||''), placa:row.placa||'',
           destino:String(row.destino||''), motorista:row.motorista||'', transp:row.transportadora||'',
-          entrega:row.entrega||entD||'', km:(row.km===''||row.km==null)?'':numVal(row.km),
+          entrega:row.entrega||rowEntrega(row,entDia)||'', km:(row.km===''||row.km==null)?'':numVal(row.km),
           peso:psi, total:tot, media:(tot>0&&psi>0)?tot/psi:null});
       }
     }
@@ -7958,7 +8355,7 @@ async function fechReopenSel(id, st, keys){
     // mesma auditoria do reabrir total: usa os objetos de linha já carregados (REL.recs)
     // para não criar cópias — o storage só é lido para dias fora do relatório
     const loaded = REL.recs[d] || null;
-    const rec = loaded || ((d === currentMapDate) ? {data: DATA, _live: true} : relNormalizeRec(await Stor.get('map:' + d)));
+    const rec = loaded || ((d === currentMapDate) ? {data: liveDayRows(), _live: true} : relNormalizeRec(await Stor.get('map:' + d)));
     if(!rec || !rec.data) continue;
     for(const k of keys){
       const p = k.split('|'); if(p[0] !== d) continue;
@@ -8054,7 +8451,7 @@ async function xlsPeriodo(start, end){
   const cargas = [];
   const resumo = [];
   for(const d of dates){
-    const rec = (d === currentMapDate) ? {data: DATA} : await Stor.get('map:' + d);
+    const rec = (d === currentMapDate) ? {data: liveDayRows()} : await Stor.get('map:' + d);
     const data = (rec && rec.data) ? rec.data : null;
     const cap = (data && data.capital) || [];
     const int = (data && data.interior) || [];
@@ -8985,10 +9382,10 @@ function gerencialDiasPeriodo(){
   if(!p) return [];
   const dias = (DASH.raw || [])
     .filter(d=> d && d.date && d.date >= p.start && d.date <= p.end)
-    .map(d=> ({date: d.date, data: (d.date === currentMapDate ? DATA : d.data) || {}}));
+    .map(d=> ({date: d.date, data: (d.date === currentMapDate ? liveDayRows() : d.data) || {}}));
   // dia corrente ainda não salvo no histórico: entra apenas se estiver dentro do período
   if(currentMapDate >= p.start && currentMapDate <= p.end && !dias.some(d=> d.date === currentMapDate)){
-    dias.push({date: currentMapDate, data: DATA});
+    dias.push({date: currentMapDate, data: liveDayRows()});
     dias.sort((a,b)=> a.date.localeCompare(b.date));
   }
   return dias;
@@ -9335,7 +9732,7 @@ async function loadDashboard(){
   const dates = await getSavedDates();
   const raw = [];
   for(const d of dates){
-    if(d === currentMapDate){ raw.push({date:d, data: DATA}); continue; }
+    if(d === currentMapDate){ raw.push({date:d, data: liveDayRows()}); continue; }
     const rec = await Stor.get('map:' + d);
     if(rec && rec.data) raw.push({date:d, data: rec.data});
   }
@@ -9658,7 +10055,7 @@ function renderKpis(m, deltas){
   return hero + detail + meta;
 }
 function renderDashDaily(){
-  const today = DASH.days.find(d=>d.date===currentMapDate) || {date:currentMapDate, m: metricsFromData(dashView(DATA))};
+  const today = DASH.days.find(d=>d.date===currentMapDate) || {date:currentMapDate, m: metricsFromData(dashView(liveDayRows()))};
   const m = today.m;
   const showFrotas = DASH.showFrotas !== false;
   const el = $('#dash-today-date'); if(el) el.textContent = fmtBR(currentMapDate);
@@ -9814,7 +10211,7 @@ let SESSION = null;             // {id, key, name, level, at, access_token, refr
 let AUDIT = [];                 // [{ts, user, action, detail, ok}] — máx. 200
 const loginFails = {};          // usuário (maiúsculo) -> {n, until} — throttle local nesta aba
 /* Botões da topbar -> nível mínimo para exibir (botões de edição = só admin) */
-const TOPBAR_BTN_MIN = {'btn-import':4,'btn-kmport':4,'btn-ftrack':4,'btn-backup':4,'btn-restore':4,'btn-mapa-toggle':2,'btn-shot-sem':2,'btn-shot-com':2,'btn-pdf':2,'btn-etiq':2,'btn-plan':2,'btn-xls-toggle':2,'btn-xls-map':2,'btn-xls-per':4,'btn-ff':4,'btn-reclass':4,'btn-clear':4,'btn-settings':4,'btn-dash':3};
+const TOPBAR_BTN_MIN = {'btn-import':4,'btn-kmport':4,'btn-ftrack':4,'btn-backup-toggle':4,'btn-backup':4,'btn-restore':4,'btn-esc':4,'btn-mapa-toggle':2,'btn-shot-sem':2,'btn-shot-com':2,'btn-etiq':2,'btn-plan':2,'btn-xls-toggle':2,'btn-xls-map':2,'btn-xls-per':4,'btn-ff':4,'btn-reclass':4,'btn-clear':4,'btn-settings':4,'btn-dash':3};
 
 function normUser(s){ return String(s==null?'':s).trim().toUpperCase(); }
 function validUsername(s){
@@ -10036,7 +10433,7 @@ function canViewTopbarButton(id){
   // Apenas Administrador único (nível 4) pode limpar ou restaurar backup (ações destrutivas do dia)
   if(id === 'btn-clear' || id === 'btn-restore') return canDeleteDay();
   // Ferramentas operacionais: Administrador (4) e Roteirização (5)
-  if(['btn-import','btn-kmport','btn-ftrack','btn-backup','btn-xls-per','btn-ff','btn-reclass','btn-settings'].includes(id)){
+  if(['btn-import','btn-kmport','btn-ftrack','btn-backup-toggle','btn-backup','btn-esc','btn-xls-per','btn-ff','btn-reclass','btn-settings'].includes(id)){
     return canEditOperational();
   }
   // Indicadores: nível 3+ (3, 4, 5)
@@ -10318,6 +10715,7 @@ async function deleteHistoryCore(dateStr, pass){
   const rec = await Stor.get('map:' + dateStr);
   if(!rec) return {ok:false, msg:'Nenhum dado salvo para essa data.'};
   await Stor.del('map:' + dateStr);
+  try{ if(ESC_INDEX && ESC_INDEX[dateStr]){ delete ESC_INDEX[dateStr]; await Stor.set('map-esc-index', ESC_INDEX); } }catch(e){}
   // AUDITORIA (bug): o refreshDatesIndex faz merge defensivo com o índice salvo —
   // sem remover a data daqui ela REAPARECIA no histórico após a exclusão
   try{
@@ -10332,7 +10730,7 @@ async function deleteHistoryDay(dateStr){
   if(dateStr === currentMapDate){ toast('Não é possível excluir o dia que está em edição agora', 'err'); return; }
   const r = await confirmModal({
     title: '🗑 Excluir histórico',
-    text: 'Excluir TODOS os dados do mapa de <b>' + esc(fmtBR(dateStr)) + '</b> (cargas, POOL e campos do dia)?<br><br>Esta ação é <b>irreversível</b> e exige a senha de administrador.',
+    text: 'Excluir TODOS os dados do mapa de <b>' + esc(fmtBR(dateStr)) + '</b> (cargas, POOL e campos do dia' + (ESC_INDEX && ESC_INDEX[dateStr] ? ' — <b>incluindo as 2 escalas</b> deste dia' : '') + ')?<br><br>Esta ação é <b>irreversível</b> e exige a senha de administrador.',
     needPass: true, okLabel: 'Excluir dia'
   });
   if(!r || !r.ok) return;
@@ -10514,6 +10912,18 @@ function bindStatic(){
     if(!secEl) return;
     const row = DATA[secEl.dataset.sec].find(r=> r.id === tr.dataset.id);
     if(!row) return;
+    if((field === 'placa' || field === 'carga') && canEditOperational() && row.stFech !== 'fechado' && rowTemCarga(row)){
+      const secF = secEl.dataset.sec;
+      const cfF = tipoConflito(row.placa, secF, row.id);
+      if(cfF){
+        audit('escala-bloqueada', cfF.k + ' escalada na ' + TIPO_NOME[cfF.sec] + ' · tentativa no ' + TIPO_NOME[secF] + ' (ordem ' + row.carga + ')', false);
+        row.placa = '';   // a ordem fica; só o veículo conflitante sai
+        renderAll();
+        toast(tipoConflitoMsg(cfF, secF) + '. A placa foi removida desta ordem — escolha outro veículo (🔍).', 'err');
+        return;
+      }
+    }
+    if(secEl.dataset.sec === 'frotas' && (field === 'destino' || field === 'carga')) frotaAskSoon();
     if(field === 'peso'){ t.value = fmtPeso2(row.peso); }
     else if(field === 'valorKg' || field === 'valorFrete'){ t.value = fmtMoney2(row[field]); }
     else if(['km','dias','entregas','custoKg','pctFrete'].includes(field)){
@@ -10537,12 +10947,20 @@ function bindStatic(){
     if(t.dataset.act === 'move'){
       const target = t.value;
       if(target !== sec){
+        const cfMv = rowTemCarga(row) ? tipoConflito(row.placa, target, row.id) : null;
+        if(cfMv){ toast(tipoConflitoMsg(cfMv, target), 'err'); renderAll(); return; }
         DATA[sec] = DATA[sec].filter(r=> r.id !== row.id);
         DATA[target].push(row);
         renderAll();
       }
       return;
     }
+    if(t.dataset.field === 'frotaTipo' && sec === 'frotas'){
+      row.frotaTipo = (t.value === 'capital' || t.value === 'interior') ? t.value : '';
+      audit('frota-rota-tipo', (row.placa || '—') + ' · ' + (row.destino || '—') + ' → ' + (row.frotaTipo ? TIPO_NOME[row.frotaTipo] : 'sem definição'));
+      renderAll(); return;
+    }
+    if(sec === 'frotas' && (t.dataset.field === 'destino' || t.dataset.field === 'carga')) frotaAskSoon();
     if(t.dataset.field === 'tabela'){ row.tabela = t.value; renderAll(); return; }
     if(t.dataset.field === 'neg'){ row.neg = t.value; row._vfAuto = (t.value !== 'Sim'); renderAll(); return; }
   });
@@ -10606,6 +11024,8 @@ function bindStatic(){
       const kw = (card.querySelector('[data-act="pool-kw"]').value || '').trim();
       const remember = card.querySelector('[data-act="pool-remember"]').checked;
       if(!sec){ toast('Escolha a seção (Frotas/Capital/Interior)', 'err'); return; }
+      const cfPool = POOL[i] ? tipoConflito(POOL[i].placa, sec, POOL[i].id) : null;
+      if(cfPool){ toast(tipoConflitoMsg(cfPool, sec), 'err'); return; }
       const row = POOL.splice(i, 1)[0];
       if(remember && kw && (sec === 'capital' || sec === 'interior')){
         if(sec === 'capital') CAPITAL_KEYWORDS = dedupeKw([...CAPITAL_KEYWORDS, kw]);
@@ -10724,7 +11144,6 @@ function bindStatic(){
   });
   $('#btn-shot-sem').addEventListener('click', ()=> captureMap('sem'));
   $('#btn-shot-com').addEventListener('click', ()=> captureMap('com'));
-  $('#btn-pdf').addEventListener('click', printMap);
   $('#btn-etiq').addEventListener('click', printEtiquetas);
   $('#btn-plan').addEventListener('click', capturePlan);
   ['plan-gran','plan-start','plan-end','plan-year','plan-month','plan-week'].forEach(id=>{
@@ -10733,6 +11152,7 @@ function bindStatic(){
     elx.addEventListener('input', ()=> planReadControls());
   });
   bindDropdown('dd-mapa', 'btn-mapa-toggle', 'dd-mapa-menu');
+  bindDropdown('dd-backup', 'btn-backup-toggle', 'dd-backup-menu');
   bindDropdown('dd-excel', 'btn-xls-toggle', 'dd-excel-menu');
   $('#btn-xls-map').addEventListener('click', xlsMapCompleto);
   $('#btn-xls-per').addEventListener('click', openPeriodXls);
@@ -10838,7 +11258,26 @@ function bindStatic(){
     const h = $('#hist');                    // mantém o seletor de histórico em sincronia
     if(h && Array.from(h.options).some(o=>o.value===currentMapDate)) h.value = currentMapDate;
   });
-  $('#dtEntrega').addEventListener('change', e=>{ dtEntrega = e.target.value; scheduleSave(); });
+  $('#dtEntrega').addEventListener('change', e=>{
+    const v = e.target.value;
+    if(ESC_HAS2 && v && v === ESC_OTHER_DT){
+      toast('⛔ A outra escala deste dia já tem entrega em ' + fmtBR(v) + ' — use uma data diferente', 'err');
+      e.target.value = dtEntrega;
+      return;
+    }
+    dtEntrega = v; scheduleSave(); escRenderUI();
+  });
+  $('#esc-sel').addEventListener('change', e=> escSwitch(e.target.value));
+  $('#btn-esc').addEventListener('click', ()=>{ if(!requireOperational()) return; escOpenModal(); });
+  $('#esc-x').addEventListener('click', escCloseModal);
+  $('#esc-cancel').addEventListener('click', escCloseModal);
+  $('#esc-create').addEventListener('click', escCreateAndOpen);
+  $('#esc-list').addEventListener('click', async e=>{
+    const o = e.target.closest('[data-esc-open]');
+    if(o){ await escSwitch(o.dataset.escOpen); escRenderManage(); return; }
+    const d = e.target.closest('[data-esc-del]');
+    if(d) await escDelete(Number(d.dataset.escDel));
+  });
   $('#hist').addEventListener('change', e=>{ if(e.target.value) switchToDate(e.target.value); });
 
   /* configurações operacionais */
@@ -11081,6 +11520,10 @@ function bindStatic(){
     });
   }
   /* lupa 🔍 da linha da ordem */
+  $('#fr-ok').addEventListener('click', frotaAskApply);
+  $('#fr-skip').addEventListener('click', frotaAskSkip);
+  $('#fr-x').addEventListener('click', frotaAskClose);
+  $('#btn-frota-rota').addEventListener('click', ()=>{ FROTA_ASK.skip.clear(); frotaAskNext(); });
   $('#lupa-x').addEventListener('click', closeLupa);
   $('#lupa-cancel').addEventListener('click', closeLupa);
   $('#lupa-save').addEventListener('click', lupaApply);
