@@ -7,7 +7,13 @@ function block(start,end) {
   const a=html.indexOf(start), b=html.indexOf(end,a+start.length);
   assert.ok(a>=0 && b>a, start); return html.slice(a,b);
 }
-function context(extra={}) { return vm.createContext({console, ...extra}); }
+function context(extra={}) {
+  const c = vm.createContext({console, ...extra});
+  // helpers de escala (2 faturamentos no mesmo dia) usados pelos relatórios — versão mínima p/ os testes que não tratam de escalas
+  vm.runInContext("if(typeof rowEntrega==='undefined') var rowEntrega=function(row,d){return (row&&row.dtEnt)||d||'';};" +
+    "if(typeof liveDayRows==='undefined') var liveDayRows=function(){return typeof DATA!=='undefined'?DATA:{frotas:[],capital:[],interior:[]};};", c);
+  return c;
+}
 const permissions=block('function canEditOperational(){','/* --- Aplica a sessão');
 test('matriz de permissões: nível 5 operacional, sem admin/exclusão/usuários',()=>{
   const c=context({SESSION:null, TOPBAR_BTN_MIN:{}, audit(){},toast(){}});vm.runInContext(permissions,c);
@@ -1308,4 +1314,71 @@ test('filtro por quinzena: cargas FECHADAS do fechamento dessa quinzena entram (
   assert.ok(ent.some(e=>e.r.id==='r2'),'r2 (dentro do período) no Mapa Gerencial');
   // HTML: helpers + aviso do período
   for(const x of ['function dashQzExtras','function dashFechRefOfRow','function dashQzExtraData','id="dash-period-note"','DASH.qzExtras = dashQzExtras(DASH.period)','aggregateRange(p.start, p.end, DASH.qzExtras)']) assert.ok(html.includes(x),x);
+});
+
+/* ===== 2 escalas no mesmo dia do histórico ===== */
+const escCode = block('/* separa o registro salvo do dia em escalas (puro)', 'function snapshotMap(){');
+test('2 escalas: separar e juntar não perde nem mistura cargas (nem pool/entrega)', ()=>{
+  const c = context(); vm.runInContext(escCode, c);
+  const rec = {dtEntrega:'2026-11-07', pool:[{id:'p1'}], data:{frotas:[], capital:[{id:'a',carga:'1',esc:1,dtEnt:'2026-11-07'},{id:'b',carga:'2',esc:2,dtEnt:'2026-11-09'}], interior:[{id:'c',carga:'3',esc:2}]},
+    esc2:{dtEntrega:'2026-11-09', pool:[{id:'p2'}]}};
+  const J = x => JSON.parse(JSON.stringify(x));   // arrays do vm têm outro protótipo: compara por valor
+  const sp1 = J(c.escSplitRec(rec, 1)), sp2 = J(c.escSplitRec(rec, 2));
+  assert.deepEqual(sp1.rows.capital.map(r=>r.id), ['a']); assert.deepEqual(sp1.hidden.capital.map(r=>r.id), ['b']); assert.deepEqual(sp1.hidden.interior.map(r=>r.id), ['c']);
+  assert.equal(sp1.dt, '2026-11-07'); assert.equal(sp1.otherDt, '2026-11-09'); assert.equal(sp1.pool[0].id, 'p1'); assert.equal(sp1.hiddenPool[0].id, 'p2');
+  assert.deepEqual(sp2.rows.capital.map(r=>r.id), ['b']); assert.equal(sp2.dt, '2026-11-09'); assert.equal(sp2.otherDt, '2026-11-07');
+  // juntar a partir da escala 2 aberta devolve as mesmas linhas, cada uma com a entrega da sua escala
+  const back = J(c.escBuildData(true, 2, sp2.rows, sp2.hidden, sp2.dt, sp2.otherDt));
+  assert.deepEqual(back.capital.map(r=>r.id).sort(), ['a','b']);
+  assert.equal(back.capital.find(r=>r.id==='a').dtEnt, '2026-11-07'); assert.equal(back.capital.find(r=>r.id==='b').dtEnt, '2026-11-09');
+  assert.equal(back.interior[0].esc, 2);
+});
+test('2 escalas: dia comum (1 escala) não ganha marcas e linhas antigas sem esc ficam na 1ª', ()=>{
+  const c = context(); vm.runInContext(escCode, c);
+  const rec = {dtEntrega:'2026-11-05', data:{frotas:[], capital:[{id:'a',_sel:true}], interior:[]}};
+  const sp = c.escSplitRec(rec, 2);                       // pediu a 2ª, mas o dia só tem 1
+  assert.equal(sp.has2, false); assert.equal(sp.active, 1); assert.equal(sp.rows.capital.length, 1);
+  const out = c.escBuildData(false, 1, sp.rows, sp.hidden, sp.dt, sp.otherDt);
+  assert.equal('esc' in out.capital[0], false); assert.equal('dtEnt' in out.capital[0], false); assert.equal('_sel' in out.capital[0], false);
+  // esc=2 solto num dia sem esc2 (dado corrompido) NÃO some: cai na 1ª escala
+  const sp2 = c.escSplitRec({data:{frotas:[], capital:[{id:'x', esc:2}], interior:[]}}, 1);
+  assert.equal(sp2.rows.capital.length, 1);
+});
+test('2 escalas: o HTML liga seletor, modal, relatórios do dia aberto e remove o botão PDF', ()=>{
+  for(const x of ['id="esc-sel"','id="btn-esc"','id="esc-mask"','function escCreate(','function escDelete(','liveDayRows()','id="dd-backup"','id="btn-restore"']) assert.ok(html.includes(x), x);
+  assert.equal(html.includes('id="btn-pdf"'), false);
+  assert.equal(/\{data: ?DATA\b/.test(html.replace(/\s/g,' ').replace('{data:liveDayRows()','')), false, 'relatório do dia aberto ainda usa só DATA');
+});
+
+/* ===== Capital × Interior ===== */
+test('Capital × Interior: placa escalada (com Nº Carga) em uma seção não escala na outra', ()=>{
+  const c = context({DATA:{frotas:[], capital:[{id:'c1',placa:'ABC1D23',carga:'100'},{id:'c2',placa:'XYZ9K88',carga:''}], interior:[{id:'i1',placa:'QQQ1A11',carga:'200'}]},
+    plateSegs:p=>String(p||'').toUpperCase().split(/[\/,;\s]+/).map(x=>x.replace(/[^A-Z0-9]/g,'')).filter(Boolean), rowTemCarga:r=>String(r&&r.carga||'').trim()!==''});
+  vm.runInContext(block('const TIPO_NOME','/* conflitos já existentes'), c);
+  assert.equal(c.tipoConflito('ABC1D23','interior','novo').sec, 'capital');     // escalada na Capital → bloqueia no Interior
+  assert.equal(c.tipoConflito('abc-1d23','interior','novo').carga, '100');
+  assert.equal(c.tipoConflito('QQQ1A11','capital','novo').sec, 'interior');     // e vice-versa
+  assert.equal(c.tipoConflito('XYZ9K88','interior','novo'), null);              // linha SEM Nº Carga = só pré-escala, não bloqueia
+  assert.equal(c.tipoConflito('ABC1D23','capital','novo'), null);               // mesma seção não é conflito
+  assert.equal(c.tipoConflito('ABC1D23','frotas','novo'), null);                // Frotas fica de fora
+  assert.equal(c.tipoConflito('ABC1D23','interior','c1'), null);                // a própria linha é ignorada
+});
+
+/* ===== Frotas: custo por Capital × Interior ===== */
+test('Frotas: custo estimado usa valor fixo na Capital e diárias+km+pernoite no Interior', ()=>{
+  const PT = {agregado:{capital:{'Caminhão Toco':{diaria:950,km:0,pernoite:0}}, interior:{'Caminhão Toco':{diaria:950,km:2.5,pernoite:160}}}};
+  const c = context({selecionarFrota:()=> 'Caminhão Toco', numVal:x=>Number(x)||0, normalizarTipo:()=> 'agregado', PRICE_TABLE:PT,
+    CAPITAL_KEYWORDS:['GOIANIA'], INTERIOR_KEYWORDS:['TRINDADE'], normKw:s=>String(s||'').toUpperCase(),
+    matchKeyword:(d,list)=> (list.find(k=> String(d).toUpperCase().includes(k)) || null)});
+  vm.runInContext(block('function frotaTipoAuto(','/* Previsão 100% pela tabela'), c);
+  vm.runInContext(block('function tableForecast(', '/* Previsão COM negociação'), c);
+  const base = {peso:1000, dias:2, km:10};
+  assert.equal(c.frotaTipoOf({destino:'GOIANIA CENTRO'}), 'capital');
+  assert.equal(c.frotaTipoOf({destino:'TRINDADE + GOIANIA'}), 'interior');       // qualquer parada no interior = rota de Interior
+  assert.equal(c.frotaTipoOf({destino:'ROTA NOVA'}), '');                         // não cadastrada → perguntar
+  assert.equal(c.frotaTipoOf({destino:'ROTA NOVA', frotaTipo:'capital'}), 'capital'); // escolha explícita vale
+  assert.equal(c.tableForecast('frotas', {...base, destino:'GOIANIA'}).total, 950);                 // Capital: valor fixo (sem dias/km)
+  assert.equal(c.tableForecast('frotas', {...base, destino:'TRINDADE'}).total, 2*950 + 2.5*10 + 160); // Interior
+  assert.equal(c.tableForecast('frotas', {...base, destino:'ROTA NOVA'}).total, 2*950 + 2.5*10 + 160); // sem definição: mantém o cálculo antigo (Interior)
+  assert.equal(c.tableForecast('frotas', {...base, destino:'ROTA NOVA', frotaTipo:'capital'}).total, 950);
 });
