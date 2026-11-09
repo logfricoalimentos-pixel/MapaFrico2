@@ -309,11 +309,43 @@ body.print-big-font .custo-cell{font-size:15px}
   body.print-etiquetas .etq-val{color:#000}
 }
 
-/* ===== Configurações (drawer) ===== */
-#settings{position:fixed;top:0;right:-420px;width:400px;max-width:94vw;height:100vh;background:#fff;box-shadow:-8px 0 30px rgba(15,23,42,.18);z-index:100;transition:right .25s ease;padding:18px;overflow-y:auto;border-left:1px solid var(--line)}
-#settings.open{right:0}
-#settings h2{font-size:16px;margin-bottom:12px;display:flex;align-items:center;gap:8px}
-#settings .close-x{margin-left:auto;border:0;background:none;font-size:18px;cursor:pointer;color:var(--muted)}
+/* ===== Configurações (janela flutuante, redimensionável, com menus) ===== */
+#settings{position:fixed;inset:0;z-index:100;background:rgba(15,23,42,.42);display:none;align-items:center;justify-content:center;padding:12px}
+#settings.open{display:flex}
+.sw-win{display:flex;flex-direction:column;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 24px 70px rgba(15,23,42,.38);overflow:hidden;resize:both;min-width:560px;min-height:360px;max-width:98vw;max-height:96vh;width:900px;height:640px}
+.sw-win.full{width:98vw !important;height:96vh !important;resize:none}
+.sw-head{display:flex;align-items:center;gap:12px;padding:10px 14px;border-bottom:1px solid var(--line);background:#f8fafc;flex:0 0 auto}
+.sw-head h2{font-size:16px;margin:0;display:flex;align-items:center;gap:8px}
+.sw-size{margin-left:auto;display:flex;align-items:center;gap:4px}
+.sw-size-lbl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;margin-right:2px}
+.sw-size button{border:1px solid var(--line);background:#fff;border-radius:6px;padding:3px 9px;font:600 12px var(--sans, inherit);cursor:pointer;color:#334155}
+.sw-size button:hover{background:#eff6ff}
+.sw-size button.on{background:#2563eb;border-color:#2563eb;color:#fff}
+.sw-body{display:flex;flex:1 1 auto;min-height:0}
+.sw-nav{flex:0 0 200px;display:flex;flex-direction:column;gap:4px;padding:10px;border-right:1px solid var(--line);background:#f8fafc;overflow-y:auto}
+.sw-tab{display:flex;align-items:center;gap:8px;border:1px solid transparent;background:none;border-radius:8px;padding:9px 10px;font-size:13px;font-weight:600;color:#334155;text-align:left;cursor:pointer}
+.sw-tab:hover{background:#e8eef9}
+.sw-tab.on{background:#2563eb;color:#fff}
+.sw-ico{font-size:16px;width:20px;text-align:center}
+.sw-content{flex:1 1 auto;min-width:0;overflow:auto;padding:14px 16px}
+.sw-content > section[hidden]{display:none}
+.vc-tools{display:flex;gap:8px;margin:6px 0 2px}
+.vc-tools input{flex:1;min-width:0;border:1px solid var(--line);border-radius:6px;padding:5px 8px;font-size:12.5px}
+.vc-tools select,.vc-row select,.vc-add select{border:1px solid var(--line);border-radius:6px;padding:4px 4px;font-size:12px;background:#fff;min-width:0;width:100%}
+.vc-scroll{overflow-x:auto;padding-bottom:4px}
+.vc-row,.vc-head,.vc-add{grid-template-columns:84px 92px 1.35fr 1.25fr 1fr 64px 52px 30px;min-width:780px}
+.vc-row.vc-capital{box-shadow:inset 3px 0 0 #7c3aed}
+.vc-row.vc-interior{box-shadow:inset 3px 0 0 #0ea5e9}
+@media (max-width:720px){
+  #settings{padding:0}
+  .sw-win{width:100vw !important;height:100vh !important;max-width:none;max-height:none;border-radius:0;resize:none;min-width:0}
+  .sw-body{flex-direction:column}
+  .sw-nav{flex:0 0 auto;flex-direction:row;overflow-x:auto;border-right:0;border-bottom:1px solid var(--line)}
+  .sw-tab{white-space:nowrap}
+  .sw-size{display:none}
+}
+#settings h2{font-size:16px}
+#settings .close-x{margin-left:0;border:0;background:none;font-size:18px;cursor:pointer;color:var(--muted)}
 #settings section{border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:12px;background:#fafafa}
 #settings h3{font-size:12.5px;margin-bottom:6px;color:#334155;text-transform:uppercase;letter-spacing:.4px}
 #settings textarea{width:100%;border:1px solid var(--line);border-radius:8px;padding:8px;font:12.5px var(--mono);margin-bottom:8px;background:#fff}
@@ -1418,7 +1450,7 @@ html.gerencial-request #settings{display:none!important}
       </ul>
       <h4>Pontos de melhoria incluídos nesta versão (auditoria)</h4>
       <ul>
-        <li><b>🚛 Pré-escala Capital + 🔍 lupa da ordem</b>: os veículos de <b>Capital e Interior</b> da planilha de motoristas estão no Pré-cadastro (placa → <b>transportadora</b> e <b>motorista</b>) e aparecem nos painéis <b>PRÉ-ESCALA · CAPITAL</b> e <b>PRÉ-ESCALA · INTERIOR</b> do mapa — <b>só status visual</b> (amarelo = pré-escala · verde = escalado em ordem · vermelho = indisponível, com a borda toda vermelha); não vira carga e não entra em totais, frete, fechamento ou prints. Em cada linha de <b>Capital e Interior</b>, o botão <b>🔍</b> (coluna de ações) busca por placa, motorista ou transportador e <b>altera veículo, motorista e transportador</b> da ordem. Para levar veículos ao mapa: <b>clique</b> nos cartões para marcar vários e use <b>➕ Adicionar ao mapa</b> (ou <b>dê 2 cliques</b> num cartão para adicionar só aquele) — cria uma linha com placa, motorista e transportadora; quem já está no mapa ganha a etiqueta <b>NO MAPA</b>. Cadastro editável em Configurações → Pré-escala Capital / Interior.</li>
+        <li><b>🚛 Pré-escala Capital + 🔍 lupa da ordem</b>: os veículos de <b>Capital e Interior</b> da planilha de motoristas estão no Pré-cadastro (placa → <b>transportadora</b> e <b>motorista</b>) e aparecem nos painéis <b>PRÉ-ESCALA · CAPITAL</b> e <b>PRÉ-ESCALA · INTERIOR</b> do mapa — <b>só status visual</b> (amarelo = pré-escala · verde = escalado em ordem · vermelho = indisponível, com a borda toda vermelha); não vira carga e não entra em totais, frete, fechamento ou prints. Em cada linha de <b>Capital e Interior</b>, o botão <b>🔍</b> (coluna de ações) busca por placa, motorista ou transportador e <b>altera veículo, motorista e transportador</b> da ordem. Para levar veículos ao mapa: <b>clique</b> nos cartões para marcar vários e use <b>➕ Adicionar ao mapa</b> (ou <b>dê 2 cliques</b> num cartão para adicionar só aquele) — cria uma linha com placa, motorista e transportadora; quem já está no mapa ganha a etiqueta <b>NO MAPA</b>. Cadastro único e editável em Configurações → Veículos &amp; motoristas → Cadastro de veículos.</li>
         <li><b>Capturas 📷 em layout dedicado A4 paisagem</b> (colunas medidas pelo conteúdo, <b>larguras iguais nas 3 tabelas</b> — <b>nada de texto cortado ou oculto</b>): os dois prints mostram Placa, Destino, Nº Carga, Peso, T.Entrega, Motorista e Ajud./Transportador, mais os cards Cargas/Peso total/Entregas, no <b>modelo visual novo</b> (banner azul, faixas de seção, zebrado e cards com ícone). As colunas Vlr Kg, Neg?, Previsão, Custo Médio e Valor Frete nunca aparecem nas imagens.</li>
         <li><b>📊 Planejamento de Transporte</b>: relatório Capital × Interior × Total com Veículos (cargas), Entregas e Peso em TON (kg ÷ 1000, 2 casas, sem zeros finais) — Frotas não entra.</li>
         <li><b>🏷 Etiquetas SEMPRE em A4 RETRATO</b>: uma etiqueta por carga (9×5,5cm, 10 por página — 2 colunas × 5 linhas), impressa por um documento próprio e isolado, então a orientação não depende do CSS da tela nem de outro relatório (nada de página saindo deitada).</li>
@@ -1512,24 +1544,58 @@ html.gerencial-request #settings{display:none!important}
 <div id="plan-print" aria-hidden="true"></div>
 
 <!-- ============ CONFIGURAÇÕES ============ -->
-<aside id="settings" class="no-print">
-  <h2>⚙️ Configurações <button class="close-x" id="btn-close-settings" title="Fechar">✕</button></h2>
-
-  <section>
-    <h3>💯 Margem sobre frete não negociado</h3>
-    <p class="hint">Percentual <b>temporário</b> somado à previsão pela tabela nas cargas <b>não negociadas</b> (Capital = valor fixo; Interior = diárias + km + pernoite). <b>Negociadas</b> (Valor Frete manual ou Neg?=Sim) <b>não recebem margem</b> — o valor fechado é definitivo. Use <b>0</b> para não pagar percentual, ou troque por qualquer X%. Vale p/ o mapa inteiro (relatórios, comparativo, fechamento).</p>
-    <label class="lbl">Margem (%)<input id="margem-frete" type="number" step="0.5" min="0" max="100" style="max-width:120px"></label>
-    <button class="btn" id="btn-save-margem">Salvar margem</button>
+<aside id="settings" class="no-print" aria-hidden="true">
+  <div class="sw-win" id="sw-win" role="dialog" aria-modal="true" aria-labelledby="sw-title">
+    <header class="sw-head">
+      <h2 id="sw-title">⚙️ Configurações</h2>
+      <div class="sw-size" role="group" aria-label="Tamanho da janela">
+        <span class="sw-size-lbl">Tamanho</span>
+        <button type="button" data-sw-size="s" title="Janela pequena">P</button>
+        <button type="button" data-sw-size="m" title="Janela média">M</button>
+        <button type="button" data-sw-size="l" title="Janela grande">G</button>
+        <button type="button" data-sw-size="full" title="Tela cheia">⛶</button>
+      </div>
+      <button class="close-x" id="btn-close-settings" type="button" title="Fechar (Esc)">✕</button>
+    </header>
+    <div class="sw-body">
+      <nav class="sw-nav" id="sw-nav" role="tablist" aria-label="Seções das configurações">
+      <button type="button" class="sw-tab" data-sw-tab="veic" role="tab"><span class="sw-ico">🚛</span><span class="sw-lbl">Veículos & motoristas</span></button>
+      <button type="button" class="sw-tab" data-sw-tab="frete" role="tab"><span class="sw-ico">💰</span><span class="sw-lbl">Fretes & rotas</span></button>
+      <button type="button" class="sw-tab" data-sw-tab="fech" role="tab"><span class="sw-ico">🧾</span><span class="sw-lbl">Fechamento & envio</span></button>
+      <button type="button" class="sw-tab" data-sw-tab="tela" role="tab"><span class="sw-ico">🖥</span><span class="sw-lbl">Tela</span></button>
+      <button type="button" class="sw-tab" data-sw-tab="usu" role="tab"><span class="sw-ico">👥</span><span class="sw-lbl">Usuários & auditoria</span></button>
+      </nav>
+      <div class="sw-content" id="sw-content">
+  <section id="sec-veiculos" data-cat="veic">
+    <h3>🚛 Cadastro de veículos (Pré-escala + Pré-cadastro de placas)</h3>
+    <p class="hint">Um <b>único cadastro por placa</b> (guardado numa só chave do banco): transportadora, motorista, ajudantes, Vr/kg, Neg e <b>Tipo</b>. Tipo <b>Capital</b> ou <b>Interior</b> = o veículo aparece nos painéis <b>PRÉ-ESCALA</b> do mapa (só status visual) e na busca 🔍 da ordem; <b>—</b> = só pré-cadastro, aplicado quando a placa aparece numa linha (importação ou digitação). O <b>motorista</b> preenche a linha quando ela está sem motorista. O que você editar aqui <b>vale na hora, fica salvo e nunca é desfeito</b> pela planilha padrão. 🗑 remove o veículo de vez.</p>
+    <div class="vc-tools">
+      <input id="vc-q" type="search" placeholder="🔎 placa, motorista ou transportadora" autocomplete="off">
+      <select id="vc-f" title="Filtrar"><option value="">Todos</option><option value="capital">Pré-escala Capital</option><option value="interior">Pré-escala Interior</option><option value="none">Só pré-cadastro</option></select>
+    </div>
+    <div class="hint" id="vc-count"></div>
+    <div class="vc-scroll">
+      <div class="reg-head vc-head"><span>Placa</span><span>Tipo</span><span>Motorista</span><span>Transportadora</span><span>Ajud.</span><span>Vr/kg</span><span>Neg</span><span></span></div>
+      <div id="registry-rows" class="reg-rows"></div>
+      <div class="reg-add vc-add">
+        <input id="reg-add-placa" class="mono" placeholder="placa">
+        <select id="reg-add-tipo"><option value="">—</option><option value="capital">Capital</option><option value="interior">Interior</option></select>
+        <input id="reg-add-mot" maxlength="32" placeholder="motorista">
+        <input id="reg-add-transp" placeholder="transportadora">
+        <input id="reg-add-ajud" placeholder="ajudantes">
+        <input id="reg-add-vkg" type="number" step="any" placeholder="vr/kg">
+        <input id="reg-add-neg" placeholder="neg?">
+        <button class="btn mini" id="btn-reg-add" title="Adicionar / atualizar veículo">＋</button>
+      </div>
+    </div>
   </section>
-
-  <section>
+  <section data-cat="veic">
     <h3>Placas fixas em Frotas</h3>
     <p class="hint">Estas placas vão <b>sempre</b> para FROTAS, independente do destino. A lista padrão é mesclada automaticamente e nunca some: <span class="mono">MFM8075 · RBQ4C63 · RSD1E71 · NWN3975 · NVP6191</span></p>
     <textarea id="fixed-frotas" rows="3" class="mono" placeholder="MFM8075, RBQ4C63, ..."></textarea>
     <button class="btn" id="btn-save-fixed">Salvar placas fixas</button>
   </section>
-
-  <section id="sec-frota-trip">
+  <section data-cat="veic" id="sec-frota-trip">
     <h3>👷 Cadastro de ajudantes &amp; tripulação (Frotas)</h3>
     <p class="hint">Motorista e ajudantes padrão por placa de Frotas — preenchem automaticamente os veículos fixos e as linhas de Frotas (ao abrir/limpar o dia ou importar). Os 5 veículos fixos padrão já vêm cadastrados; edite aqui manualmente quando trocar o ajudante ou motorista (seus valores têm prioridade).</p>
     <div class="reg-head trip-head"><span>Placa</span><span>Motorista</span><span>1º Ajudante</span><span>2º Ajudante</span><span></span></div>
@@ -1542,34 +1608,19 @@ html.gerencial-request #settings{display:none!important}
       <button class="btn mini" id="btn-trip-add" title="Adicionar">＋</button>
     </div>
   </section>
-
-  <section id="sec-capital-escala">
-    <h3>🚛 Pré-escala Capital (veículo · motorista · transportadora)</h3>
-    <p class="hint">Veículos do tipo <b>Capital</b> em pré-escala: aparecem no painel <b>Pré-escala</b> do mapa (<b>só status visual</b> — não viram carga nem entram em totais) e na busca 🔍 da linha da ordem. O <b>motorista</b> preenche a linha quando a placa é digitada/importada com o campo vazio. A <b>transportadora</b> é a mesma do Pré-cadastro de placas. Seus valores têm prioridade. 🗑 tira o veículo da pré-escala (o pré-cadastro da placa continua).</p>
-    <div class="reg-head ce-head"><span>Placa</span><span>Motorista</span><span>Transportadora</span><span></span></div>
-    <div id="ce-rows" class="reg-rows"></div>
-    <div class="reg-add ce-add">
-      <input id="ce-add-placa" class="mono" placeholder="placa">
-      <input id="ce-add-mot" maxlength="32" placeholder="motorista">
-      <input id="ce-add-transp" placeholder="transportadora">
-      <button class="btn mini" id="btn-ce-add" title="Adicionar à pré-escala Capital">＋</button>
-    </div>
+  <section data-cat="veic">
+    <h3>Disponibilidade das frotas</h3>
+    <p class="hint">Clique no chip para alternar. Indisponível fica marcado nas linhas (placa vermelha).</p>
+    <div id="chips" class="chips"></div>
   </section>
 
-  <section id="sec-interior-escala">
-    <h3>🚛 Pré-escala Interior (veículo · motorista · transportadora)</h3>
-    <p class="hint">Mesma lógica da Capital, para os veículos do <b>Interior</b>: painel <b>PRÉ-ESCALA · INTERIOR</b> no mapa (só status visual) e busca 🔍 na linha da ordem. O motorista preenche a linha com a placa digitada/importada quando o campo está vazio.</p>
-    <div class="reg-head ce-head"><span>Placa</span><span>Motorista</span><span>Transportadora</span><span></span></div>
-    <div id="ie-rows" class="reg-rows"></div>
-    <div class="reg-add ce-add">
-      <input id="ie-add-placa" class="mono" placeholder="placa">
-      <input id="ie-add-mot" maxlength="32" placeholder="motorista">
-      <input id="ie-add-transp" placeholder="transportadora">
-      <button class="btn mini" id="btn-ie-add" title="Adicionar à pré-escala Interior">＋</button>
-    </div>
+  <section data-cat="frete">
+    <h3>💯 Margem sobre frete não negociado</h3>
+    <p class="hint">Percentual <b>temporário</b> somado à previsão pela tabela nas cargas <b>não negociadas</b> (Capital = valor fixo; Interior = diárias + km + pernoite). <b>Negociadas</b> (Valor Frete manual ou Neg?=Sim) <b>não recebem margem</b> — o valor fechado é definitivo. Use <b>0</b> para não pagar percentual, ou troque por qualquer X%. Vale p/ o mapa inteiro (relatórios, comparativo, fechamento).</p>
+    <label class="lbl">Margem (%)<input id="margem-frete" type="number" step="0.5" min="0" max="100" style="max-width:120px"></label>
+    <button class="btn" id="btn-save-margem">Salvar margem</button>
   </section>
-
-  <section>
+  <section data-cat="frete">
     <h3>Palavras-chave do destino</h3>
     <p class="hint">Usadas para classificar automaticamente (busca em palavra inteira, sem acento; ponto e espaço são tratados igual: PQ.OESTE ≡ PQ. OESTE). As listas padrão de Capital e Interior são sempre mescladas e nunca somem.</p>
     <label class="lbl">Capital</label>
@@ -1578,8 +1629,7 @@ html.gerencial-request #settings{display:none!important}
     <textarea id="kw-interior" rows="6" placeholder="ARUANA, ANAPOLIS, JATAI, DF..."></textarea>
     <button class="btn" id="btn-save-kw">Salvar palavras-chave</button>
   </section>
-
-  <section>
+  <section data-cat="frete">
     <h3>Diárias por rota</h3>
     <p class="hint">Quantas diárias cada rota leva. Preenche o campo <b>dias</b> da Previsão de frete automaticamente (na importação ou ao digitar/editar <b>Nº Carga</b> ou <b>Destino</b>) — busca primeiro pelo <b>nº da rota</b> e depois pelo <b>nome da rota/destino</b>. O campo dias continua editável manualmente. A tabela padrão do relatório já vem cadastrada (edite os valores aqui se mudar).</p>
     <div class="reg-head rotas-head"><span>Rota (Nº Carga ou nome)</span><span>Diárias</span><span></span></div>
@@ -1591,7 +1641,7 @@ html.gerencial-request #settings{display:none!important}
     </div>
   </section>
 
-  <section>
+  <section data-cat="fech">
     <h3>🤖 Envio automático do resumo (WhatsApp por API)</h3>
     <p class="hint">O WhatsApp comum (wa.me) só leva <b>texto</b> — o navegador não anexa o print nem aperta "enviar" sozinho. Com uma API externa (<b>Evolution API</b> em servidor próprio, grátis, <b>UltraMsg</b>, paga, ou a <b>Meta Cloud API</b> oficial — nesta, mensagem livre só dentro da janela de 24h após o contato do transportador; fora dela, informe um template aprovado), o botão <b>🤖</b> da tela de fechamento manda o <b>print PNG + resumo</b> para cada transportador marcada, um a um. O servidor da API precisa aceitar chamadas deste site (CORS) e ter HTTPS (o site é https).</p>
     <div class="wa-grid">
@@ -1604,7 +1654,7 @@ html.gerencial-request #settings{display:none!important}
       <button class="btn mini" id="btn-wa-test" title="Manda um print de teste para o número ao lado">📨 Testar</button>
     </div>
   </section>
-  <section>
+  <section data-cat="fech">
     <h3>Códigos e WhatsApp das transportadoras (fechamento)</h3>
     <p class="hint">O <b>código</b> vai na coluna CÓDIGO do resumo do financeiro; o <b>WhatsApp</b> virou o botão 💬 da tela de fechamento (abre a conversa com o total daquele transportador). A tabela padrão já vem cadastrada; edite aqui se mudar (seus valores têm prioridade). O código digitado na tela de fechamento é lembrado aqui.</p>
     <div class="reg-head transp-row"><span>Transportadora</span><span>Código</span><span>WhatsApp</span><span></span></div>
@@ -1617,7 +1667,7 @@ html.gerencial-request #settings{display:none!important}
     </div>
   </section>
 
-  <section>
+  <section data-cat="tela">
     <h3>Colunas ocultas (tela)</h3>
     <p class="hint">Independente da captura "Sem peso/valor".</p>
     <div class="hc-row">
@@ -1628,28 +1678,7 @@ html.gerencial-request #settings{display:none!important}
     </div>
   </section>
 
-  <section>
-    <h3>Disponibilidade das frotas</h3>
-    <p class="hint">Clique no chip para alternar. Indisponível fica marcado nas linhas (placa vermelha).</p>
-    <div id="chips" class="chips"></div>
-  </section>
-
-  <section>
-    <h3>Pré-cadastro de placas</h3>
-    <p class="hint">Aplicado automaticamente quando a placa aparece em qualquer linha (importação ou digitação). O cadastro padrão de <b>transportadoras</b> (36 placas) já vem mesclado e nunca sai — edite os valores aqui se precisar (seus valores têm prioridade).</p>
-    <div class="reg-head"><span>Placa</span><span>Transp.</span><span>Ajud.</span><span>Vr/kg</span><span>Neg</span><span></span></div>
-    <div id="registry-rows" class="reg-rows"></div>
-    <div class="reg-add">
-      <input id="reg-add-placa" class="mono" placeholder="placa">
-      <input id="reg-add-transp" placeholder="transportadora">
-      <input id="reg-add-ajud" placeholder="ajudantes">
-      <input id="reg-add-vkg" type="number" step="any" placeholder="vr/kg">
-      <input id="reg-add-neg" placeholder="neg?">
-      <button class="btn mini" id="btn-reg-add" title="Adicionar">＋</button>
-    </div>
-  </section>
-
-  <section id="sec-users">
+  <section data-cat="usu" id="sec-users">
     <div id="users-mgmt-block">
       <h3>👥 Usuários &amp; permissões</h3>
       <p class="hint">Nível 1 = Indicadores · 2 = Mapa sem custo/valores · 3 = Visualização completa (sem edição) · 4 = Administrador (único) · 5 = Roteirização. O administrador é <b>único</b> (FricoLog): não é possível criar outro nível 4, nem editar/excluir o próprio admin.</p>
@@ -1678,6 +1707,9 @@ html.gerencial-request #settings{display:none!important}
       <div id="audit-rows" class="audit-rows" style="margin-top:6px"></div>
     </div>
   </section>
+      </div>
+    </div>
+  </div>
 </aside>
 
 <!-- ============ MODAL DE CONFIRMAÇÃO (exclusão de histórico c/ senha) ============ -->
@@ -2756,7 +2788,7 @@ function seedEscalaPlanilha(){
       const k = normPlaca(placa);
       if(!k) continue;
       const cur = REGISTRY[k];
-      if(cur && cur._seed === ver) continue;
+      if(cur && cur._seed) continue;   // já veio da planilha ou foi editado/cadastrado à mão: NUNCA sobrescreve (a versão do outro tipo também conta)
       const v = Object.assign({}, cur || {});
       v.transportadora = transp;
       v.motorista = clampMotorista(String(motorista).trim());
@@ -4061,10 +4093,17 @@ async function escIndexSync(dateStr){
     } else if(cur){ delete ESC_INDEX[dateStr]; await Stor.set('map-esc-index', ESC_INDEX); }
   }catch(e){ console.error(e); }
 }
+const DIA_SEM_ABR = ['dom','seg','ter','qua','qui','sex','sáb'];
+function fmtBRDia(iso){
+  const b = fmtBR(iso);
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(String(iso || ''))) return b;
+  const dt = new Date(+iso.slice(0,4), +iso.slice(5,7) - 1, +iso.slice(8,10));   // data local (sem fuso)
+  return b + ' - ' + DIA_SEM_ABR[dt.getDay()];
+}
 function renderHistory(dates){
   const sel = $('#hist');
   const cur = sel.value;
-  sel.innerHTML = '<option value="">—</option>' + (dates||[]).map(d=>'<option value="'+d+'">'+fmtBR(d)+(ESC_INDEX && ESC_INDEX[d] ? ' · 2 escalas' : '')+'</option>').join('');
+  sel.innerHTML = '<option value="">—</option>' + (dates||[]).map(d=>'<option value="'+d+'">'+fmtBRDia(d)+(ESC_INDEX && ESC_INDEX[d] ? ' · 2 escalas' : '')+'</option>').join('');
   if(cur) sel.value = cur;
 }
 async function loadMapForDate(dateStr, wantedEsc){
@@ -4098,18 +4137,28 @@ function fechNormalizeDocs(raw){
   return m;
 }
 async function loadSettings(){
-  const [reg, ff, ck, ik, hc, av, rd, tc, fc, tz, wa, mg, ft, fd] = await Promise.all([
+  const [reg, ff, ck, ik, hc, av, rd, tc, fc, tz, wa, mg, ft, fd, seedMark] = await Promise.all([
     Stor.get('fleet-registry'), Stor.get('fixed-frotas'), Stor.get('capital-keywords'),
     Stor.get('interior-keywords'), Stor.get('hidden-cols'), Stor.get('availability'),
     Stor.get('routes-days'), Stor.get('transp-codes'), Stor.get('fechamentos'), Stor.get('transp-zap'), Stor.get('wa-auto'),
-    Stor.get('margem-frete'), Stor.get('frota-tripulacao'), Stor.get('fech-docs')
+    Stor.get('margem-frete'), Stor.get('frota-tripulacao'), Stor.get('fech-docs'), Stor.get('registry-seed')
   ]);
   // pré-cadastro padrão de transportadoras sempre mesclado; o salvo pelo usuário tem prioridade
   REGISTRY = Object.assign({}, DEFAULT_REGISTRY);
   if(reg && typeof reg === 'object'){
     for(const [k, v] of Object.entries(reg)) REGISTRY[normPlaca(k)] = v;
   }
-  seedEscalaPlanilha(); // Pré-escala Capital/Interior (planilha): atualiza transportadora/motorista das placas, uma vez por versão
+  {
+    // Planilha de Pré-escala (Capital/Interior): aplicada UMA vez por versão e registrada no banco ('registry-seed').
+    // Antes ela rodava a cada abertura e, p/ placas presentes nas duas listas, desfazia a edição do usuário
+    // e trazia de volta placas removidas/renomeadas. Banco que já recebeu a planilha só ganha o marcador.
+    const seedV = CAPITAL_SEED_V + '|' + INTERIOR_SEED_V;
+    if(seedMark !== seedV){
+      const jaAplicada = Object.values(REGISTRY).some(v=> v && (v._seed === CAPITAL_SEED_V || v._seed === INTERIOR_SEED_V));
+      const mudou = jaAplicada ? 0 : seedEscalaPlanilha();
+      Promise.resolve().then(async ()=>{ try{ if(mudou) await Stor.set('fleet-registry', REGISTRY); await Stor.set('registry-seed', seedV); }catch(e){ console.error('seed marker', e); } });
+    }
+  }
   // tripulação/ajudantes de Frotas: os 5 veículos padrão sempre mesclados; o salvo pelo usuário tem prioridade
   {
     const m = {};
@@ -4166,18 +4215,20 @@ async function loadSettings(){
   FECH_DOCS = fechNormalizeDocs(fd);
 }
 function saveSettings(){
-  Stor.set('fleet-registry', REGISTRY);
-  Stor.set('frota-tripulacao', FROTA_TRIPULACAO);
-  Stor.set('fixed-frotas', FIXED_FROTAS);
-  Stor.set('capital-keywords', CAPITAL_KEYWORDS);
-  Stor.set('interior-keywords', INTERIOR_KEYWORDS);
-  Stor.set('hidden-cols', HIDDEN_COLS);
-  Stor.set('availability', AVAILABILITY);
-  Stor.set('routes-days', ROTAS_DIAS);
-  Stor.set('transp-codes', TRANSP_CODES);
-  Stor.set('transp-zap', TRANSP_ZAP);
-  Stor.set('wa-auto', WA_AUTO);
-  Stor.set('fech-docs', FECH_DOCS);
+  const jobs = [
+    ['fleet-registry', REGISTRY], ['frota-tripulacao', FROTA_TRIPULACAO], ['fixed-frotas', FIXED_FROTAS],
+    ['capital-keywords', CAPITAL_KEYWORDS], ['interior-keywords', INTERIOR_KEYWORDS], ['hidden-cols', HIDDEN_COLS],
+    ['availability', AVAILABILITY], ['routes-days', ROTAS_DIAS], ['transp-codes', TRANSP_CODES],
+    ['transp-zap', TRANSP_ZAP], ['wa-auto', WA_AUTO], ['fech-docs', FECH_DOCS]
+  ].map(([k, v])=> Stor.set(k, v));
+  return Promise.allSettled(jobs).then(rs=>{
+    const bad = rs.filter(r=> r.status === 'rejected');
+    if(bad.length){
+      console.error('saveSettings', bad.map(b=> b.reason));
+      if(typeof toast === 'function') toast('❌ Não foi possível gravar os cadastros no banco — a alteração pode se perder ao atualizar a página. Verifique a conexão/login e tente de novo.', 'err');
+    }
+    return !bad.length;
+  });
 }
 
 /* ================= Importação de planilha ================= */
@@ -10750,10 +10801,64 @@ function fillSettingsUI(){
   $('#kw-interior').value = INTERIOR_KEYWORDS.join(', ');
   $$('.hc-chk').forEach(c=> c.checked = HIDDEN_COLS.includes(c.dataset.col));
   renderFrotaTripulacao();
-  renderEscalaCadastro();
   renderRegistry();
   renderRotas();
   renderTranspCodes();
+}
+/* ===== Janela de Configurações: menus (abas), tamanho P/M/G/tela cheia/arrastar a borda — preferências neste aparelho ===== */
+const SW_SIZES = {s:[640, 460], m:[900, 640], l:[1200, 820]};
+function swLS(k, v){ try{ if(v === undefined) return localStorage.getItem('mapa-sw-' + k); localStorage.setItem('mapa-sw-' + k, v); }catch(e){} return null; }
+function swSize(){
+  let st = null; try{ st = JSON.parse(swLS('size') || 'null'); }catch(e){}
+  return (st && st.mode) ? st : {mode: 'm'};
+}
+function swApplySize(){
+  const win = $('#sw-win'); if(!win) return;
+  const st = swSize();
+  win.classList.toggle('full', st.mode === 'full');
+  if(st.mode === 'full'){ win.style.width = ''; win.style.height = ''; }
+  else {
+    const [w, h] = st.mode === 'custom' ? [st.w, st.h] : (SW_SIZES[st.mode] || SW_SIZES.m);
+    win.style.width = Math.min(w, Math.floor(innerWidth * .98)) + 'px';
+    win.style.height = Math.min(h, Math.floor(innerHeight * .96)) + 'px';
+  }
+  $$('[data-sw-size]').forEach(b=> b.classList.toggle('on', b.dataset.swSize === st.mode));
+}
+function swSetTab(tab){
+  const tabs = $$('.sw-tab'); if(!tabs.length) return;
+  if(!tabs.some(t=> t.dataset.swTab === tab)) tab = tabs[0].dataset.swTab;
+  tabs.forEach(t=>{ const on = t.dataset.swTab === tab; t.classList.toggle('on', on); t.setAttribute('aria-selected', on ? 'true' : 'false'); });
+  $$('#sw-content > section').forEach(sc=> { sc.hidden = sc.dataset.cat !== tab; });
+  const c = $('#sw-content'); if(c) c.scrollTop = 0;
+  swLS('tab', tab);
+}
+function swOpen(tab){
+  const st = $('#settings'); if(!st) return;
+  swApplySize();
+  swSetTab(tab || swLS('tab') || 'veic');
+  st.classList.add('open'); st.setAttribute('aria-hidden', 'false');
+}
+function swClose(){ const st = $('#settings'); if(!st) return; st.classList.remove('open'); st.setAttribute('aria-hidden', 'true'); }
+function swToggle(){ const st = $('#settings'); if(st && st.classList.contains('open')) swClose(); else swOpen(); }
+function bindSettingsWindow(){
+  const st = $('#settings'), win = $('#sw-win'); if(!st || !win) return;
+  $('#sw-nav').addEventListener('click', e=>{ const b = e.target.closest('[data-sw-tab]'); if(b) swSetTab(b.dataset.swTab); });
+  $$('[data-sw-size]').forEach(b=> b.addEventListener('click', ()=>{ swLS('size', JSON.stringify({mode: b.dataset.swSize})); swApplySize(); }));
+  // arrastou a borda: guarda o tamanho livre
+  let a0 = null;
+  win.addEventListener('mousedown', ()=>{ a0 = [win.offsetWidth, win.offsetHeight]; });
+  document.addEventListener('mouseup', ()=>{
+    if(!a0 || win.classList.contains('full')) { a0 = null; return; }
+    const w = win.offsetWidth, h = win.offsetHeight;
+    if(Math.abs(w - a0[0]) > 4 || Math.abs(h - a0[1]) > 4){ swLS('size', JSON.stringify({mode: 'custom', w, h})); $$('[data-sw-size]').forEach(b=> b.classList.remove('on')); }
+    a0 = null;
+  });
+  // fecha ao clicar no fundo escuro (só se o clique começou e terminou nele) e com Esc
+  let downOnBg = false;
+  st.addEventListener('mousedown', e=>{ downOnBg = (e.target === st); });
+  st.addEventListener('click', e=>{ if(e.target === st && downOnBg) swClose(); });
+  document.addEventListener('keydown', e=>{ if(e.key === 'Escape' && st.classList.contains('open')) swClose(); });
+  window.addEventListener('resize', ()=>{ if(st.classList.contains('open')) swApplySize(); });
 }
 function renderFrotaTripulacao(){
   const wrap = $('#trip-rows'); if(!wrap) return;
@@ -10768,21 +10873,6 @@ function renderFrotaTripulacao(){
     '</div>';
   }).join('') : '<div class="empty">Nenhuma tripulação cadastrada. Adicione abaixo.</div>';
 }
-const ESCALA_CFG = [{tipo:'capital', p:'ce'}, {tipo:'interior', p:'ie'}];
-function renderEscalaCadastro(){
-  for(const {tipo, p} of ESCALA_CFG){
-    const wrap = $('#' + p + '-rows'); if(!wrap) continue;
-    const list = escalaList(tipo);
-    wrap.innerHTML = list.length ? list.map(v=>{
-      return '<div class="reg-row ce-row" data-key="'+esc(v.placa)+'">' +
-        '<input type="text" class="mono" data-ce="placa" value="'+esc(v.placa)+'" placeholder="placa">' +
-        '<input type="text" data-ce="motorista" maxlength="32" value="'+esc(v.motorista)+'" placeholder="motorista">' +
-        '<input type="text" data-ce="transportadora" value="'+esc(v.transportadora)+'" placeholder="transportadora">' +
-        '<button class="btn mini" data-act="ce-del" title="Tirar da pré-escala (o pré-cadastro da placa continua)">🗑</button>' +
-      '</div>';
-    }).join('') : '<div class="empty">Nenhum veículo em pré-escala. Adicione abaixo.</div>';
-  }
-}
 function renderRotas(){
   const wrap = $('#rotas-rows');
   const entries = Object.entries(ROTAS_DIAS);
@@ -10795,18 +10885,35 @@ function renderRotas(){
   }).join('') : '<div class="empty">Nenhuma rota cadastrada. Adicione abaixo.</div>';
 }
 function renderRegistry(){
-  const wrap = $('#registry-rows');
-  const entries = Object.entries(REGISTRY);
-  wrap.innerHTML = entries.length ? entries.map(([k, v])=>{
-    return '<div class="reg-row" data-key="'+esc(k)+'">' +
+  const wrap = $('#registry-rows'); if(!wrap) return;
+  const q = normKw(($('#vc-q') || {}).value || ''), flt = ($('#vc-f') || {}).value || '';
+  const ord = {capital: 0, interior: 1};
+  const all = Object.entries(REGISTRY);
+  const list = all.filter(([k, v])=>{
+    const tp = v.tipo === 'capital' || v.tipo === 'interior' ? v.tipo : 'none';
+    if(flt && tp !== flt) return false;
+    if(!q) return true;
+    return normKw([k, v.motorista, v.transportadora, v.ajudantes].join(' ')).includes(q);
+  }).sort((x, y)=>{
+    const ox = ord[x[1].tipo] ?? 2, oy = ord[y[1].tipo] ?? 2;
+    return ox - oy || String(x[1].transportadora || '').localeCompare(String(y[1].transportadora || ''), 'pt-BR') || x[0].localeCompare(y[0]);
+  });
+  const nCap = all.filter(([k, v])=> v.tipo === 'capital').length, nInt = all.filter(([k, v])=> v.tipo === 'interior').length;
+  const cnt = $('#vc-count'); if(cnt) cnt.textContent = list.length + ' de ' + all.length + ' veículo(s) · pré-escala: ' + nCap + ' Capital · ' + nInt + ' Interior';
+  const opt = (v, cur, txt)=> '<option value="' + v + '"' + (cur === v ? ' selected' : '') + '>' + txt + '</option>';
+  wrap.innerHTML = list.length ? list.map(([k, v])=>{
+    const tp = v.tipo === 'capital' || v.tipo === 'interior' ? v.tipo : '';
+    return '<div class="reg-row vc-row' + (tp ? ' vc-' + tp : '') + '" data-key="'+esc(k)+'">' +
       '<input type="text" class="mono" data-reg="placa" value="'+esc(k)+'">' +
-      '<input type="text" data-reg="transportadora" value="'+esc(v.transportadora||'')+'">' +
-      '<input type="text" data-reg="ajudantes" value="'+esc(v.ajudantes||'')+'">' +
+      '<select data-reg="tipo" title="Capital / Interior = aparece na Pré-escala do mapa · — = só pré-cadastro">' + opt('', tp, '—') + opt('capital', tp, 'Capital') + opt('interior', tp, 'Interior') + '</select>' +
+      '<input type="text" data-reg="motorista" maxlength="32" value="'+esc(v.motorista||'')+'" placeholder="motorista">' +
+      '<input type="text" data-reg="transportadora" value="'+esc(v.transportadora||'')+'" placeholder="transportadora">' +
+      '<input type="text" data-reg="ajudantes" value="'+esc(v.ajudantes||'')+'" placeholder="ajudantes">' +
       '<input type="number" step="any" data-reg="valorKg" value="'+esc(v.valorKg==null?'':v.valorKg)+'">' +
       '<input type="text" data-reg="neg" value="'+esc(v.neg||'')+'">' +
-      '<button class="btn mini" data-act="reg-del" title="Remover">🗑</button>' +
+      '<button class="btn mini" data-act="reg-del" title="Remover o veículo do cadastro (e da pré-escala)">🗑</button>' +
     '</div>';
-  }).join('') : '<div class="empty">Nenhum cadastro. Adicione abaixo.</div>';
+  }).join('') : '<div class="empty">' + (all.length ? 'Nenhum veículo com esse filtro.' : 'Nenhum cadastro. Adicione abaixo.') + '</div>';
 }
 
 /* ================= Eventos ================= */
@@ -11220,8 +11327,9 @@ function bindStatic(){
     renderAll();
     toast('🧹 Mapa do dia limpo', 'ok');
   });
-  $('#btn-settings').addEventListener('click', ()=>{ if(!canEditOperational()) return; $('#settings').classList.toggle('open'); });
-  $('#btn-close-settings').addEventListener('click', ()=> $('#settings').classList.remove('open'));
+  $('#btn-settings').addEventListener('click', ()=>{ if(!canEditOperational()) return; swToggle(); });
+  $('#btn-close-settings').addEventListener('click', swClose);
+  bindSettingsWindow();
   /* painel de indicadores: níveis 3+ (nível 2 não vê custo) */
   const dashGuard = ()=> { if(!(SESSION && SESSION.level >= 3)){ toast('🔒 Seu nível de acesso não permite os indicadores', 'err'); return false; } return true; };
   $('#btn-dash-refresh').addEventListener('click', async ()=>{ if(dashGuard()){ await loadDashboard(); if(GERENCIAL_PAGE) renderGerencialMap(); } });
@@ -11391,22 +11499,28 @@ function bindStatic(){
       renderAll();
     }
   });
+  /* Cadastro ÚNICO de veículos (Pré-escala + Pré-cadastro de placas): uma linha por placa em REGISTRY ('fleet-registry') */
+  const vcTouch = v => { if(!v._seed) v._seed = 'manual'; return v; };   // marca: edição manual nunca é sobrescrita pela planilha
   $('#btn-reg-add').addEventListener('click', ()=>{
     if(!requireOperational()) return;
     const k = normPlaca($('#reg-add-placa').value);
     if(!k){ toast('Informe a placa do cadastro', 'err'); return; }
+    const existia = !!REGISTRY[k];
     const v = Object.assign({}, REGISTRY[k] || {});
-    v.transportadora = $('#reg-add-transp').value.trim();
-    v.ajudantes = $('#reg-add-ajud').value.trim();
-    v.valorKg = $('#reg-add-vkg').value.trim();
-    v.neg = $('#reg-add-neg').value.trim();
-    REGISTRY[k] = v;
+    const tp = $('#reg-add-tipo').value;
+    if(tp === 'capital' || tp === 'interior') v.tipo = tp; else if(!existia) delete v.tipo;
+    const mot = $('#reg-add-mot').value.trim(); if(mot || !existia) v.motorista = clampMotorista(mot);
+    v.transportadora = $('#reg-add-transp').value.trim() || v.transportadora || '';
+    v.ajudantes = $('#reg-add-ajud').value.trim() || v.ajudantes || '';
+    const vk = $('#reg-add-vkg').value.trim(); if(vk || !existia) v.valorKg = vk;
+    const ng = $('#reg-add-neg').value.trim(); if(ng || !existia) v.neg = ng;
+    REGISTRY[k] = vcTouch(v);
     saveSettings();
-    $('#reg-add-placa').value = ''; $('#reg-add-transp').value = '';
-    $('#reg-add-ajud').value = ''; $('#reg-add-vkg').value = ''; $('#reg-add-neg').value = '';
+    for(const id of ['placa','mot','transp','ajud','vkg','neg']) $('#reg-add-' + id).value = '';
+    $('#reg-add-tipo').value = '';
     renderRegistry();
     renderAll();
-    toast('📇 Placa ' + k + ' cadastrada', 'ok');
+    toast('📇 ' + k + (existia ? ' atualizada' : ' cadastrada') + (v.tipo ? ' · pré-escala ' + PE_TITULO[v.tipo] : ''), 'ok');
   });
   $('#registry-rows').addEventListener('change', e=>{
     if(!requireOperational()) return;
@@ -11415,90 +11529,44 @@ function bindStatic(){
     if(!rowEl) return;
     const key = rowEl.dataset.key;
     const f = t.dataset.reg;
+    const cur = REGISTRY[key];
+    if(!f || !cur) return;
     if(f === 'placa'){
       const nk = normPlaca(t.value);
       if(!nk){ t.value = key; return; }
-      if(nk !== key){ REGISTRY[nk] = REGISTRY[key]; delete REGISTRY[key]; }
-    } else if(REGISTRY[key]){
-      REGISTRY[key][f] = t.value;
+      if(nk !== key){
+        if(REGISTRY[nk]){ toast('⛔ Já existe cadastro para ' + nk + ' — edite aquela linha (ou remova uma delas)', 'err'); t.value = key; return; }
+        REGISTRY[nk] = cur; delete REGISTRY[key];
+      }
+    } else if(f === 'tipo'){
+      if(t.value === 'capital' || t.value === 'interior') cur.tipo = t.value; else delete cur.tipo;
+    } else if(f === 'motorista'){
+      cur.motorista = clampMotorista(t.value.trim());
+    } else {
+      cur[f] = t.value.trim();
     }
+    vcTouch(cur);
     saveSettings();
     renderRegistry();
     renderAll();
+    toast('📇 Cadastro de ' + (f === 'placa' ? normPlaca(t.value) : key) + ' atualizado', 'ok');
   });
   $('#registry-rows').addEventListener('click', e=>{
     if(!requireOperational()) return;
     if(!e.target.closest('[data-act="reg-del"]')) return;
     const rowEl = e.target.closest('[data-key]');
-    if(rowEl){
-      delete REGISTRY[rowEl.dataset.key];
-      saveSettings();
-      renderRegistry();
-      renderAll();
-    }
+    if(!rowEl) return;
+    const k = rowEl.dataset.key, v = REGISTRY[k] || {};
+    if(!confirm('Remover ' + k + (v.transportadora ? ' (' + v.transportadora + ')' : '') + ' do cadastro de veículos?' + (v.tipo ? '\n\nEla também sai da Pré-escala ' + PE_TITULO[v.tipo] + '.' : ''))) return;
+    delete REGISTRY[k];
+    saveSettings();
+    renderRegistry();
+    renderAll();
+    toast('🗑 ' + k + ' removida do cadastro', 'ok');
   });
+  $('#vc-q').addEventListener('input', renderRegistry);
+  $('#vc-f').addEventListener('change', renderRegistry);
 
-  /* pré-escala Capital e Interior (Configurações) */
-  for(const {tipo, p} of ESCALA_CFG){
-    const ver = ESCALA_SEED_V[tipo], nome = PE_TITULO[tipo];
-    $('#btn-' + p + '-add').addEventListener('click', ()=>{
-      if(!requireOperational()) return;
-      const k = normPlaca($('#' + p + '-add-placa').value);
-      if(!k){ toast('Informe a placa do veículo de ' + nome, 'err'); return; }
-      const v = Object.assign({}, REGISTRY[k] || {});
-      v.tipo = tipo;
-      v.motorista = clampMotorista($('#' + p + '-add-mot').value.trim());
-      const tr = $('#' + p + '-add-transp').value.trim();
-      if(tr) v.transportadora = tr;
-      v._seed = ver;   // edição manual: a atualização da planilha não sobrescreve mais
-      REGISTRY[k] = v;
-      saveSettings();
-      $('#' + p + '-add-placa').value = ''; $('#' + p + '-add-mot').value = ''; $('#' + p + '-add-transp').value = '';
-      renderEscalaCadastro(); renderRegistry(); renderAll();
-      toast('🚛 ' + k + ' na pré-escala ' + nome, 'ok');
-    });
-    $('#' + p + '-rows').addEventListener('change', e=>{
-      if(!requireOperational()) return;
-      const t = e.target;
-      const rowEl = t.closest('[data-key]');
-      if(!rowEl) return;
-      const key = rowEl.dataset.key;
-      const f = t.dataset.ce;
-      const cur = REGISTRY[key];
-      if(!f || !cur) return;
-      if(f === 'placa'){
-        const nk = normPlaca(t.value);
-        if(!nk){ t.value = key; return; }
-        if(nk !== key){
-          const moved = Object.assign({}, REGISTRY[nk] || {}, {tipo, motorista: cur.motorista || '', _seed: ver});
-          if(cur.transportadora) moved.transportadora = cur.transportadora;
-          REGISTRY[nk] = moved;
-          // placa antiga sai da pré-escala mas o registro fica marcado (a atualização da planilha não a traz de volta)
-          const old = Object.assign({}, cur); delete old.tipo; old._seed = ver;
-          REGISTRY[key] = old;
-        }
-      } else if(f === 'motorista'){
-        cur.motorista = clampMotorista(t.value.trim()); cur._seed = ver;
-      } else if(f === 'transportadora'){
-        cur.transportadora = t.value.trim(); cur._seed = ver;
-      }
-      saveSettings();
-      renderEscalaCadastro(); renderRegistry(); renderAll();
-      toast('🚛 Pré-escala ' + nome + ' atualizada (' + (f === 'placa' ? normPlaca(t.value) : key) + ')', 'ok');
-    });
-    $('#' + p + '-rows').addEventListener('click', e=>{
-      if(!requireOperational()) return;
-      if(!e.target.closest('[data-act="ce-del"]')) return;
-      const rowEl = e.target.closest('[data-key]');
-      if(!rowEl) return;
-      const k = rowEl.dataset.key;
-      if(!REGISTRY[k]) return;
-      delete REGISTRY[k].tipo; REGISTRY[k]._seed = ver;
-      saveSettings();
-      renderEscalaCadastro(); renderRegistry(); renderAll();
-      toast('🗑 ' + k + ' saiu da pré-escala ' + nome + ' (pré-cadastro mantido)', 'ok');
-    });
-  }
   /* painéis Pré-escala no mapa: recolher/expandir vale p/ qualquer nível; marcar/adicionar só p/ operação */
   for(const tipo of ['capital', 'interior']){
     const pe = $('#pre-escala-' + tipo);
