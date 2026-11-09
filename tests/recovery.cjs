@@ -945,7 +945,7 @@ test('Lupa/pré-escala: botão só em Capital/Interior, fechada bloqueada, fora 
   assert.ok(block('function lupaApply(', '/* ===== fim Lupa da linha da ordem ===== */').includes("row.stFech === 'fechado'"));
   assert.ok(html.includes('@media print{.lupa-btn,.pre-escala{display:none !important}}'));
   assert.ok(html.includes('body.readonly .lupa-btn{display:none}'));
-  assert.ok(html.includes('id="pre-escala-capital"') && html.includes('id="pre-escala-interior"') && html.includes('id="lupa-mask"') && html.includes('id="ce-rows"') && html.includes('id="ie-rows"'));
+  assert.ok(html.includes('id="pre-escala-capital"') && html.includes('id="pre-escala-interior"') && html.includes('id="lupa-mask"') && html.includes('id="registry-rows"') && html.includes('id="reg-add-tipo"'));
   // renderAll chama o painel; o painel/lupa nunca escrevem em DATA nem entram nos cálculos de totais/frete
   assert.ok(block('function renderAll(opts){', '/* ================= Persistência').includes('renderPreEscala();'));
   const visual = block('/* ================= Pré-escala CAPITAL (status visual)', '/* ===== fim Pré-escala CAPITAL ===== */');
@@ -1381,4 +1381,25 @@ test('Frotas: custo estimado usa valor fixo na Capital e diárias+km+pernoite no
   assert.equal(c.tableForecast('frotas', {...base, destino:'TRINDADE'}).total, 2*950 + 2.5*10 + 160); // Interior
   assert.equal(c.tableForecast('frotas', {...base, destino:'ROTA NOVA'}).total, 2*950 + 2.5*10 + 160); // sem definição: mantém o cálculo antigo (Interior)
   assert.equal(c.tableForecast('frotas', {...base, destino:'ROTA NOVA', frotaTipo:'capital'}).total, 950);
+});
+
+/* ===== Cadastro único de veículos + seed que não desfaz edição + janela de Configurações ===== */
+test('Seed da planilha não desfaz a edição (RES003 → NKH7C02) nem traz de volta placa removida', ()=>{
+  const c = escalaCtx();
+  // estado real salvo no banco depois da edição do usuário: NKH7C02 como Interior (versão interior), RES003 removida
+  c.REGISTRY = {NKH7C02:{tipo:'interior', _seed:vm.runInContext('INTERIOR_SEED_V', c), motorista:'SEBASTIAO DAMACENO', transportadora:'TRANSP. SEBASTIAO ROSA'}};
+  c.seedEscalaPlanilha();   // NKH7C02 também está na lista da Capital: antes a versão "capital" sobrescrevia
+  assert.equal(c.REGISTRY.NKH7C02.tipo, 'interior');
+  assert.equal(c.REGISTRY.NKH7C02.motorista, 'SEBASTIAO DAMACENO');
+  // e no carregamento só roda quando o banco ainda não recebeu a planilha
+  const ls = block('async function loadSettings(){', 'function saveSettings(){');
+  assert.ok(ls.includes("'registry-seed'") && ls.includes('jaAplicada'));
+});
+test('Configurações: janela com menus e cadastro único (sem as seções antigas)', ()=>{
+  for(const x of ['id="sw-win"','id="sw-nav"','data-sw-tab="veic"','data-sw-tab="frete"','data-sw-tab="fech"','data-sw-tab="tela"','data-sw-tab="usu"','data-sw-size="full"','id="sec-veiculos"','id="vc-q"','id="reg-add-mot"','id="btn-close-settings"']) assert.ok(html.includes(x), x);
+  for(const x of ['id="sec-capital-escala"','id="sec-interior-escala"','id="ce-rows"','id="ie-rows"']) assert.equal(html.includes(x), false, x);
+  // toda seção da janela pertence a um menu existente
+  const cats = new Set([...html.matchAll(/data-sw-tab="(\w+)"/g)].map(m=>m[1]));
+  const secs = [...html.matchAll(/<section data-cat="(\w+)"|<section id="[\w-]+" data-cat="(\w+)"/g)].map(m=>m[1]||m[2]);
+  assert.ok(secs.length >= 11 && secs.every(x=> cats.has(x)));
 });
