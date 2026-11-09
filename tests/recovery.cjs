@@ -11,6 +11,7 @@ function context(extra={}) {
   const c = vm.createContext({console, ...extra});
   // helpers de escala (2 faturamentos no mesmo dia) usados pelos relatórios — versão mínima p/ os testes que não tratam de escalas
   vm.runInContext("if(typeof rowEntrega==='undefined') var rowEntrega=function(row,d){return (row&&row.dtEnt)||d||'';};" +
+    "if(typeof MIC==='undefined') var MIC={trash:'<svg/>',x:'<svg/>',plus:'<svg/>'};" +
     "if(typeof liveDayRows==='undefined') var liveDayRows=function(){return typeof DATA!=='undefined'?DATA:{frotas:[],capital:[],interior:[]};};", c);
   return c;
 }
@@ -1402,4 +1403,12 @@ test('Configurações: janela com menus e cadastro único (sem as seções antig
   const cats = new Set([...html.matchAll(/data-sw-tab="(\w+)"/g)].map(m=>m[1]));
   const secs = [...html.matchAll(/<section data-cat="(\w+)"|<section id="[\w-]+" data-cat="(\w+)"/g)].map(m=>m[1]||m[2]);
   assert.ok(secs.length >= 11 && secs.every(x=> cats.has(x)));
+});
+
+test('Botões: adicionar = ícone azul, remover = ícone vermelho; sem o campo neg? no adicionar; colunas em grade única', ()=>{
+  assert.equal(html.includes('id="reg-add-neg"'), false);
+  assert.ok(/id="btn-reg-add"[^>]*>\s*<svg/.test(html) && html.includes('ibtn ibtn-blue'));
+  for(const act of ['reg-del','trip-del','rota-del','transp-del','user-del','del','pool-x']) assert.ok(new RegExp('ibtn ibtn-red[^>]*data-act="'+act+'"').test(html), act);
+  assert.ok(html.includes('.vc-scroll{display:grid;grid-template-columns:74px 78px max-content'));
+  assert.equal(/data-act="[a-z-]*del"[^>]*>🗑/.test(html), false);
 });
