@@ -332,10 +332,24 @@ body.print-big-font .custo-cell{font-size:15px}
 .vc-tools{display:flex;gap:8px;margin:6px 0 2px}
 .vc-tools input{flex:1;min-width:0;border:1px solid var(--line);border-radius:6px;padding:5px 8px;font-size:12.5px}
 .vc-tools select,.vc-row select,.vc-add select{border:1px solid var(--line);border-radius:6px;padding:4px 4px;font-size:12px;background:#fff;min-width:0;width:100%}
-.vc-scroll{overflow-x:auto;padding-bottom:4px}
-.vc-row,.vc-head,.vc-add{grid-template-columns:84px 92px 1.35fr 1.25fr 1fr 64px 52px 30px;min-width:780px}
-.vc-row.vc-capital{box-shadow:inset 3px 0 0 #7c3aed}
-.vc-row.vc-interior{box-shadow:inset 3px 0 0 #0ea5e9}
+.vc-scroll{display:grid;grid-template-columns:74px 78px max-content minmax(130px,1fr) minmax(90px,1fr) 62px 56px 30px;gap:6px;align-items:center;overflow-x:auto;padding-bottom:4px}
+.vc-scroll .reg-rows,.vc-scroll .vc-row,.vc-scroll .vc-head,.vc-scroll .vc-add{display:contents}
+.vc-scroll .empty{grid-column:1 / -1}
+.vc-scroll input,.vc-scroll select{min-width:0}
+.vc-add > *{margin-top:8px}
+.vc-row.vc-capital > :first-child{box-shadow:inset 3px 0 0 #7c3aed}
+.vc-row.vc-interior > :first-child{box-shadow:inset 3px 0 0 #0ea5e9}
+/* botões de ícone: azul = adicionar, vermelho = remover/excluir */
+.ibtn{display:inline-flex;align-items:center;justify-content:center;gap:5px;width:28px;height:28px;padding:0;border-radius:7px;border:1px solid transparent;cursor:pointer;line-height:1;transition:background .12s,color .12s}
+.ibtn .ic{width:16px;height:16px;flex:0 0 auto}
+.ibtn-blue{background:#2563eb;border-color:#2563eb;color:#fff}
+.ibtn-blue:hover{background:#1d4ed8;border-color:#1d4ed8}
+.ibtn-red{background:#fff;border-color:#fca5a5;color:#dc2626}
+.ibtn-red:hover:not(:disabled){background:#dc2626;border-color:#dc2626;color:#fff}
+.ibtn:disabled{opacity:.4;cursor:not-allowed}
+.ibtn.ibtn-txt{width:auto;padding:0 10px;font-size:12px;font-weight:600}
+.map-table .ibtn{width:24px;height:24px;padding:0}
+.map-table .ibtn .ic{width:14px;height:14px}
 @media (max-width:720px){
   #settings{padding:0}
   .sw-win{width:100vw !important;height:100vh !important;max-width:none;max-height:none;border-radius:0;resize:none;min-width:0}
@@ -1580,12 +1594,12 @@ html.gerencial-request #settings{display:none!important}
       <div class="reg-add vc-add">
         <input id="reg-add-placa" class="mono" placeholder="placa">
         <select id="reg-add-tipo"><option value="">—</option><option value="capital">Capital</option><option value="interior">Interior</option></select>
-        <input id="reg-add-mot" maxlength="32" placeholder="motorista">
+        <input id="reg-add-mot" maxlength="32" size="10" placeholder="motorista">
         <input id="reg-add-transp" placeholder="transportadora">
         <input id="reg-add-ajud" placeholder="ajudantes">
         <input id="reg-add-vkg" type="number" step="any" placeholder="vr/kg">
-        <input id="reg-add-neg" placeholder="neg?">
-        <button class="btn mini" id="btn-reg-add" title="Adicionar / atualizar veículo">＋</button>
+        <span></span>
+        <button class="btn mini ibtn ibtn-blue" id="btn-reg-add" type="button" title="Adicionar / atualizar veículo" aria-label="Adicionar / atualizar veículo"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg></button>
       </div>
     </div>
   </section>
@@ -3009,7 +3023,7 @@ function cellHtml(sec, r, c, x){
         '<select data-act="move" title="mover para outra seção">' +
           SECTIONS.map(s=>'<option value="'+s+'"'+(s===sec?' selected':'')+'>'+(s==='frotas'?'Frotas':s==='capital'?'Capital':'Interior')+'</option>').join('') +
         '</select> ' +
-        '<button class="btn mini" data-act="del" title="Remover linha">' + MIC.trash + '</button></td>';
+        '<button class="btn mini ibtn ibtn-red" data-act="del" title="Remover linha" aria-label="Remover linha">' + MIC.trash + '</button></td>';
     case 'placa':
       { const cfP = (sec !== 'frotas' && rowTemCarga(r)) ? tipoConflito(r.placa, sec, r.id) : null;
         return '<td class="td-placa"><input type="text" class="mono' + (cfP ? ' plate-conflict' : '') + '" data-field="placa" value="'+esc(r.placa)+'" placeholder="placa"' +
@@ -3196,7 +3210,7 @@ function renderPool(){
         '<input type="text" data-act="pool-kw" placeholder="palavra-chave">' +
         '<label class="chk"><input type="checkbox" data-act="pool-remember"> lembrar palavra</label>' +
         '<button class="btn mini" data-act="pool-ok" style="background:var(--ok);color:#fff;border-color:var(--ok)">✓ Confirmar</button>' +
-        '<button class="btn mini" data-act="pool-x" title="Descartar">✕</button>' +
+        '<button class="btn mini ibtn ibtn-red" data-act="pool-x" title="Descartar" aria-label="Descartar">' + MIC.x + '</button>' +
       '</div>' +
     '</div>';
   }).join('');
@@ -3272,7 +3286,7 @@ function escRenderManage(){
     '<div class="esc-item' + (n === ESC_ACTIVE ? ' cur' : '') + '"><b>' + ESC_ORD[n] + ' escala</b>' +
     '<span class="esc-info">Entrega ' + esc(fmtBR(escDt(n)) || 'sem data') + ' · ' + escCount(n) + ' carga(s)' + (n === ESC_ACTIVE ? ' · aberta agora' : '') + '</span>' +
     (n === ESC_ACTIVE ? '' : '<button class="btn mini" type="button" data-esc-open="' + n + '">Abrir</button>') +
-    '<button class="btn mini danger" type="button" data-esc-del="' + n + '" title="Excluir esta escala e todas as suas cargas">🗑 Excluir</button></div>').join('');
+    '<button class="btn mini ibtn ibtn-red ibtn-txt" type="button" data-esc-del="' + n + '" title="Excluir esta escala e todas as suas cargas">' + MIC.trash + ' Excluir</button></div>').join('');
 }
 /* cria a 2ª escala (vazia) e passa a editá-la; a atual vira a 1ª (oculta). Devolve {ok,msg} */
 function escCreate(dt2){
@@ -3753,6 +3767,8 @@ const MIC = {
   pkg: '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="M3.3 7 12 12l8.7-5"/><path d="m7.5 4.27 9 5.15"/></svg>',
   build: '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4M10 10h4M10 14h4M10 18h4"/></svg>',
   home: '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/><path d="M9 22V12h6v10"/></svg>',
+  plus: '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>',
+  x: '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>',
   trash: '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M10 11v6M14 11v6"/></svg>'
 };
 function updateDocHeader(){
@@ -8473,7 +8489,7 @@ function renderTranspCodes(){
       '<input type="text" data-transp="nome" value="' + esc(k) + '">' +
       '<input type="text" class="mono" data-transp="cod" value="' + esc(v == null ? '' : v) + '">' +
       '<input type="text" class="mono" data-transp="zap" value="' + esc(TRANSP_ZAP[k] || '') + '">' +
-      '<button class="btn mini" data-act="transp-del" title="Remover">🗑</button>' +
+      '<button class="btn mini ibtn ibtn-red" data-act="transp-del" title="Remover" aria-label="Remover">' + MIC.trash + '</button>' +
     '</div>';
   }).join('') : '<div class="empty">Nenhum código cadastrado. Adicione abaixo (ou digite direto na tela de fechamento — o app lembra).</div>';
 }
@@ -10131,7 +10147,7 @@ function renderDashDaily(){
       const isToday = d.date === currentMapDate;
       const dCargas = showFrotas ? m2.cargas : (m2.cargas - (m2.frotasCargas||0));
       const dPeso = showFrotas ? m2.peso : (m2.capPeso + m2.intPeso);
-      const delCell = admCol ? '<td>' + (isToday? '' : '<button class="btn mini del-day" type="button" data-del-date="'+d.date+'" title="Excluir o histórico de '+fmtBR(d.date)+' (admin + senha)">🗑</button>') + '</td>' : '';
+      const delCell = admCol ? '<td>' + (isToday? '' : '<button class="btn mini ibtn ibtn-red del-day" type="button" data-del-date="'+d.date+'" title="Excluir o histórico de '+fmtBR(d.date)+' (admin + senha)" aria-label="Excluir histórico">'+MIC.trash+'</button>') + '</td>' : '';
       return '<tr class="'+(isToday?'today':'')+'" data-date="'+d.date+'" title="Clique para abrir o mapa de '+fmtBR(d.date)+'">' +
         '<td>'+fmtBR(d.date)+(isToday?' <b>(hoje)</b>':'')+'</td>' +
         '<td>'+fmtInt(dCargas)+'</td>' +
@@ -10647,7 +10663,7 @@ async function renderUsers(){
       '<span class="user-name" title="nível ' + u.level + ' · ' + PERM[u.level].label + '">' + (isAdm ? '🔒 ' : '') + esc(u.name) + '</span>' +
       '<select data-userf="level"' + (isAdm ? ' disabled' : '') + '>' + opts + '</select>' +
       '<button class="btn mini" type="button" data-act="user-pass" title="Redefinir senha"' + (isAdm ? ' disabled' : '') + '>🔑</button>' +
-      '<button class="btn mini" type="button" data-act="user-del" title="Excluir usuário"' + (isAdm ? ' disabled' : '') + '>🗑</button>' +
+      '<button class="btn mini ibtn ibtn-red" type="button" data-act="user-del" title="Excluir usuário" aria-label="Excluir usuário"' + (isAdm ? ' disabled' : '') + '>' + MIC.trash + '</button>' +
     '</div>';
   }).join('');
 }
@@ -10869,7 +10885,7 @@ function renderFrotaTripulacao(){
       '<input type="text" data-trip="motorista" maxlength="32" value="'+esc(v.motorista||'')+'" placeholder="motorista">' +
       '<input type="text" data-trip="ajudante" value="'+esc(v.ajudante||'')+'" placeholder="1º ajudante">' +
       '<input type="text" data-trip="ajudante2" value="'+esc(v.ajudante2||'')+'" placeholder="2º ajudante">' +
-      '<button class="btn mini" data-act="trip-del" title="Remover / limpar">🗑</button>' +
+      '<button class="btn mini ibtn ibtn-red" data-act="trip-del" title="Remover / limpar" aria-label="Remover / limpar">' + MIC.trash + '</button>' +
     '</div>';
   }).join('') : '<div class="empty">Nenhuma tripulação cadastrada. Adicione abaixo.</div>';
 }
@@ -10880,7 +10896,7 @@ function renderRotas(){
     return '<div class="reg-row rotas-row" data-key="'+esc(k)+'">' +
       '<input type="text" class="mono" data-rota="rota" value="'+esc(k)+'">' +
       '<input type="number" step="1" min="1" data-rota="dias" value="'+esc(v)+'">' +
-      '<button class="btn mini" data-act="rota-del" title="Remover">🗑</button>' +
+      '<button class="btn mini ibtn ibtn-red" data-act="rota-del" title="Remover" aria-label="Remover">' + MIC.trash + '</button>' +
     '</div>';
   }).join('') : '<div class="empty">Nenhuma rota cadastrada. Adicione abaixo.</div>';
 }
@@ -10906,12 +10922,12 @@ function renderRegistry(){
     return '<div class="reg-row vc-row' + (tp ? ' vc-' + tp : '') + '" data-key="'+esc(k)+'">' +
       '<input type="text" class="mono" data-reg="placa" value="'+esc(k)+'">' +
       '<select data-reg="tipo" title="Capital / Interior = aparece na Pré-escala do mapa · — = só pré-cadastro">' + opt('', tp, '—') + opt('capital', tp, 'Capital') + opt('interior', tp, 'Interior') + '</select>' +
-      '<input type="text" data-reg="motorista" maxlength="32" value="'+esc(v.motorista||'')+'" placeholder="motorista">' +
+      '<input type="text" data-reg="motorista" maxlength="32" size="'+Math.max(10, String(v.motorista||'').length + 1)+'" value="'+esc(v.motorista||'')+'" placeholder="motorista">' +
       '<input type="text" data-reg="transportadora" value="'+esc(v.transportadora||'')+'" placeholder="transportadora">' +
       '<input type="text" data-reg="ajudantes" value="'+esc(v.ajudantes||'')+'" placeholder="ajudantes">' +
       '<input type="number" step="any" data-reg="valorKg" value="'+esc(v.valorKg==null?'':v.valorKg)+'">' +
       '<input type="text" data-reg="neg" value="'+esc(v.neg||'')+'">' +
-      '<button class="btn mini" data-act="reg-del" title="Remover o veículo do cadastro (e da pré-escala)">🗑</button>' +
+      '<button class="btn mini ibtn ibtn-red" data-act="reg-del" title="Remover o veículo do cadastro (e da pré-escala)" aria-label="Remover veículo">' + MIC.trash + '</button>' +
     '</div>';
   }).join('') : '<div class="empty">' + (all.length ? 'Nenhum veículo com esse filtro.' : 'Nenhum cadastro. Adicione abaixo.') + '</div>';
 }
@@ -11513,10 +11529,10 @@ function bindStatic(){
     v.transportadora = $('#reg-add-transp').value.trim() || v.transportadora || '';
     v.ajudantes = $('#reg-add-ajud').value.trim() || v.ajudantes || '';
     const vk = $('#reg-add-vkg').value.trim(); if(vk || !existia) v.valorKg = vk;
-    const ng = $('#reg-add-neg').value.trim(); if(ng || !existia) v.neg = ng;
+    if(v.neg == null) v.neg = '';   // o campo Neg segue nas linhas; só não é mais digitado no "adicionar"
     REGISTRY[k] = vcTouch(v);
     saveSettings();
-    for(const id of ['placa','mot','transp','ajud','vkg','neg']) $('#reg-add-' + id).value = '';
+    for(const id of ['placa','mot','transp','ajud','vkg']) $('#reg-add-' + id).value = '';
     $('#reg-add-tipo').value = '';
     renderRegistry();
     renderAll();
@@ -11564,6 +11580,8 @@ function bindStatic(){
     renderAll();
     toast('🗑 ' + k + ' removida do cadastro', 'ok');
   });
+  $('#registry-rows').addEventListener('input', e=>{ if(e.target.dataset && e.target.dataset.reg === 'motorista') e.target.size = Math.max(10, e.target.value.length + 1); });   // coluna Motorista acompanha o texto
+  $('#reg-add-mot').addEventListener('input', e=>{ e.target.size = Math.max(10, e.target.value.length + 1); });
   $('#vc-q').addEventListener('input', renderRegistry);
   $('#vc-f').addEventListener('change', renderRegistry);
 
