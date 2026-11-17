@@ -186,7 +186,7 @@ test('resumo do fechamento: grupos na tela e tabela contínua/branca na impress�
   for(const x of ['@page{size:A4 landscape;margin:10mm}','body{font-family:Arial,Helvetica,sans-serif;margin:0;color:#0f172a}',
     '.print-table thead{display:table-header-group}','.print-table tr.carrier-pack{break-inside:avoid !important;page-break-inside:avoid !important}',
     'td{white-space:nowrap}','.print-table{border-collapse:collapse;width:100%;font-size:11px;table-layout:fixed;background:#fff !important}',
-    '.carrier-data tr.res-sub td{background:#1f1f1f !important;color:#fff !important']) assert.ok(css.includes(x),x);
+    '.carrier-data tr.res-sub td{background:#d9d9d9 !important;color:#000 !important;font-weight:700;font-style:italic']) assert.ok(css.includes(x),x);
   const printHtml=c.printResumoRowsHtml([
     {t:'reg',regiao:'Interior',transp:'T1',codigo:'7',peso:5,abat:null,fat:60,pagar:60},
     {t:'sub',transp:'T1',codigo:'7',peso:15,abat:0,fat:160,pagar:160},
@@ -239,7 +239,7 @@ test('impressão do resumo: iguala total filtrado da tabela, inclui PAGO, subtot
   assert.equal((printed.match(/<th(?:\s|>)/g)||[]).length,8);                   // título + as 7 colunas (sem NF/Boleto)
   assert.ok(printed.includes('Período: 01/09/2026 a 15/09/2026'));
   assert.ok(printed.includes('<td class="num">612</td>'));                       // 500 + 70 + 30 + 12 (inclui PAGO)
-  assert.ok(printed.includes('.carrier-data tr.res-sub td{background:#1f1f1f !important;color:#fff !important'));
+  assert.ok(printed.includes('.carrier-data tr.res-sub td{background:#d9d9d9 !important;color:#000 !important;font-weight:700;font-style:italic'));
   assert.ok(printed.includes('html,body{background:#fff !important}'));
 });
 test('rotas abertas: coleta só Pendente/Concluída, janela c/ filtro por coluna e download Excel filtrado',()=>{
@@ -1411,4 +1411,31 @@ test('Botões: adicionar = ícone azul, remover = ícone vermelho; sem o campo n
   for(const act of ['reg-del','trip-del','rota-del','transp-del','user-del','del','pool-x']) assert.ok(new RegExp('ibtn ibtn-red[^>]*data-act="'+act+'"').test(html), act);
   assert.ok(html.includes('.vc-scroll{display:grid;grid-template-columns:74px 78px max-content'));
   assert.equal(/data-act="[a-z-]*del"[^>]*>🗑/.test(html), false);
+});
+
+/* ===== Excel formatado: Mapa Ativo / Mapa Período ===== */
+test('Excel: botões renomeados, ExcelJS fixo com SRI e fallback simples', ()=>{
+  assert.ok(html.includes('id="btn-xls-map"') && /id="btn-xls-map"[^>]*>📥 Mapa Ativo</.test(html));
+  assert.ok(/id="btn-xls-per"[^>]*>📥 Mapa Período</.test(html));
+  assert.equal(html.includes('📥 Excel Mapa<'), false); assert.equal(html.includes('📥 Excel Período<'), false);
+  assert.ok(html.includes('exceljs/4.4.0/exceljs.min.js') && /EXCELJS_SRI = 'sha512-/.test(html));
+  assert.ok(html.includes('function xlsMapSimples(') && html.includes('xlsBuildPeriodo(EJ'));
+});
+test('Excel: planilha gerada tem as 3 abas, mesclagens, cores e totais do modelo (roda se exceljs estiver instalado)', async (t)=>{
+  let EJ; try{ EJ = require('exceljs'); }catch(e){ return t.skip('exceljs não instalado'); }
+  const c = context(); vm.runInContext(block('const XLS_C =', '/* Mapa Ativo: o que está aberto'), c);
+  const rows = n => Array.from({length:n}, (_, i)=> ({placa:'AAA'+i, destino:'D'+i, carga:'10'+i, peso:100, entregas:2, motorista:'M', aux:'T'}));
+  const wb = c.xlsBuildMapa(EJ, {fat:'11/11/2026', ent:'12/11/2026', gerado:'x', secs:[{sec:'frotas',cargas:1,rows:rows(2)},{sec:'capital',cargas:3,rows:rows(3)},{sec:'interior',cargas:2,rows:rows(2)}]});
+  assert.deepEqual(wb.worksheets.map(w=>w.name), ['Mapa de Carregamento','Dados Consolidados','Resumo']);
+  const ws = wb.getWorksheet('Mapa de Carregamento');
+  assert.equal(ws.getCell('A1').fill.fgColor.argb, 'FF1F4E79');
+  assert.ok(String(ws.getCell('A4').value).includes('FROTAS'));
+  assert.equal(ws.getCell('A4').fill.fgColor.argb, 'FF2E75B6');
+  assert.equal(ws.views[0].ySplit, 3);
+  const resumo = wb.getWorksheet('Resumo');
+  assert.equal(resumo.getCell('B8').value, 6);                  // 1 + 3 + 2 cargas
+  assert.equal(resumo.getCell('C8').value, 700);                // peso total
+  const per = c.xlsBuildPeriodo(EJ, {ini:'01/11/2026', fim:'02/11/2026', gerado:'x', dias:1, cargas:[['01/11/2026','Capital','A','D','1',10,1,'M','T',1,'',5,0.5,6]], resumo:[['01/11/2026',1,0,1,1,10,5,0,5]]});
+  assert.deepEqual(per.worksheets.map(w=>w.name), ['CARGAS','RESUMO POR DIA']);
+  assert.equal(per.getWorksheet('CARGAS').getCell('B5').fill.fgColor.argb, 'FF7030A0');
 });
