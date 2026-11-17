@@ -54,7 +54,7 @@ h1,h2,h3{margin:0}
 .topbar .btn.primary:hover{background:var(--blue-d)}
 .topbar .btn.danger{color:#fca5a5;border-color:#7f1d1d}
 .sep{width:1px;height:24px;background:#334155;margin:0 4px}
-/* AUDITORIA: botão com lista suspensa (ex.: Excel Mapa / Excel Período agrupados) */
+/* AUDITORIA: botão com lista suspensa (ex.: Mapa Ativo / Mapa Período agrupados) */
 .btn-dd{position:relative;display:inline-flex}
 .btn-dd-menu{position:absolute;top:calc(100% + 4px);left:0;z-index:60;background:#1e293b;border:1px solid #334155;border-radius:8px;padding:4px;display:flex;flex-direction:column;gap:2px;min-width:200px;box-shadow:0 12px 32px rgba(0,0,0,.35)}
 .btn-dd-menu[hidden]{display:none}
@@ -1247,8 +1247,8 @@ html.gerencial-request #settings{display:none!important}
     <div class="btn-dd" id="dd-excel">
       <button class="btn" id="btn-xls-toggle" type="button" aria-haspopup="true" aria-expanded="false" title="Exportar em Excel">📥 Excel ▾</button>
       <div class="btn-dd-menu" id="dd-excel-menu" hidden>
-        <button class="btn-dd-item" id="btn-xls-map" type="button" title="Baixar o mapa do dia em Excel (mesmo formato do print — sem valores)">📥 Excel Mapa</button>
-        <button class="btn-dd-item" id="btn-xls-per" type="button" title="Baixar em Excel TODAS as cargas de Capital e Interior de um período (com valores/negociação)">📥 Excel Período</button>
+        <button class="btn-dd-item" id="btn-xls-map" type="button" title="Baixar em Excel o mapa ATIVO (o que está aberto na tela, inclusive a escala selecionada) — planilha formatada: Mapa, Dados Consolidados e Resumo, sem valores">📥 Mapa Ativo</button>
+        <button class="btn-dd-item" id="btn-xls-per" type="button" title="Baixar em Excel TODAS as cargas de Capital e Interior de um período (com valores/negociação) — mesmo visual do Mapa Ativo">📥 Mapa Período</button>
       </div>
     </div>
     <span class="sep"></span>
@@ -1474,8 +1474,8 @@ html.gerencial-request #settings{display:none!important}
         <li><b>🖨 Mapa/Print (Mapa Sem Peso / Mapa Com Peso) / 📊 Planejamento</b>: geram a imagem A4 e perguntam a orientação (Paisagem/Retrato) e se você quer imprimir, abrir em nova guia, copiar (Ctrl+V no WhatsApp/e-mail) ou baixar o .png.</li>
         <li><b>🚀 Envio automático</b>: guia passo a passo que encadeia os 5 envios (todos os grupos) — o app copia cada imagem e avança (botão ou Enter), você só cola (Ctrl+V) e envia (Enter) na conversa indicada.</li>
         <li><b>Motorista limitado a 32 caracteres</b> em Frotas, Capital e Interior (campo, digitação, importação e dados já salvos).</li>
-        <li><b>📥 Excel Mapa</b>: exporta o mapa do dia em .xlsx no MESMO formato do print (seções FROTAS/CAPITAL/INTERIOR, colunas, totais e resumo — sem valores).</li>
-        <li><b>📥 Excel Período</b> (admin): exporta TODAS as cargas de Capital e Interior de um período (com Vlr Kg, Neg?, Previsão, Custo/kg e Valor Frete) + aba Resumo por dia. Frotas não entra.</li>
+        <li><b>📥 Mapa Ativo</b>: exporta em .xlsx o mapa que está aberto (se o dia tem 2 escalas, a escala selecionada), formatado como o mapa impresso: aba <b>Mapa de Carregamento</b> (FROTAS/CAPITAL/INTERIOR com cores, totais e quadro de resumo), aba <b>Dados Consolidados</b> (lista única com filtro) e aba <b>Resumo</b> — sem valores.</li>
+        <li><b>📥 Mapa Período</b> (admin): exporta TODAS as cargas de Capital e Interior de um período (com Vlr Kg, Neg?, Previsão, Custo/kg e Valor Frete) + aba Resumo por dia. Frotas não entra.</li>
         <li><b>💰 Economia com negociação no resumo do Mapa Gerencial</b>: tabela (+ margem) − frete efetivo, em Geral (só Capital + Interior) e em cada seção contratada. Verde = economia; vermelho = acréscimo; Frotas sem negociação.</li>
         <li><b>🎨 Cores de status no Mapa de Carregamento</b>: linha <b>verde claro</b> = carga <b>Concluída</b> (✔ Concluir) · linha <b>cinza prateado</b>, com letras em <b>cinza escuro e itálico</b> = carga <b>Fechada</b> (🔒 fechamento de frete já feito — não pode ser editada, só reaberta pelo ↺ do fechamento) · sem cor = <b>Pendente</b>. As cores valem na tela e nos prints A4 do mapa.</li>
         <li><b>📋 Fechamento de Fretes — filtro por Status</b>: além dos filtros de texto/valor e do <b>Tipo</b> (Capital/Interior), dá para filtrar por <b>Status</b>: <b>Pendente</b>, <b>Concluída</b>, <b>Em análise (antigo)</b> ou <b>Fechada</b>. Filtrar por <b>Fechada</b> marca &quot;Exibir fechadas&quot; sozinho (e desmarcar a caixa volta o filtro para Todas).</li>
@@ -5416,8 +5416,229 @@ function kmPortStart(file){
 }
 
 /* ================= Exportação Excel (SheetJS) ================= */
-/* Mapa do dia em Excel — MESMO formato do print (seções, colunas, totais e resumo; SEM valores) */
-function xlsMapCompleto(){
+/* ===== Excel FORMATADO (ExcelJS, carregado sob demanda) — visual da planilha "Mapa de Carregamento" =====
+   O SheetJS gratuito não grava cores/bordas/mesclagens; por isso o ExcelJS (cdnjs, versão fixa + SRI). Se ele não carregar,
+   cai na versão simples (xlsMapSimples / escrita SheetJS em xlsPeriodo) e avisa. */
+const EXCELJS_URL = 'https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js';
+const EXCELJS_SRI = 'sha512-dlPw+ytv/6JyepmelABrgeYgHI0O+frEwgfnPdXDTOIZz+eDgfW07QXG02/O8COfivBdGNINy+Vex+lYmJ5rxw==';
+let EXCELJS_P = null;
+function loadExcelJS(){
+  if(typeof window !== 'undefined' && window.ExcelJS) return Promise.resolve(window.ExcelJS);
+  if(EXCELJS_P) return EXCELJS_P;
+  EXCELJS_P = new Promise((res, rej)=>{
+    const sc = document.createElement('script');
+    sc.src = EXCELJS_URL; sc.integrity = EXCELJS_SRI; sc.crossOrigin = 'anonymous'; sc.referrerPolicy = 'no-referrer';
+    sc.onload = ()=> window.ExcelJS ? res(window.ExcelJS) : (EXCELJS_P = null, rej(new Error('ExcelJS não definido')));
+    sc.onerror = ()=>{ EXCELJS_P = null; rej(new Error('falha ao carregar o ExcelJS (sem internet ou bloqueado)')); };
+    document.head.appendChild(sc);
+  });
+  return EXCELJS_P;
+}
+async function xlsDownload(wb, name){
+  const buf = await wb.xlsx.writeBuffer();
+  const blob = new Blob([buf], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=> URL.revokeObjectURL(url), 5000);
+}
+const XLS_C = {navy:'FF1F4E79', head:'FF2F5496', frotas:'FF2E75B6', capital:'FF7030A0', interior:'FFC65911', zebra:'FFF2F2F2', total:'FFD9E2F3', box:'FFFFF2CC', line:'FFB0B0B0', white:'FFFFFFFF'};
+const XLS_FMT = '#,##0.00';
+function xlsPut(ws, addr, value, o){
+  o = o || {};
+  const c = ws.getCell(addr);
+  if(value !== undefined) c.value = value;
+  c.font = {name:'Arial', size: o.size || 10, bold: !!o.bold, color: o.color ? {argb: o.color} : undefined};
+  if(o.fill) c.fill = {type:'pattern', pattern:'solid', fgColor:{argb: o.fill}};
+  c.alignment = {horizontal: o.h, vertical:'middle', wrapText: !!o.wrap};
+  if(o.fmt) c.numFmt = o.fmt;
+  if(o.border !== false){ const t = {style:'thin', color:{argb: XLS_C.line}}; c.border = {top:t, left:t, bottom:t, right:t}; }
+  return c;
+}
+function xlsCols(n){ return String.fromCharCode(64 + n); }   // 1→A … (até Z)
+/* faixa de título (linhas 1 e 2, mescladas) */
+function xlsBanner(ws, lastCol, title, sub, h2){
+  ws.mergeCells('A1:' + lastCol + '1'); ws.mergeCells('A2:' + lastCol + '2');
+  xlsPut(ws, 'A1', title, {size:16, bold:true, color:XLS_C.white, fill:XLS_C.navy, h:'center', wrap:true, border:false});
+  xlsPut(ws, 'A2', sub,   {size:10, color:XLS_C.white, fill:XLS_C.navy, h:'center', wrap:true, border:false});
+  ws.getRow(1).height = 28; if(h2 !== 0) ws.getRow(2).height = h2 || 22;
+}
+/* m = {fat, ent, gerado, secs:[{sec, cargas, rows:[{placa,destino,carga,peso,entregas,motorista,aux}]}]} — números já numéricos */
+function xlsBuildMapa(ExcelJS, m){
+  const wb = new ExcelJS.Workbook(); wb.creator = 'Mapa Frico'; wb.created = new Date();
+  const sub = 'Faturamento: ' + m.fat + '  |  Entrega: ' + (m.ent || '—') + '  |  Gerado em: ' + m.gerado;
+  const TIT = {frotas:['🚛  FROTAS', XLS_C.frotas], capital:['🏢  CAPITAL', XLS_C.capital], interior:['🏠  INTERIOR', XLS_C.interior]};
+  const NOME = {frotas:'FROTAS', capital:'CAPITAL', interior:'INTERIOR'};
+  const nz = v => (Number(v) > 0 ? Number(v) : null);
+  const tot = {};
+  /* ---- aba 1: Mapa de Carregamento ---- */
+  const ws = wb.addWorksheet('Mapa de Carregamento');
+  ws.columns = [12, 22, 18, 12, 11, 32, 26].map(width=> ({width}));
+  xlsBanner(ws, 'G', 'MAPA DE CARREGAMENTO', sub);
+  ws.views = [{state:'frozen', ySplit:3}];
+  let r = 4, ultTot = 0;
+  for(const g of m.secs){
+    const [titulo, cor] = TIT[g.sec];
+    ws.mergeCells('A' + r + ':G' + r);
+    for(let c = 1; c <= 7; c++) xlsPut(ws, xlsCols(c) + r, c === 1 ? titulo + '  —  ' + g.cargas + ' carga(s)' : undefined, {size:11, bold:true, color:XLS_C.white, fill:cor, h:'left'});
+    ws.getRow(r).height = 22; r++;
+    ['Placa','Destino','Nº Carga','Peso (kg)','T.Entrega','Motorista', g.sec === 'frotas' ? 'Ajud./Transportador' : 'Transportador'].forEach((h, i)=>
+      xlsPut(ws, xlsCols(i + 1) + r, h, {bold:true, color:XLS_C.white, fill:XLS_C.head, h:'center', wrap:true}));
+    ws.getRow(r).height = 20; r++;
+    g.rows.forEach((x, i)=>{
+      const f = i % 2 === 1 ? XLS_C.zebra : undefined;
+      xlsPut(ws, 'A' + r, x.placa || null,    {fill:f, h:'center', wrap:true});
+      xlsPut(ws, 'B' + r, x.destino || null,  {fill:f, h:'left', wrap:true});
+      xlsPut(ws, 'C' + r, x.carga || null,    {fill:f, h:'center', wrap:true});
+      xlsPut(ws, 'D' + r, nz(x.peso),         {fill:f, h:'right', fmt: nz(x.peso) !== null ? XLS_FMT : undefined});
+      xlsPut(ws, 'E' + r, nz(x.entregas),     {fill:f, h:'center', wrap:true});
+      xlsPut(ws, 'F' + r, x.motorista || null,{fill:f, h:'left', wrap:true});
+      xlsPut(ws, 'G' + r, x.aux || null,      {fill:f, h:'left', wrap:true});
+      r++;
+    });
+    const peso = g.rows.reduce((a, x)=> a + (Number(x.peso) || 0), 0), ent = g.rows.reduce((a, x)=> a + (Number(x.entregas) || 0), 0);
+    tot[g.sec] = {cargas:g.cargas, peso, ent};
+    for(let c = 1; c <= 7; c++) xlsPut(ws, xlsCols(c) + r, c === 1 ? 'Totais (' + g.cargas + ')' : c === 4 ? peso : c === 5 ? ent : undefined,
+      {bold:true, fill:XLS_C.total, h: c === 4 ? 'right' : c === 5 ? 'center' : undefined, wrap: c === 5, fmt: c === 4 ? XLS_FMT : undefined});
+    ultTot = r; r += 2;
+  }
+  const T = {cargas:0, peso:0, ent:0}; for(const k in tot){ T.cargas += tot[k].cargas; T.peso += tot[k].peso; T.ent += tot[k].ent; }
+  const sr = ultTot + 3;
+  [['A','B','CARGAS', T.cargas, undefined], ['C','D','PESO TOTAL', T.peso, '#,##0.00" kg"'], ['E','F','ENTREGAS', T.ent, undefined]].forEach(([c1, c2, lbl, val, fmt])=>{
+    ws.mergeCells(c1 + sr + ':' + c2 + sr); ws.mergeCells(c1 + (sr + 1) + ':' + c2 + (sr + 1));
+    for(const c of [c1, c2]){
+      xlsPut(ws, c + sr, c === c1 ? lbl : undefined, {bold:true, fill:XLS_C.box, h:'center', wrap:true});
+      xlsPut(ws, c + (sr + 1), c === c1 ? val : undefined, {size:14, bold:true, fill:XLS_C.box, h:'center', wrap:true, fmt});
+    }
+  });
+  /* ---- aba 2: Dados Consolidados ---- */
+  const wd = wb.addWorksheet('Dados Consolidados');
+  wd.columns = [12, 12, 22, 18, 12, 11, 32, 26].map(width=> ({width}));
+  ['Categoria','Placa','Destino','Nº Carga','Peso (kg)','T.Entrega','Motorista','Ajud./Transportador'].forEach((h, i)=>
+    xlsPut(wd, xlsCols(i + 1) + '1', h, {bold:true, color:XLS_C.white, fill:XLS_C.navy, h:'center', wrap:true}));
+  wd.views = [{state:'frozen', ySplit:1}];
+  let k = 2, i2 = 0, pesoG = 0, entG = 0;
+  for(const g of m.secs) for(const x of g.rows){
+    const f = i2 % 2 === 0 ? XLS_C.zebra : undefined;
+    xlsPut(wd, 'A' + k, NOME[g.sec],        {fill:f, h:'left', wrap:true});
+    xlsPut(wd, 'B' + k, x.placa || null,    {fill:f, h:'center', wrap:true});
+    xlsPut(wd, 'C' + k, x.destino || null,  {fill:f, h:'left', wrap:true});
+    xlsPut(wd, 'D' + k, x.carga || null,    {fill:f, h:'center', wrap:true});
+    xlsPut(wd, 'E' + k, nz(x.peso),         {fill:f, h:'right', fmt: nz(x.peso) !== null ? XLS_FMT : undefined});
+    xlsPut(wd, 'F' + k, nz(x.entregas),     {fill:f, h:'center', wrap:true});
+    xlsPut(wd, 'G' + k, x.motorista || null,{fill:f, h:'left', wrap:true});
+    xlsPut(wd, 'H' + k, x.aux || null,      {fill:f, h:'left', wrap:true});
+    pesoG += Number(x.peso) || 0; entG += Number(x.entregas) || 0; i2++; k++;
+  }
+  if(k > 2) wd.autoFilter = 'A1:H' + (k - 1);
+  for(let c = 1; c <= 8; c++) xlsPut(wd, xlsCols(c) + k, c === 1 ? 'TOTAL GERAL' : c === 5 ? pesoG : c === 6 ? entG : undefined, {bold:true, fill:XLS_C.total, fmt: c === 5 ? XLS_FMT : undefined});
+  /* ---- aba 3: Resumo ---- */
+  const wr = wb.addWorksheet('Resumo');
+  wr.columns = [14, 14, 16, 12].map(width=> ({width}));
+  xlsBanner(wr, 'D', 'RESUMO DO MAPA DE CARREGAMENTO', 'Faturamento: ' + m.fat + '  |  Entrega: ' + (m.ent || '—'), 0);
+  ['Categoria','Qtd. Cargas','Peso Total (kg)','T.Entrega'].forEach((h, i)=>
+    xlsPut(wr, xlsCols(i + 1) + '4', h, {bold:true, color:XLS_C.white, fill:XLS_C.head, h:'center', wrap:true}));
+  let q = 5;
+  for(const g of m.secs){
+    const t = tot[g.sec];
+    xlsPut(wr, 'A' + q, NOME[g.sec], {bold:true, color:XLS_C.white, fill:TIT[g.sec][1]});
+    xlsPut(wr, 'B' + q, t.cargas, {h:'center', wrap:true});
+    xlsPut(wr, 'C' + q, t.peso, {h:'right', fmt:XLS_FMT});
+    xlsPut(wr, 'D' + q, t.ent, {h:'center', wrap:true});
+    q++;
+  }
+  xlsPut(wr, 'A' + q, 'TOTAL', {bold:true, fill:XLS_C.total});
+  xlsPut(wr, 'B' + q, T.cargas, {bold:true, fill:XLS_C.total, h:'center', wrap:true});
+  xlsPut(wr, 'C' + q, T.peso, {bold:true, fill:XLS_C.total, h:'right', fmt:XLS_FMT});
+  xlsPut(wr, 'D' + q, T.ent, {bold:true, fill:XLS_C.total, h:'center', wrap:true});
+  return wb;
+}
+/* Mapa Período: m = {ini, fim, gerado, dias, cargas:[[14 colunas]], resumo:[[9 colunas]]} */
+function xlsBuildPeriodo(ExcelJS, m){
+  const wb = new ExcelJS.Workbook(); wb.creator = 'Mapa Frico'; wb.created = new Date();
+  const sub = 'Capital + Interior  |  ' + m.cargas.length + ' carga(s) em ' + m.dias + ' dia(s)  |  Gerado em: ' + m.gerado;
+  const z = v => (Number(v) > 0 ? Number(v) : null);
+  /* ---- CARGAS ---- */
+  const ws = wb.addWorksheet('CARGAS');
+  const W = [12, 11, 12, 28, 20, 12, 10, 28, 26, 10, 8, 16, 11, 16];
+  ws.columns = W.map(width=> ({width}));
+  xlsBanner(ws, 'N', 'MAPA DE CARREGAMENTO — PERÍODO ' + m.ini + ' a ' + m.fim, sub);
+  ['Data','Seção','Placa','Destino','Nº Carga','Peso (kg)','T.Entrega','Motorista','Transportador','Vlr Kg','Neg?','Previsão de frete (R$)','Custo/kg','Valor Frete (R$)'].forEach((h, i)=>
+    xlsPut(ws, xlsCols(i + 1) + '4', h, {bold:true, color:XLS_C.white, fill:XLS_C.head, h:'center', wrap:true}));
+  ws.getRow(4).height = 32;
+  ws.views = [{state:'frozen', ySplit:4}];
+  let r = 5;
+  m.cargas.forEach((c, i)=>{
+    const f = i % 2 === 1 ? XLS_C.zebra : undefined;
+    const isC = c[1] === 'Capital';
+    xlsPut(ws, 'A' + r, c[0], {fill:f, h:'center'});
+    xlsPut(ws, 'B' + r, c[1], {bold:true, color:XLS_C.white, fill: isC ? XLS_C.capital : XLS_C.interior, h:'center'});
+    xlsPut(ws, 'C' + r, c[2] || null, {fill:f, h:'center'});
+    xlsPut(ws, 'D' + r, c[3] || null, {fill:f, h:'left', wrap:true});
+    xlsPut(ws, 'E' + r, c[4] || null, {fill:f, h:'center', wrap:true});
+    xlsPut(ws, 'F' + r, z(c[5]), {fill:f, h:'right', fmt:XLS_FMT});
+    xlsPut(ws, 'G' + r, z(c[6]), {fill:f, h:'center'});
+    xlsPut(ws, 'H' + r, c[7] || null, {fill:f, h:'left', wrap:true});
+    xlsPut(ws, 'I' + r, c[8] || null, {fill:f, h:'left', wrap:true});
+    xlsPut(ws, 'J' + r, z(c[9]), {fill:f, h:'right', fmt:XLS_FMT});
+    xlsPut(ws, 'K' + r, c[10] || null, {fill:f, h:'center'});
+    xlsPut(ws, 'L' + r, typeof c[11] === 'number' ? c[11] : null, {fill:f, h:'right', fmt:XLS_FMT});
+    xlsPut(ws, 'M' + r, typeof c[12] === 'number' ? c[12] : null, {fill:f, h:'right', fmt:'#,##0.000'});
+    xlsPut(ws, 'N' + r, z(c[13]), {fill:f, h:'right', fmt:XLS_FMT});
+    r++;
+  });
+  ws.autoFilter = 'A4:N' + (r - 1);
+  const sm = i => m.cargas.reduce((a, c)=> a + (typeof c[i] === 'number' ? c[i] : 0), 0);
+  for(let c = 1; c <= 14; c++){
+    const v = c === 1 ? 'TOTAL' : c === 6 ? sm(5) : c === 7 ? sm(6) : c === 12 ? sm(11) : c === 14 ? sm(13) : undefined;
+    xlsPut(ws, xlsCols(c) + r, v, {bold:true, fill:XLS_C.total, h: [6,12,14].includes(c) ? 'right' : c === 7 ? 'center' : undefined, fmt: [6,12,14].includes(c) ? XLS_FMT : undefined});
+  }
+  /* ---- RESUMO POR DIA ---- */
+  const wr = wb.addWorksheet('RESUMO POR DIA');
+  wr.columns = [12, 15, 15, 13, 11, 14, 20, 20, 20].map(width=> ({width}));
+  xlsBanner(wr, 'I', 'RESUMO POR DIA — CAPITAL + INTERIOR', 'Período ' + m.ini + ' a ' + m.fim + '  |  Gerado em: ' + m.gerado);
+  ['Data','Cargas Capital','Cargas Interior','Cargas Total','Entregas','Peso (kg)','Previsão Capital (R$)','Previsão Interior (R$)','Previsão Total (R$)'].forEach((h, i)=>
+    xlsPut(wr, xlsCols(i + 1) + '4', h, {bold:true, color:XLS_C.white, fill:XLS_C.head, h:'center', wrap:true}));
+  wr.getRow(4).height = 32;
+  wr.views = [{state:'frozen', ySplit:4}];
+  let q = 5;
+  m.resumo.forEach((x, i)=>{
+    const f = i % 2 === 1 ? XLS_C.zebra : undefined;
+    x.forEach((v, c)=> xlsPut(wr, xlsCols(c + 1) + q, v, {fill:f, h: c === 0 ? 'center' : (c >= 5 ? 'right' : 'center'), fmt: c >= 5 ? XLS_FMT : undefined}));
+    q++;
+  });
+  for(let c = 0; c < 9; c++){
+    const v = c === 0 ? 'TOTAL' : m.resumo.reduce((a, x)=> a + (Number(x[c]) || 0), 0);
+    xlsPut(wr, xlsCols(c + 1) + q, v, {bold:true, fill:XLS_C.total, h: c === 0 ? 'center' : (c >= 5 ? 'right' : 'center'), fmt: c >= 5 ? XLS_FMT : undefined});
+  }
+  return wb;
+}
+/* Mapa Ativo: o que está aberto na tela (se o dia tem 2 escalas, a escala selecionada) */
+async function xlsMapCompleto(){
+  if(!(SESSION && SESSION.level >= 2)){ toast('🔒 Seu nível de acesso não permite o mapa', 'err'); return; }
+  if(!DATA.frotas.length && !DATA.capital.length && !DATA.interior.length){ toast('Nenhuma carga para exportar', 'err'); return; }
+  const now = new Date();
+  const gerado = now.toLocaleDateString('pt-BR') + ' ' + now.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+  const secs = SECTIONS.map(sec=> ({
+    sec, cargas: countCargas(DATA[sec], sec),
+    rows: DATA[sec].map(r=> ({
+      placa: r.placa || '', destino: r.destino || '', carga: String(r.carga == null ? '' : r.carga).trim(),
+      peso: numVal(r.peso), entregas: numVal(r.entregas), motorista: r.motorista || '',
+      aux: sec === 'frotas' ? [r.ajudantes, r.ajudante2].map(x=> String(x || '').trim()).filter(Boolean).join(', ') : (r.transportadora || '')
+    }))
+  }));
+  const name = 'Mapa_de_Carregamento_' + fmtBR(currentMapDate).replace(/\//g, '-') + (ESC_HAS2 && dtEntrega ? '_Entrega_' + fmtBR(dtEntrega).replace(/\//g, '-') : '') + '.xlsx';
+  try{
+    const EJ = await loadExcelJS();
+    await xlsDownload(xlsBuildMapa(EJ, {fat: fmtBR(currentMapDate), ent: fmtBR(dtEntrega), gerado, secs}), name);
+    toast('📥 Excel gerado: ' + name, 'ok');
+  }catch(e){
+    console.error(e);
+    toast('⚠ Não foi possível carregar o formatador do Excel (' + e.message + ') — gerando a versão simples, sem cores', 'warn');
+    xlsMapSimples();
+  }
+}
+/* Versão SIMPLES (SheetJS, sem cores) — só usada se o formatador ExcelJS não carregar */
+function xlsMapSimples(){
   if(!(SESSION && SESSION.level >= 2)){ toast('🔒 Seu nível de acesso não permite o mapa', 'err'); return; }
   if(typeof XLSX === 'undefined'){ toast('❌ Biblioteca XLSX não carregada (sem internet para o CDN?)', 'err'); return; }
   if(!DATA.frotas.length && !DATA.capital.length && !DATA.interior.length){ toast('Nenhuma carga para exportar', 'err'); return; }
@@ -6653,13 +6874,14 @@ function printResumoCss(){
     '.carrier-data tr{break-inside:avoid !important;page-break-inside:avoid !important}' +
     'th,td{border:1px solid #64748b;padding:5px 6px;text-align:left;vertical-align:middle;background:#fff !important;color:#0f172a}' +
     'td{white-space:nowrap}' +
-    '.print-title th{border:0 !important;border-bottom:1px solid #64748b !important;padding:0 0 7px !important;text-align:left !important;white-space:normal}' +
-    '.print-title strong{display:block;font-size:14px;line-height:1.2;margin-bottom:3px}' +
-    '.print-title span{display:block;font-size:9px;font-weight:400;color:#334155}' +
+    '.print-title th{background:#000 !important;color:#fff !important;border:1px solid #000 !important;padding:7px 8px !important;text-align:left !important;white-space:normal}' +
+    '.print-title strong{display:block;font-size:14px;font-weight:700;line-height:1.2;margin-bottom:3px;color:#fff}' +
+    '.print-title span{display:block;font-size:9px;font-weight:400;color:#e2e8f0}' +
     '.print-columns th{font-weight:700;border-bottom:2px solid #334155;padding:5px 6px;vertical-align:bottom}' +
     '.print-columns th.num,.carrier-data td.num{text-align:right;white-space:nowrap}' +
-    '.carrier-data tr.res-sub td{background:#1f1f1f !important;color:#fff !important;font-weight:700;border-color:#1f1f1f;border-top:2px solid #1f1f1f}' +
+    '.carrier-data tr.res-sub td{background:#d9d9d9 !important;color:#000 !important;font-weight:700;font-style:italic;border-color:#64748b;border-top:2px solid #64748b}' +
     '.carrier-data tr.res-total td{background:#fff !important;color:#0f172a;font-weight:800;border-top:2px solid #0f172a}' +
+    '.carrier-data tr:not(.res-sub):not(.res-total) td{padding:2px 6px;line-height:1.2}' +
     '.carrier-data td.mono{font-family:ui-monospace,Consolas,monospace}';
 }
 /* O título e o cabeçalho ficam no thead (repetido pelo navegador em cada página). Cada
@@ -8540,6 +8762,17 @@ async function xlsPeriodo(start, end){
     resumo.push([fmtBR(d), pc, pi, pc+pi, ent, peso, vc, vi, vc+vi]);
   }
   if(!cargas.length){ toast('Nenhuma carga de Capital/Interior no período', 'err'); return; }
+  try{
+    const EJ = await loadExcelJS();
+    const geradoTxt = now.toLocaleDateString('pt-BR') + ' ' + now.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+    const nameX = 'Mapa_Periodo_' + fmtBR(start).replace(/\//g, '-') + '_a_' + fmtBR(end).replace(/\//g, '-') + '.xlsx';
+    await xlsDownload(xlsBuildPeriodo(EJ, {ini: fmtBR(start), fim: fmtBR(end), gerado: geradoTxt, dias: dates.length, cargas, resumo}), nameX);
+    toast('📥 Excel gerado: ' + nameX + ' — ' + cargas.length + ' carga(s) em ' + dates.length + ' dia(s)', 'ok');
+    return;
+  }catch(e){
+    console.error(e);
+    toast('⚠ Não foi possível carregar o formatador do Excel (' + e.message + ') — gerando a versão simples, sem cores', 'warn');
+  }
   const aoaC = [['CARGAS CAPITAL + INTERIOR — PERÍODO ' + fmtBR(start) + ' a ' + fmtBR(end)], [gerado], [],
     ['Data','Seção','Placa','Destino','Nº Carga','Peso (kg)','T.Entrega','Motorista','Transportador','Vlr Kg','Neg?','Previsão de frete (R$)','Custo/kg','Valor Frete (R$)']];
   for(const c of cargas) aoaC.push(c);
